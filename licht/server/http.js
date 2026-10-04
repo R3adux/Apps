@@ -91,28 +91,33 @@ async function api(hub, req, res, path, options) {
   return send(res, 405, { error: 'Methode nicht erlaubt.' });
 }
 
-async function staticFile(res, webDir, path) {
-  const file = normalize(join(webDir, path === '/' ? 'index.html' : decodeURIComponent(path)));
-  if (!file.startsWith(webDir + sep)) return send(res, 403, { error: 'Verboten.' });
-  try {
-    const body = await readFile(file);
-    res.writeHead(200, {
-      'Content-Type': TYPES[extname(file)] ?? 'application/octet-stream',
-      'Cache-Control': 'no-cache',
-    });
-    res.end(body);
-  } catch {
-    send(res, 404, { error: 'Nicht gefunden.' });
+// Serves the web app from a folder, or from memory (files embedded into Licht.exe).
+async function staticFile(res, web, path) {
+  const name = path === '/' ? '/index.html' : decodeURIComponent(path);
+  let body;
+  if (web.files) {
+    body = web.files[name];
+  } else {
+    const file = normalize(join(web.dir, name));
+    if (!file.startsWith(web.dir + sep)) return send(res, 403, { error: 'Verboten.' });
+    body = await readFile(file).catch(() => undefined);
   }
+  if (body === undefined) return send(res, 404, { error: 'Nicht gefunden.' });
+  res.writeHead(200, {
+    'Content-Type': TYPES[extname(name)] ?? 'application/octet-stream',
+    'Cache-Control': 'no-cache',
+  });
+  res.end(body);
 }
 
-export function createHttpServer(hub, { webDir, ble = false, log = console } = {}) {
-  const root = resolve(webDir);
+/** webDir: folder with the web app, or webFiles: { '/index.html': Buffer, … } */
+export function createHttpServer(hub, { webDir, webFiles, ble = false, log = console } = {}) {
+  const web = webFiles ? { files: webFiles } : { dir: resolve(webDir) };
   return createServer(async (req, res) => {
     const { pathname } = new URL(req.url, 'http://localhost');
     try {
       if (pathname.startsWith('/api/')) await api(hub, req, res, pathname, { ble });
-      else if (req.method === 'GET' || req.method === 'HEAD') await staticFile(res, root, pathname);
+      else if (req.method === 'GET' || req.method === 'HEAD') await staticFile(res, web, pathname);
       else send(res, 405, { error: 'Methode nicht erlaubt.' });
     } catch (err) {
       const status = err.status ?? 500;
