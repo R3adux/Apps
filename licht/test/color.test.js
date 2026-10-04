@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hsvToRgb, temperatureToRgb } from '../public/color.js';
+import { hsvToRgb, temperatureToRgb } from '../web/color.js';
 
 test('hsvToRgb', () => {
   assert.deepEqual(hsvToRgb(0, 1), [255, 0, 0]);

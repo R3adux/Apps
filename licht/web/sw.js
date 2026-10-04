@@ -1,5 +1,5 @@
 // Caches the app shell so it opens instantly; lamp data (/api) always comes from the network.
-const CACHE = 'licht-v1';
+const CACHE = 'licht-v2';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'api.js', 'color.js', 'icon.svg', 'manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

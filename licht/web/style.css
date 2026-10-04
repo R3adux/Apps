@@ -226,7 +226,39 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 6px; font-
   padding: 12px 16px; box-shadow: 0 12px 30px rgb(0 0 0 / 0.35);
   z-index: 10;
 }
+.toast.ok { border-color: var(--accent); }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
+}
+
+/* Lamp options */
+.light-more { width: 36px; height: 36px; color: var(--muted); flex: none; }
+.light-menu { position: absolute; right: auto; top: 0; z-index: 20; }
+.menu button.danger { color: var(--danger); }
+
+.empty { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+
+/* Dialogs */
+.dialog {
+  width: min(100vw - 32px, 440px);
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.45);
+}
+.dialog::backdrop { background: rgb(0 0 0 / 0.55); }
+.dialog form { display: flex; flex-direction: column; gap: 14px; }
+.dialog h2 { font-size: 1.25rem; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.more summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; }
+.more[open] { display: flex; flex-direction: column; gap: 12px; }
+.more[open] summary { margin-bottom: 4px; }
+.ble { border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; margin: 0; }
+.ble legend { color: var(--muted); font-size: 0.85rem; padding: 0 4px; }
+.share-code {
+  font: 700 2rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.04em; text-align: center;
+  background: var(--surface-2); border-radius: 12px; padding: 16px 8px;
+  user-select: all;
 }
