@@ -34,6 +34,7 @@ console.log('probe: simulated lamp ready on port', port);
 // What Hermes does not have (PROBE_KEEP_GLOBALS=1 to keep them, for narrowing down problems)
 if (!process.env.PROBE_KEEP_GLOBALS) {
   delete globalThis.FinalizationRegistry;
+  delete globalThis.DOMException;
   delete globalThis.SuppressedError;
   delete AbortSignal.timeout;
   delete AbortSignal.any;

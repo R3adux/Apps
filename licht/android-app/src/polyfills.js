@@ -62,3 +62,13 @@ if (typeof globalThis.AbortSignal === 'function') {
     };
   }
 }
+
+// Used to recognize aborted operations ("AbortError").
+if (typeof globalThis.DOMException !== 'function') {
+  globalThis.DOMException = class DOMException extends Error {
+    constructor(message = '', name = 'Error') {
+      super(message);
+      this.name = name;
+    }
+  };
+}
