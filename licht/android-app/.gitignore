@@ -76,3 +76,4 @@ yarn-error.log
 
 # Generated from ../web by scripts/build-web.mjs
 src/web-html.js
+scripts/.probe-shims/

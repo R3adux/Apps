@@ -40,8 +40,10 @@ jobs:
       - name: Oberfläche einbetten
         run: node scripts/build-web.mjs
 
-      - name: Schnelltest (Matter-Teil wie in der App verpackt)
-        run: npm run probe
+      - name: Schnelltest (Matter-Teil wie in der App verpackt, mit simulierter Lampe)
+        run: |
+          (cd .. && npm ci)
+          npm run probe
 
       - name: APK bauen
         working-directory: licht/android-app/android

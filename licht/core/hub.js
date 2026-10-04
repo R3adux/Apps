@@ -106,7 +106,7 @@ export class LightHub {
   }
 
   #toLight(lamp) {
-    return toLight({ id: lamp.id, name: lamp.name, online: lamp.online, attrs: lamp.attrs, features: lamp.features });
+    return toLight({ id: lamp.id, name: lamp.name, online: lamp.node.isConnected, attrs: lamp.attrs, features: lamp.features });
   }
 
   #lamp(id) {
@@ -138,6 +138,10 @@ export class LightHub {
         regulatoryCountryCode: 'DE',
         wifiNetwork: viaBle ? { wifiSsid: wifi.ssid, wifiCredentials: wifi.password ?? '' } : undefined,
       },
+    }, {
+      // We connect ourselves in #attach. matter.js would otherwise wait for an "initialized"
+      // event that can fire before it starts waiting (seen on Android), and hang forever.
+      connectNodeAfterCommissioning: false,
     });
 
     let nodeId;
@@ -218,11 +222,15 @@ export class LightHub {
 
   async update(id, change) {
     const lamp = this.#lamp(id);
-    if (!lamp.online) throw Object.assign(new Error('Lampe ist nicht erreichbar.'), { status: 503 });
     const commands = toCommands(change, lamp);
-    for (const { cluster, command, args } of commands) {
-      const client = lamp.clients[cluster];
-      await (args === undefined ? client[command]() : client[command](args));
+    try {
+      for (const { cluster, command, args } of commands) {
+        const client = lamp.clients[cluster];
+        await (args === undefined ? client[command]() : client[command](args));
+      }
+    } catch (err) {
+      logger.warn(`Command for ${id} failed`, err);
+      throw Object.assign(new Error('Lampe ist nicht erreichbar.'), { status: 503 });
     }
     lamp.attrs = applyChange(lamp.attrs, change, lamp.features);
     const light = this.#toLight(lamp);
@@ -235,12 +243,11 @@ export class LightHub {
   async #attach(nodeId) {
     const id = String(nodeId);
     const node = await this.#controller.getNode(NodeId(BigInt(id)));
-    const lamp = { id, nodeId: node.nodeId, node, ready: false, online: false, attrs: {}, features: {}, clients: {}, name: 'Lampe' };
+    const lamp = { id, nodeId: node.nodeId, node, ready: false, attrs: {}, features: {}, clients: {}, name: 'Lampe' };
     this.#lamps.set(id, lamp);
 
     node.events.stateChanged.on((state) => {
-      lamp.online = state === NodeStates.Connected;
-      if (lamp.online && node.initialized) this.#read(lamp);
+      if (state === NodeStates.Connected && node.initialized) this.#read(lamp);
       if (lamp.ready) this.#emit({ type: 'light', light: this.#toLight(lamp) });
     });
     // First from stored data (fast, maybe stale), then again once the lamp itself answered.
@@ -296,7 +303,6 @@ export class LightHub {
     }
     const info = node.basicInformation;
     lamp.name = info?.nodeLabel || info?.productLabel || info?.productName || lamp.name;
-    lamp.online = node.isConnected;
     const wasReady = lamp.ready;
     lamp.ready = true;
     lamp.readyResolve?.();
