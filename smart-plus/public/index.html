@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Licht</title>
+  <meta name="description" content="Schnelle Steuerung für SMART+ WLAN-Lampen">
+  <meta name="theme-color" content="#101217">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <main id="login" class="login" hidden>
+    <img src="icon.svg" alt="" class="login-icon" width="72" height="72">
+    <h1>Licht</h1>
+    <p class="muted">Gib das Passwort ein, das du beim Einrichten als <code>APP_PASSWORD</code> festgelegt hast.</p>
+    <form id="login-form" class="login-form">
+      <label class="field">
+        <span>Passwort</span>
+        <input id="password" type="password" autocomplete="current-password" required>
+      </label>
+      <button type="submit" class="btn primary">Verbinden</button>
+      <p id="login-error" class="error" role="alert" hidden></p>
+    </form>
+    <button id="demo-start" type="button" class="btn ghost">Ohne Lampen ausprobieren (Demo)</button>
+  </main>
+
+  <div id="app" hidden>
+    <header class="topbar">
+      <h1>Licht</h1>
+      <span id="demo-badge" class="badge" hidden>Demo</span>
+      <div class="topbar-actions">
+        <button id="all-toggle" type="button" class="btn pill">Alle aus</button>
+        <button id="menu-btn" type="button" class="icon-btn" aria-label="Menü" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+        </button>
+        <div id="menu" class="menu" role="menu" hidden>
+          <button type="button" role="menuitem" data-action="refresh">Aktualisieren</button>
+          <button type="button" role="menuitem" data-action="logout">Abmelden</button>
+        </div>
+      </div>
+    </header>
+
+    <p id="status" class="status" role="status"></p>
+    <section id="lights" class="lights" aria-live="polite"></section>
+  </div>
+
+  <div id="toast" class="toast" role="alert" hidden></div>
+
+  <template id="light-template">
+    <article class="light">
+      <div class="light-head">
+        <span class="bulb" aria-hidden="true"></span>
+        <div class="light-title">
+          <h2 class="light-name"></h2>
+          <p class="light-state"></p>
+        </div>
+        <button type="button" class="switch" role="switch" aria-checked="false">
+          <span class="knob"></span>
+        </button>
+      </div>
+      <div class="controls">
+        <div class="segmented" role="tablist">
+          <button type="button" role="tab" data-mode="white">Weiß</button>
+          <button type="button" role="tab" data-mode="colour">Farbe</button>
+        </div>
+        <label class="slider-row">
+          <span class="slider-label">Helligkeit <output class="value-brightness"></output></span>
+          <input type="range" class="range range-brightness" min="1" max="100" step="1">
+        </label>
+        <label class="slider-row only-white">
+          <span class="slider-label">Farbtemperatur</span>
+          <input type="range" class="range range-temperature" min="0" max="100" step="1">
+        </label>
+        <label class="slider-row only-colour">
+          <span class="slider-label">Farbe</span>
+          <input type="range" class="range range-hue" min="0" max="360" step="1">
+        </label>
+        <label class="slider-row only-colour">
+          <span class="slider-label">Sättigung</span>
+          <input type="range" class="range range-saturation" min="0" max="100" step="1">
+        </label>
+        <div class="swatches"></div>
+      </div>
+    </article>
+  </template>
+</body>
+</html>

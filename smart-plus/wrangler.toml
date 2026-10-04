@@ -1,0 +1,12 @@
+name = "smart-plus"
+main = "src/worker.js"
+compatibility_date = "2026-09-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[vars]
+# Central Europe data center (Smart Life accounts from Germany).
+# Western Europe: https://openapi-weaz.tuyaeu.com · Americas: https://openapi.tuyaus.com
+TUYA_ENDPOINT = "https://openapi.tuyaeu.com"
