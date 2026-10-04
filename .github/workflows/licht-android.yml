@@ -1,0 +1,113 @@
+name: Licht für Android bauen
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'licht/core/**'
+      - 'licht/web/**'
+      - 'licht/android-app/**'
+      - 'licht/test/support/**'
+      - '.github/workflows/licht-android.yml'
+      - '.github/scripts/android-selftest.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: licht/android-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Abhängigkeiten
+        run: npm ci
+
+      - name: Oberfläche einbetten
+        run: node scripts/build-web.mjs
+
+      - name: APK bauen
+        working-directory: licht/android-app/android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: APK umbenennen
+        run: cp android/app/build/outputs/apk/release/app-release.apk Licht.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Licht-Android
+          path: licht/android-app/Licht.apk
+
+  emulator-test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: Licht-Android
+
+      - name: Simulierte Matter-Lampe starten
+        working-directory: licht
+        run: |
+          npm ci
+          STORE="$RUNNER_TEMP/lamp" PORT=5540 nohup node test/support/virtual-light.mjs > "$RUNNER_TEMP/lamp.log" 2>&1 &
+          for i in $(seq 1 30); do grep -q '"ready":true' "$RUNNER_TEMP/lamp.log" && break; sleep 1; done
+          cat "$RUNNER_TEMP/lamp.log"
+
+      - name: KVM aktivieren
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: App im Emulator testen
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          LAMP_LOG: ${{ runner.temp }}/lamp.log
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: bash .github/scripts/android-selftest.sh Licht.apk
+
+  release:
+    needs: [build, emulator-test]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: Licht-Android
+
+      - name: Download-Seite (Release) aktualisieren
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete licht-android --cleanup-tag --yes || true
+          gh release create licht-android Licht.apk \
+            --target "$GITHUB_SHA" \
+            --title "Licht für Android" \
+            --notes "Licht.apk auf dem Handy herunterladen und öffnen. Beim ersten Mal fragt Android, ob der Browser Apps installieren darf: erlauben. Gebaut aus ${GITHUB_SHA:0:7}."
