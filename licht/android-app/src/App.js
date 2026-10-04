@@ -2,12 +2,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Linking, StatusBar, StyleSheet } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
+import { Logger } from '@matter/main';
 import { LightHub } from '../../core/hub.js';
 import { eventScript, handleCall, injectedApi, replyScript } from './bridge';
 import { selfTest } from './selftest';
 import webHtml from './web-html';
 
 const BACKGROUND = '#101217';
+
+// Quiet by default; the self-test turns on more detail (see selftest.js).
+Logger.level = 'warn';
 
 // One hub for the whole app lifetime.
 const hub = new LightHub({ label: 'Licht Handy', id: 'licht-android' });

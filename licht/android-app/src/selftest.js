@@ -1,6 +1,9 @@
 // Used by CI on an Android emulator: commissions a simulated lamp, switches it and
 // reports the result in the log (adb logcat, tag ReactNativeJS).
+import { Logger } from '@matter/main';
+
 export async function selfTest(hub, hubReady, url) {
+  Logger.level = 'info';
   const log = (text) => console.log(`LICHT_SELFTEST ${text}`);
   try {
     // React Native's URL has no searchParams, parse by hand.

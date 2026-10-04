@@ -15,7 +15,10 @@ for _ in $(seq 1 120); do
 done
 
 echo "----- App log -----"
-adb logcat -d | grep -E "LICHT_SELFTEST|ReactNativeJS|AndroidRuntime|FATAL" | tail -200
+# Only the interesting lines: our markers, warnings/errors, commissioning and connection steps.
+adb logcat -d | sed 's/\x1b\[[0-9;]*m//g' \
+  | grep -E "LICHT_SELFTEST|AndroidRuntime|FATAL|WARN|ERROR|commissioning step|Reconnect|Resolving|IpServiceStatus|Operational address|Connected|Mdns|mdns|UDP|Udp" \
+  | grep -v "DEBUG" | cut -c1-400 | tail -150
 echo "----- Simulated lamp -----"
 cat "$LAMP_LOG" || true
 

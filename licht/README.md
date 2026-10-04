@@ -48,7 +48,19 @@ Ein Update ist einfach die neue `Licht.exe` an dieselbe Stelle.
 **Autostart:** Win+R → `shell:startup` → dort eine Verknüpfung zu `Licht.exe` anlegen.
 
 > Läuft die Zentrale auf dem PC, geht das Handy nur, solange der PC an ist.
-> Die Android-App (in Arbeit) braucht keine Zentrale.
+> Die Android-App (siehe unten) braucht keinen PC.
+
+### Android-Handy: Licht.apk (experimentell)
+
+Die Android-App hat ihre eigene Matter-Steuerung eingebaut und funktioniert **ohne laufenden PC**.
+
+1. Auf dem Handy **[Licht.apk herunterladen](https://github.com/R3adux/Apps/releases/download/licht-android/Licht.apk)** und öffnen.
+   Android fragt, ob der Browser Apps installieren darf: erlauben.
+2. In der PC-Version von Licht beim Lampen-Menü **⋮ → Mit anderem Gerät teilen** wählen.
+3. In der Handy-App **⋯ → Lampe hinzufügen** wählen und den angezeigten Code eingeben.
+   Klappt das nicht, unter „Erweitert“ zusätzlich die IP-Adresse der Lampe angeben.
+
+Handy und Lampe müssen im selben WLAN sein.
 
 ### Raspberry Pi (oder aus dem Quellcode)
 
