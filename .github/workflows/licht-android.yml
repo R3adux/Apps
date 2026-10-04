@@ -37,6 +37,9 @@ jobs:
       - name: Abhängigkeiten
         run: npm ci
 
+      - name: Native Bausteine vollständig?
+        run: node scripts/check-native-deps.mjs
+
       - name: Oberfläche einbetten
         run: node scripts/build-web.mjs
 
