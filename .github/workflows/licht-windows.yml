@@ -28,7 +28,7 @@ jobs:
         run: npm ci
 
       - name: Tests
-        run: node --test test/model.test.js test/pairing.test.js test/http.test.js test/color.test.js
+        run: node --test test/model.test.js test/pairing.test.js test/http.test.js test/color.test.js test/hub.test.js
 
       - name: Licht.exe bauen
         run: node scripts/build-exe.mjs

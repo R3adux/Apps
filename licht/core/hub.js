@@ -2,7 +2,7 @@
 // Talks to the lamps directly in the local network – no cloud involved.
 // Platform-independent: the server (Node) and the Android app both use it.
 
-import { Environment, Logger } from '@matter/main';
+import { Environment, Logger, Minutes } from '@matter/main';
 import { BasicInformation, ColorControl, GeneralCommissioning, LevelControl, OnOff } from '@matter/main/clusters';
 import { NodeId } from '@matter/main/types';
 import { CommissioningController } from '@project-chip/matter.js';
@@ -16,7 +16,9 @@ const LIGHT_ATTRIBUTES = [
   'onOff', 'currentLevel', 'colorMode', 'currentHue', 'currentSaturation', 'currentX', 'currentY',
   'colorTemperatureMireds', 'colorTempPhysicalMinMireds', 'colorTempPhysicalMaxMireds',
 ];
-const SHARE_WINDOW_SECONDS = 15 * 60;
+const SHARE_WINDOW_SECONDS = 15 * 60; // Matter command parameter, in seconds
+// matter.js durations are in milliseconds. How long to search for and pair a new lamp.
+export const COMMISSIONING_TIMEOUT = Minutes(2);
 const MATTER_PORT = 5540;
 
 // "192.168.1.20" or "192.168.1.20:5540" → known address for faster discovery.
@@ -24,6 +26,25 @@ function parseAddress(text) {
   const match = String(text ?? '').trim().match(/^(\d{1,3}(?:\.\d{1,3}){3})(?::(\d+))?$/);
   if (!match) return undefined;
   return { ip: match[1], port: Number(match[2] ?? MATTER_PORT), type: 'udp' };
+}
+
+// Turns matter.js commissioning errors into hints a person can act on.
+export function commissioningError(err) {
+  const text = String(err?.message ?? err);
+  let hint;
+  if (/No commissionable device was discovered/i.test(text)) {
+    hint = 'Lampe nicht gefunden. Ist sie im Kopplungsmodus (Teilen-Code aus der anderen App oder frisch zurückgesetzt)? '
+      + 'Tipp: unter „Erweitert“ die IP-Adresse der Lampe angeben.';
+  } else if (/attempt\(s\) failed/i.test(text)) {
+    hint = 'Lampe gefunden, aber sie lehnt den Code ab. Ist der Code richtig und noch gültig? '
+      + 'Teilen-Codes laufen nach einigen Minuten ab – dann einen neuen erzeugen.';
+  } else if (/canceled or timed out|timed? ?out/i.test(text)) {
+    hint = 'Lampe gefunden, aber sie hat nicht rechtzeitig geantwortet. Bitte noch einmal versuchen, '
+      + 'ggf. mit IP-Adresse unter „Erweitert“.';
+  } else {
+    return err;
+  }
+  return Object.assign(new Error(`${hint} (Details: ${text})`), { status: 502 });
 }
 
 export class LightHub {
@@ -101,20 +122,26 @@ export class LightHub {
   async commission({ code, ip, wifi } = {}) {
     const { passcode, identifierData } = parsePairingCode(code);
     const viaBle = Boolean(wifi?.ssid);
-    const nodeId = await this.#controller.commissionNode({
-      passcode,
-      discovery: {
-        identifierData,
-        discoveryCapabilities: { onIpNetwork: true, ble: viaBle },
-        knownAddress: parseAddress(ip),
-        timeout: 60,
-      },
-      commissioning: {
-        regulatoryLocation: GeneralCommissioning.RegulatoryLocationType.Indoor,
-        regulatoryCountryCode: 'DE',
-        wifiNetwork: viaBle ? { wifiSsid: wifi.ssid, wifiCredentials: wifi.password ?? '' } : undefined,
-      },
-    });
+    let nodeId;
+    try {
+      nodeId = await this.#controller.commissionNode({
+        passcode,
+        discovery: {
+          identifierData,
+          discoveryCapabilities: { onIpNetwork: true, ble: viaBle },
+          knownAddress: parseAddress(ip),
+          timeout: COMMISSIONING_TIMEOUT,
+        },
+        commissioning: {
+          regulatoryLocation: GeneralCommissioning.RegulatoryLocationType.Indoor,
+          regulatoryCountryCode: 'DE',
+          wifiNetwork: viaBle ? { wifiSsid: wifi.ssid, wifiCredentials: wifi.password ?? '' } : undefined,
+        },
+      });
+    } catch (err) {
+      logger.warn('Commissioning failed', err);
+      throw commissioningError(err);
+    }
     const lamp = await this.#attach(nodeId);
     await this.#whenReady(lamp, 30_000);
     this.#emit({ type: 'lights' });
