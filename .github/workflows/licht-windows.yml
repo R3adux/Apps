@@ -2,7 +2,7 @@ name: Licht.exe bauen
 
 on:
   push:
-    branches: ['**']
+    branches: [main]
     paths: ['licht/**', '.github/workflows/licht-windows.yml']
   pull_request:
     paths: ['licht/**', '.github/workflows/licht-windows.yml']
