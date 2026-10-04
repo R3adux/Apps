@@ -7,9 +7,11 @@
 //   POST   /api/lights/:id/share     setup code for another app (e.g. the phone)
 //   DELETE /api/lights/:id           remove
 //   GET    /api/events               live updates (Server-Sent Events)
+//   GET    /api/discover             Matter devices ready to be added right now
 //   GET    /api/info                 { ble }
 
 import { createServer } from 'node:http';
+import { parsePairingCode } from '../core/pairing.js';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 
@@ -64,11 +66,29 @@ function events(hub, req, res) {
   });
 }
 
+// Lists lamps ready to be added; with ?code=… marks the ones that code belongs to.
+async function discover(hub, req) {
+  const code = new URL(req.url, 'http://localhost').searchParams.get('code');
+  let ids;
+  try {
+    ids = code ? parsePairingCode(code).identifierData : undefined;
+  } catch {
+    ids = undefined;
+  }
+  return (await hub.discover()).map((device) => ({
+    ...device,
+    matchesCode: ids
+      ? ids.shortDiscriminator === device.shortDiscriminator || ids.longDiscriminator === device.discriminator
+      : undefined,
+  }));
+}
+
 async function api(hub, req, res, path, options) {
   const { method } = req;
   if (path === '/api/info' && method === 'GET') return send(res, 200, { ble: Boolean(options.ble) });
   if (path === '/api/events' && method === 'GET') return events(hub, req, res);
   if (path === '/api/lights' && method === 'GET') return send(res, 200, { lights: hub.lights() });
+  if (path === '/api/discover' && method === 'GET') return send(res, 200, { devices: await discover(hub, req) });
   if (path === '/api/lights' && method === 'POST') {
     const { code, ip, wifi } = await readJson(req);
     const id = await hub.commission({ code, ip: ip || undefined, wifi: wifi?.ssid ? wifi : undefined });

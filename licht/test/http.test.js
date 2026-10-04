@@ -18,6 +18,7 @@ const hub = {
   async rename(id, name) { calls.push(['rename', id, name]); },
   async share(id) { calls.push(['share', id]); return { code: '12345678901', validMinutes: 15 }; },
   async remove(id) { calls.push(['remove', id]); },
+  async discover() { return [{ name: 'Lampe', discriminator: 3840, shortDiscriminator: 15, mode: 1, addresses: ['10.0.0.5:5540'] }]; },
   subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
 };
 
@@ -84,4 +85,13 @@ test('streams live updates', async () => {
   const second = new TextDecoder().decode((await reader.read()).value);
   assert.match(second, /"type":"light".*"on":true/);
   controller.abort();
+});
+
+test('network search marks devices matching the entered code', async () => {
+  const match = await (await req('/api/discover?code=3497-011-2332')).json();
+  assert.equal(match.devices[0].matchesCode, true);
+  const other = await (await req('/api/discover?code=' + encodeURIComponent('MT:Y.K90AFN00KA0648G00'))).json();
+  assert.equal(other.devices[0].matchesCode, true);
+  const none = await (await req('/api/discover')).json();
+  assert.equal(none.devices[0].matchesCode, undefined);
 });

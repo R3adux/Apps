@@ -18,6 +18,9 @@ test('commissioning errors become German hints', () => {
   const rejected = commissioningError(new Error('failed: No device could be commissioned (1 of 1 started attempt(s) failed, 1 discovered)'));
   assert.match(rejected.message, /lehnt den Code ab/);
 
+  const silent = commissioningError(new Error('[peer-communication] Could not connect to device'));
+  assert.match(silent.message, /nicht im Kopplungsmodus/);
+
   const other = new Error('something else');
   assert.equal(commissioningError(other), other);
 });

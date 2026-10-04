@@ -54,6 +54,7 @@ test('commission, control, share and remove a lamp', { timeout: 180_000 }, async
     const pc = new LightHub({ id: 'pc', label: 'Licht PC' });
     hubs.push(pc);
     await pc.start();
+    assert.ok(Array.isArray(await pc.discover(1)));
     const id = await pc.commission({ code, ip: address });
     assert.equal(pc.lights().length, 1);
     assert.equal(pc.light(id).name, 'Virtuelle A60');

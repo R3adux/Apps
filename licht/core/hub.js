@@ -2,7 +2,7 @@
 // Talks to the lamps directly in the local network – no cloud involved.
 // Platform-independent: the server (Node) and the Android app both use it.
 
-import { Environment, Logger, Minutes } from '@matter/main';
+import { Environment, Logger, Minutes, Seconds } from '@matter/main';
 import { BasicInformation, ColorControl, GeneralCommissioning, LevelControl, OnOff } from '@matter/main/clusters';
 import { NodeId } from '@matter/main/types';
 import { CommissioningController } from '@project-chip/matter.js';
@@ -38,6 +38,9 @@ export function commissioningError(err) {
   } else if (/attempt\(s\) failed/i.test(text)) {
     hint = 'Lampe gefunden, aber sie lehnt den Code ab. Ist der Code richtig und noch gültig? '
       + 'Teilen-Codes laufen nach einigen Minuten ab – dann einen neuen erzeugen.';
+  } else if (/Could not connect to device/i.test(text)) {
+    hint = 'Die Lampe antwortet nicht auf die Kopplung. Meist ist sie gerade nicht im Kopplungsmodus: '
+      + 'neuen Teilen-Code in der anderen App erzeugen und sofort eingeben. „Im Netz suchen“ zeigt, ob die Lampe bereit ist.';
   } else if (/canceled or timed out|timed? ?out/i.test(text)) {
     hint = 'Lampe gefunden, aber sie hat nicht rechtzeitig geantwortet. Bitte noch einmal versuchen, '
       + 'ggf. mit IP-Adresse unter „Erweitert“.';
@@ -122,22 +125,33 @@ export class LightHub {
   async commission({ code, ip, wifi } = {}) {
     const { passcode, identifierData } = parsePairingCode(code);
     const viaBle = Boolean(wifi?.ssid);
+    const run = (knownAddress) => this.#controller.commissionNode({
+      passcode,
+      discovery: {
+        identifierData,
+        discoveryCapabilities: { onIpNetwork: true, ble: viaBle },
+        knownAddress,
+        timeout: COMMISSIONING_TIMEOUT,
+      },
+      commissioning: {
+        regulatoryLocation: GeneralCommissioning.RegulatoryLocationType.Indoor,
+        regulatoryCountryCode: 'DE',
+        wifiNetwork: viaBle ? { wifiSsid: wifi.ssid, wifiCredentials: wifi.password ?? '' } : undefined,
+      },
+    });
+
     let nodeId;
     try {
-      nodeId = await this.#controller.commissionNode({
-        passcode,
-        discovery: {
-          identifierData,
-          discoveryCapabilities: { onIpNetwork: true, ble: viaBle },
-          knownAddress: parseAddress(ip),
-          timeout: COMMISSIONING_TIMEOUT,
-        },
-        commissioning: {
-          regulatoryLocation: GeneralCommissioning.RegulatoryLocationType.Indoor,
-          regulatoryCountryCode: 'DE',
-          wifiNetwork: viaBle ? { wifiSsid: wifi.ssid, wifiCredentials: wifi.password ?? '' } : undefined,
-        },
-      });
+      const address = parseAddress(ip);
+      if (address) {
+        try {
+          nodeId = await run(address);
+        } catch (err) {
+          // The lamp may use another port than the default – find it via the network instead.
+          logger.warn(`Commissioning via ${ip} failed, searching the network instead:`, err);
+        }
+      }
+      nodeId ??= await run(undefined);
     } catch (err) {
       logger.warn('Commissioning failed', err);
       throw commissioningError(err);
@@ -153,6 +167,28 @@ export class LightHub {
     const lamp = this.#lamp(id);
     const { manualPairingCode, qrPairingCode } = await lamp.node.openEnhancedCommissioningWindow(SHARE_WINDOW_SECONDS);
     return { code: manualPairingCode, qr: qrPairingCode, validMinutes: SHARE_WINDOW_SECONDS / 60 };
+  }
+
+  /**
+   * Lists Matter devices in the network that are ready to be added right now.
+   * mode 1 = code printed on the lamp works, mode 2 = a share code from another app works.
+   */
+  async discover(seconds = 8) {
+    const found = new Map();
+    const devices = await this.#controller.discoverCommissionableDevices(
+      {}, { onIpNetwork: true }, undefined, Seconds(seconds),
+    );
+    for (const device of devices) {
+      found.set(device.deviceIdentifier, {
+        name: device.DN || 'Matter-Gerät',
+        vendorProduct: device.VP,
+        discriminator: device.D,
+        shortDiscriminator: device.D >> 8,
+        mode: device.CM,
+        addresses: (device.addresses ?? []).filter((a) => a.type === 'udp').map((a) => `${a.ip}:${a.port}`),
+      });
+    }
+    return [...found.values()];
   }
 
   /** Removes this hub from the lamp. Other apps the lamp is shared with keep working. */

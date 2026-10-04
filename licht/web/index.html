@@ -46,10 +46,15 @@
         <span>Matter-Code</span>
         <input name="code" required autocomplete="off" inputmode="numeric" placeholder="1234-567-8901">
       </label>
+      <div class="discover">
+        <button type="button" id="discover-btn" class="btn ghost-border">Im Netz suchen</button>
+        <span class="muted small">zeigt, ob die Lampe gerade koppelbar ist</span>
+      </div>
+      <ul id="discover-result" class="discover-result" hidden></ul>
       <details class="more">
         <summary>Erweitert</summary>
         <label class="field">
-          <span>IP-Adresse der Lampe (optional, beschleunigt die Suche)</span>
+          <span>IP-Adresse der Lampe (optional, nur falls die Suche sie nicht findet)</span>
           <input name="ip" autocomplete="off" inputmode="decimal" placeholder="192.168.178.42">
         </label>
         <fieldset id="ble-fields" class="ble" hidden>

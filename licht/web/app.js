@@ -290,9 +290,45 @@ function openAddDialog() {
   $('#ble-fields').hidden = !info.ble;
   $('#add-error').hidden = true;
   $('#add-progress').hidden = true;
+  $('#discover-result').hidden = true;
   dialog.showModal();
   form.elements.code.focus();
 }
+
+const MODES = { 1: 'koppelbar mit dem Code auf der Lampe', 2: 'koppelbar mit einem Teilen-Code' };
+
+$('#discover-btn').addEventListener('click', async () => {
+  const button = $('#discover-btn');
+  const list = $('#discover-result');
+  button.disabled = true;
+  list.hidden = false;
+  list.innerHTML = '<li class="muted">Suche … (ca. 8 Sekunden)</li>';
+  try {
+    const devices = await api.discover($('#add-form').elements.code.value.trim());
+    list.innerHTML = '';
+    if (!devices.length) {
+      list.innerHTML = '<li>Keine koppelbare Lampe gefunden. Die Lampe ist gerade <b>nicht im Kopplungsmodus</b> – '
+        + 'erzeuge in der anderen App einen Teilen-Code oder setze die Lampe zurück.</li>';
+    }
+    for (const d of devices) {
+      const li = document.createElement('li');
+      const match = d.matchesCode === true ? ' <span class="ok">✓ passt zum eingegebenen Code</span>'
+        : d.matchesCode === false ? ' <span class="muted">(gehört nicht zum eingegebenen Code)</span>' : '';
+      li.innerHTML = `<b></b> – ${MODES[d.mode] ?? 'koppelbar'}${match}<br><span class="muted small"></span>`;
+      li.querySelector('b').textContent = d.name;
+      li.querySelector('.small').textContent = d.addresses.join(', ');
+      list.append(li);
+    }
+  } catch (err) {
+    list.innerHTML = '';
+    const li = document.createElement('li');
+    li.className = 'error';
+    li.textContent = err.message;
+    list.append(li);
+  } finally {
+    button.disabled = false;
+  }
+});
 
 $('#add-form').addEventListener('submit', async (event) => {
   event.preventDefault();

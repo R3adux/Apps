@@ -45,6 +45,10 @@ export class HttpApi {
     return this.#call('POST', `/api/lights/${id}/name`, { name });
   }
 
+  async discover(code) {
+    return (await this.#call('GET', `/api/discover${code ? `?code=${encodeURIComponent(code)}` : ''}`)).devices;
+  }
+
   share(id) {
     return this.#call('POST', `/api/lights/${id}/share`);
   }
@@ -110,6 +114,11 @@ export class DemoApi {
 
   async rename(id, name) {
     this.#find(id).name = name;
+  }
+
+  async discover() {
+    await sleep(1500);
+    return [{ name: 'SMART+ Classic A60', discriminator: 2400, shortDiscriminator: 9, mode: 2, addresses: ['192.168.0.50:5540'], matchesCode: true }];
   }
 
   async share() {
