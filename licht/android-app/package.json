@@ -7,7 +7,7 @@
     "bundle": "node scripts/build-web.mjs && react-native bundle --platform android --dev false --entry-file index.js --bundle-output /tmp/licht.bundle",
     "android": "react-native run-android",
     "start": "react-native start",
-    "probe": "node scripts/probe.mjs"
+    "probe": "node scripts/probe.mjs && node scripts/probe.mjs --rn"
   },
   "dependencies": {
     "@craftzdog/react-native-buffer": "^6.1.2",

@@ -8,6 +8,11 @@ const MATTER_CONDITIONS = ['static-load', 'react-native', 'import', 'default'];
 // The app shares the Matter logic with the PC hub (../core). All packages, also those
 // imported from ../core, must come from this app's node_modules.
 const config = {
+  transformer: {
+    // matter.js relies on import side effects running in order (platform setup replaces the
+    // default environment). Metro's lazy "inline requires" would run them too late.
+    getTransformOptions: async () => ({ transform: { experimentalImportSupport: false, inlineRequires: false } }),
+  },
   watchFolders: [path.resolve(__dirname, '../core')],
   resolver: {
     unstable_enablePackageExports: true,

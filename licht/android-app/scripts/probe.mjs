@@ -9,9 +9,11 @@ import { createInterface } from 'node:readline';
 
 const require = createRequire(import.meta.url);
 const dir = mkdtempSync(join(tmpdir(), 'licht-probe-'));
+// node platform (default) or the app's react-native platform with stand-ins (--rn)
+const entry = process.argv.includes('--rn') ? 'scripts/probe-rn-entry.js' : 'scripts/probe-entry.js';
 const out = join(dir, 'probe.js');
 execFileSync('npx', ['react-native', 'bundle', '--config', 'scripts/metro.probe.config.js', '--platform', 'android',
-  '--dev', 'false', '--minify', 'false', '--entry-file', 'scripts/probe-entry.js', '--bundle-output', out], { stdio: 'inherit' });
+  '--dev', 'false', '--minify', 'false', '--entry-file', entry, '--bundle-output', out], { stdio: 'inherit' });
 
 // Simulated lamp (from the PC hub's tests)
 const port = 5600 + Math.floor(Math.random() * 300);
