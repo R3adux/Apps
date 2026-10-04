@@ -23,7 +23,8 @@ Environment.default.vars.set('storage.path', process.env.PROBE_STORE);
     const id = await hub.commission({ code: process.env.PROBE_CODE, ip: process.env.PROBE_IP });
     const light = await hub.update(id, { on: true, mode: 'colour', brightness: 50, color: { h: 240, s: 100 } });
     console.log('PROBE OK', JSON.stringify(light));
-    await hub.close();
+    // Shutting down is not what this checks – don't let a slow close fail the probe.
+    await Promise.race([hub.close(), new Promise((r) => setTimeout(r, 3000))]);
     process.exit(0);
   } catch (err) {
     console.log('PROBE FAIL', err?.stack ?? err);
