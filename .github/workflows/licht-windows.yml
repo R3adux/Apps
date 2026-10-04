@@ -1,0 +1,70 @@
+name: Licht.exe bauen
+
+on:
+  push:
+    branches: ['**']
+    paths: ['licht/**', '.github/workflows/licht-windows.yml']
+  pull_request:
+    paths: ['licht/**', '.github/workflows/licht-windows.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: licht
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Abhängigkeiten
+        run: npm ci
+
+      - name: Tests
+        run: node --test test/model.test.js test/pairing.test.js test/http.test.js test/color.test.js
+
+      - name: Licht.exe bauen
+        run: node scripts/build-exe.mjs
+
+      - name: Licht.exe starten und prüfen
+        shell: pwsh
+        run: |
+          $env:LICHT_NO_BROWSER = "1"
+          $env:PORT = "8090"
+          $env:LICHT_DATA = "$env:RUNNER_TEMP\licht-data"
+          $proc = Start-Process -FilePath dist\Licht.exe -PassThru -NoNewWindow `
+            -RedirectStandardOutput "$env:RUNNER_TEMP\out.txt" -RedirectStandardError "$env:RUNNER_TEMP\err.txt"
+          $lights = $null
+          for ($i = 0; $i -lt 40 -and -not $lights; $i++) {
+            try { $lights = Invoke-RestMethod http://localhost:8090/api/lights } catch { Start-Sleep 1 }
+          }
+          Get-Content "$env:RUNNER_TEMP\out.txt", "$env:RUNNER_TEMP\err.txt"
+          if (-not $lights) { throw "Licht.exe antwortet nicht" }
+          $html = (Invoke-WebRequest http://localhost:8090/ -UseBasicParsing).Content
+          if ($html -notmatch "<title>Licht</title>") { throw "Web-App fehlt in Licht.exe" }
+          Stop-Process -Id $proc.Id
+          "Licht.exe OK ($((Get-Item dist\Licht.exe).Length / 1MB) MB)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Licht-Windows
+          path: licht/dist/Licht.exe
+
+      - name: Download-Seite (Release) aktualisieren
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete licht-latest --cleanup-tag --yes || true
+          gh release create licht-latest dist/Licht.exe \
+            --target "$GITHUB_SHA" \
+            --title "Licht für Windows" \
+            --notes "Licht.exe herunterladen und doppelklicken – die App öffnet sich im Browser. Beim ersten Start: Windows-SmartScreen → „Weitere Informationen“ → „Trotzdem ausführen“, und in der Firewall „Private Netzwerke“ erlauben. Gebaut aus ${GITHUB_SHA:0:7}."

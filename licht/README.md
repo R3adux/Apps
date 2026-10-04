@@ -21,6 +21,7 @@ Es gibt keine Cloud, kein Konto, kein Tuya und kein LEDVANCE dazwischen.
 
 | Teil | Was |
 |---|---|
+| `scripts/build-exe.mjs` | Packt alles in eine einzige Datei (`Licht.exe`) |
 | `core/` | Matter-Steuerung (Lampen aufnehmen, schalten, teilen). Wird auch von der Android-App genutzt |
 | `server/` | Die Zentrale: Web-Server + API, läuft dauerhaft auf Pi oder PC |
 | `web/` | Die Oberfläche (HTML/CSS/JS, kein Build-Schritt) |
@@ -31,9 +32,25 @@ du brauchst sie aber nicht mehr.
 
 ## Zentrale einrichten
 
-Voraussetzung: **Node.js 22** (LTS) auf dem Gerät, das dauerhaft läuft.
+### Windows-PC: Licht.exe
 
-### Raspberry Pi
+1. **[Licht.exe herunterladen](https://github.com/R3adux/Apps/releases/download/licht-latest/Licht.exe)**
+   und irgendwo ablegen, z. B. auf dem Desktop.
+2. Doppelklicken. Licht startet und öffnet sich im Browser (`http://localhost:8080`).
+   - Beim ersten Mal warnt Windows-SmartScreen, weil die Datei nicht signiert ist:
+     **„Weitere Informationen“ → „Trotzdem ausführen“**.
+   - Fragt die Firewall nach: **„Private Netzwerke“ erlauben**, sonst findet Licht die Lampe nicht.
+3. Das schwarze Fenster offen lassen. Wenn du es schließt, ist Licht beendet.
+
+Nichts weiter zu installieren. Die Kopplungsdaten liegen in `C:\Users\<Name>\.licht`.
+Ein Update ist einfach die neue `Licht.exe` an dieselbe Stelle.
+
+**Autostart:** Win+R → `shell:startup` → dort eine Verknüpfung zu `Licht.exe` anlegen.
+
+> Läuft die Zentrale auf dem PC, geht das Handy nur, solange der PC an ist.
+> Die Android-App (in Arbeit) braucht keine Zentrale.
+
+### Raspberry Pi (oder aus dem Quellcode)
 
 ```sh
 # Node.js 22 installieren (einmalig)
@@ -55,20 +72,6 @@ sudo cp server/licht.service /etc/systemd/system/
 sudo systemctl enable --now licht
 ```
 
-### Windows-PC
-
-1. [Node.js 22 LTS](https://nodejs.org) installieren.
-2. Das Repository als ZIP herunterladen und entpacken (oder `git clone`).
-3. `licht\start-windows.cmd` doppelklicken. Beim ersten Start fragt die Windows-Firewall nach:
-   **„Private Netzwerke“ erlauben** – sonst findet die Zentrale die Lampe nicht.
-4. Browser: `http://localhost:8080`
-
-Autostart: Eine Verknüpfung zu `start-windows.cmd` in den Ordner `shell:startup` legen
-(Win+R → `shell:startup`).
-
-> Läuft die Zentrale auf dem PC, funktioniert das Handy nur, solange der PC an ist.
-> Auf dem Pi läuft sie rund um die Uhr. Die Android-App (in Arbeit) braucht keine Zentrale.
-
 ## Lampe hinzufügen
 
 Im Menü **⋯ → Lampe hinzufügen** den **Matter-Code** eingeben: 11 Ziffern von der Lampe oder
@@ -83,7 +86,8 @@ Suche in der SMART+ App in den Lampen-Einstellungen nach „Matter“, „Teilen
 Diesen Code gibst du in Licht ein.
 
 **B) Lampe zurücksetzen und per Bluetooth einrichten** (Zentrale mit Bluetooth, z. B. Pi 3/4/5)
-1. Zentrale mit Bluetooth starten: `LICHT_BLE=1 npm start`
+1. Zentrale mit Bluetooth starten (nur aus dem Quellcode, nicht mit Licht.exe):
+   einmalig `npm install @matter/nodejs-ble`, dann `LICHT_BLE=1 npm start`
    (auf dem Pi ggf. einmalig: `sudo setcap cap_net_raw+eip $(readlink -f $(which node))`)
 2. Lampe zurücksetzen: 5× aus- und einschalten, bis sie blinkt.
 3. In Licht den Code von der Lampe eingeben. Unter **Erweitert** zusätzlich WLAN-Name und
@@ -120,9 +124,14 @@ Licht steuern, wie bei einem Lichtschalter. Gib den Port nicht ins Internet frei
 ## Entwicklung
 
 ```sh
-npm test            # alle Tests, inkl. Ende-zu-Ende-Test mit simulierter Matter-Lampe
-npm start           # Zentrale starten
+npm test                       # alle Tests, inkl. Ende-zu-Ende-Test mit simulierter Matter-Lampe
+npm start                      # Zentrale starten
+node scripts/build-exe.mjs     # Einzeldatei bauen (Licht.exe unter Windows)
 ```
+
+Die Windows-`Licht.exe` baut GitHub Actions (`.github/workflows/licht-windows.yml`) bei jeder
+Änderung in `main`. Sie wird auf Windows gestartet und geprüft und dann als Release
+`licht-latest` veröffentlicht.
 
 Ohne Lampen ausprobieren: `http://localhost:8080/?demo` (Demo beenden im Menü).
 
