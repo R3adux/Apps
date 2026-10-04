@@ -8,7 +8,13 @@ const base = require('../metro.config.js');
 
 const shims = path.join(__dirname, '.probe-shims');
 mkdirSync(shims, { recursive: true });
-const builtins = new Set(builtinModules.flatMap((m) => [m, `node:${m}`]).concat(['node:sqlite', 'node:test']));
+const names = [...new Set([...builtinModules, 'sqlite', 'test'].map((m) => m.replace(/^node:/, '')))];
+const builtins = new Set(names.flatMap((m) => [m, `node:${m}`]));
+const shimFile = (name) => path.join(shims, `${name.replace(/\//g, '_')}.js`);
+// Created up front: Metro only knows files that exist when it scans the project.
+for (const name of names) {
+  writeFileSync(shimFile(name), `module.exports = globalThis.__probeRequire(${JSON.stringify(`node:${name}`)});\n`);
+}
 
 module.exports = {
   ...base,
@@ -18,10 +24,7 @@ module.exports = {
     resolveRequest(context, moduleName, platform) {
       if (moduleName.startsWith('bun:')) return { type: 'empty' };
       if (builtins.has(moduleName)) {
-        const name = moduleName.replace(/^node:/, '');
-        const filePath = path.join(shims, `${name.replace(/\//g, '_')}.js`);
-        writeFileSync(filePath, `module.exports = globalThis.__probeRequire(${JSON.stringify(`node:${name}`)});\n`);
-        return { type: 'sourceFile', filePath };
+        return { type: 'sourceFile', filePath: shimFile(moduleName.replace(/^node:/, '')) };
       }
       return base.resolver.resolveRequest(context, moduleName, platform);
     },
