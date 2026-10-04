@@ -31,6 +31,8 @@ async function main() {
     };
     process.on('SIGINT', stop);
     process.on('SIGTERM', stop);
+  // Windows: closing the console window
+  process.on('SIGHUP', stop);
   } catch (err) {
     if (err.code === 'EADDRINUSE') {
       // Most likely Licht is already running: just show it.

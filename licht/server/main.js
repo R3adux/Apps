@@ -20,3 +20,4 @@ async function stop() {
 }
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
+process.on('SIGHUP', stop);

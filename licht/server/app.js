@@ -1,6 +1,7 @@
 // Starts the Licht hub: Matter controller + web server. Used by main.js (npm start)
 // and exe.js (Licht.exe).
 
+import { readdir, rm } from 'node:fs/promises';
 import { homedir, networkInterfaces } from 'node:os';
 import { join } from 'node:path';
 import { Environment, Logger, singleton } from '@matter/main';
@@ -23,6 +24,24 @@ async function enableBle(environment) {
   } catch (err) {
     console.warn('Bluetooth nicht verfügbar (dafür einmalig: npm install @matter/nodejs-ble):', err.message);
     return false;
+  }
+}
+
+// matter.js marks its data folders with lock files holding the process id. When Licht is ended
+// abruptly (closing the console window on Windows), they stay behind, and Windows soon reuses
+// the process id – matter.js then refuses to start ("Storage is locked by another process").
+// Only called once this instance owns the web port, i.e. no other Licht is running.
+export async function removeStaleLocks(dir, depth = 3) {
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory() && depth > 0) await removeStaleLocks(path, depth - 1);
+    else if (entry.name === 'matter.lock' || entry.name === 'matter.pid') await rm(path, { force: true });
   }
 }
 
@@ -50,6 +69,7 @@ export async function startLicht({ web, ...options } = {}) {
   const hub = new LightHub({ environment });
   const server = createHttpServer(hub, { ...web, ble });
   await listen(server, port); // before starting Matter, so a second instance stops right away
+  await removeStaleLocks(dataDir);
   await hub.start();
 
   const urls = [
