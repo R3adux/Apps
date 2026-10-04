@@ -32,12 +32,16 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          cache: gradle
 
       - name: Abhängigkeiten
         run: npm ci
 
       - name: Oberfläche einbetten
         run: node scripts/build-web.mjs
+
+      - name: Schnelltest (Matter-Teil wie in der App verpackt)
+        run: npm run probe
 
       - name: APK bauen
         working-directory: licht/android-app/android

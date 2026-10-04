@@ -1,5 +1,6 @@
 // Entry point of the Licht Android app.
 // Order matters: crypto and the Matter platform must be set up before anything uses matter.js.
+import './src/report-errors';
 import { install } from 'react-native-quick-crypto';
 install();
 import './src/matter-platform';
