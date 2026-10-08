@@ -49,6 +49,15 @@ export class HttpApi {
     return (await this.#call('GET', `/api/discover${code ? `?code=${encodeURIComponent(code)}` : ''}`)).devices;
   }
 
+  /** PC only (Licht.exe, from this computer). */
+  async setAutostart(enabled) {
+    return (await this.#call('POST', '/api/autostart', { enabled })).autostart;
+  }
+
+  quit() {
+    return this.#call('POST', '/api/quit');
+  }
+
   /** Asks the hub to reconnect lamps that are not connected right now. */
   wake() {
     return this.#call('POST', '/api/wake');

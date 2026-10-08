@@ -47,6 +47,7 @@ await esbuild.build({
   outfile: bundle,
   external: ['@matter/nodejs-ble', 'bun:sqlite'], // Bluetooth (native) and Bun-only code, not used by the .exe
   plugins: [webFilesPlugin],
+  loader: { '.ps1': 'text' },
   // matter.js reads import.meta.url in a few places; give it a sensible value in CommonJS.
   define: { 'import.meta.url': 'importMetaUrl' },
   banner: { js: 'const importMetaUrl = require("node:url").pathToFileURL(__filename).href;' },
@@ -95,4 +96,16 @@ const postject = join(root, 'node_modules', 'postject', 'dist', 'cli.js');
 const args = [postject, exe, 'NODE_SEA_BLOB', blob, '--sentinel-fuse', 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2'];
 if (process.platform === 'darwin') args.push('--macho-segment-name', 'NODE_SEA');
 execFileSync(process.execPath, args, { stdio: 'inherit' });
+
+// Windows: mark the program as a window program ("GUI subsystem") instead of a console
+// program, so no black console window opens. Licht shows a tray icon instead.
+if (isWindows) {
+  const image = readFileSync(exe);
+  const pe = image.readUInt32LE(0x3c);
+  if (image.toString('latin1', pe, pe + 4) !== 'PE\0\0') throw new Error('Licht.exe: PE header not found');
+  const subsystem = pe + 4 + 20 + 68; // optional header, same offset for PE32 and PE32+
+  if (image.readUInt16LE(subsystem) !== 3) throw new Error('Licht.exe: unexpected subsystem'); // 3 = console
+  image.writeUInt16LE(2, subsystem); // 2 = IMAGE_SUBSYSTEM_WINDOWS_GUI
+  writeFileSync(exe, image);
+}
 console.log(`Fertig: ${exe}`);

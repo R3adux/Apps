@@ -28,29 +28,52 @@ jobs:
         run: npm ci
 
       - name: Tests
-        run: node --test test/model.test.js test/pairing.test.js test/http.test.js test/color.test.js test/hub.test.js test/app.test.js
+        run: node --test test/model.test.js test/pairing.test.js test/http.test.js test/color.test.js test/hub.test.js test/app.test.js test/desktop.test.js
 
       - name: Licht.exe bauen
         run: node scripts/build-exe.mjs
 
       - name: Licht.exe starten und prüfen
         shell: pwsh
+        timeout-minutes: 5
         run: |
+          $exe = (Resolve-Path dist\Licht.exe).Path
+          # Window program (no black console window)?
+          $bytes = [IO.File]::ReadAllBytes($exe)
+          $pe = [BitConverter]::ToInt32($bytes, 0x3c)
+          $subsystem = [BitConverter]::ToUInt16($bytes, $pe + 4 + 20 + 68)
+          if ($subsystem -ne 2) { throw "Licht.exe ist kein Fensterprogramm (Subsystem $subsystem)" }
+
           $env:LICHT_NO_BROWSER = "1"
           $env:PORT = "8090"
           $env:LICHT_DATA = "$env:RUNNER_TEMP\licht-data"
-          $proc = Start-Process -FilePath dist\Licht.exe -PassThru -NoNewWindow `
-            -RedirectStandardOutput "$env:RUNNER_TEMP\out.txt" -RedirectStandardError "$env:RUNNER_TEMP\err.txt"
+          $log = "$env:LICHT_DATA\licht.log"
+          $proc = Start-Process -FilePath $exe -PassThru
           $lights = $null
           for ($i = 0; $i -lt 40 -and -not $lights; $i++) {
             try { $lights = Invoke-RestMethod http://localhost:8090/api/lights } catch { Start-Sleep 1 }
           }
-          Get-Content "$env:RUNNER_TEMP\out.txt", "$env:RUNNER_TEMP\err.txt"
+          for ($i = 0; $i -lt 30 -and -not (Select-String -Path $log -Pattern 'Tray-Symbol bereit' -Quiet -ErrorAction SilentlyContinue); $i++) { Start-Sleep 1 }
+          Get-Content $log
           if (-not $lights) { throw "Licht.exe antwortet nicht" }
+          if (-not (Select-String -Path $log -Pattern 'Tray-Symbol bereit' -Quiet)) { throw "Tray-Symbol fehlt" }
           $html = (Invoke-WebRequest http://localhost:8090/ -UseBasicParsing).Content
           if ($html -notmatch "<title>Licht</title>") { throw "Web-App fehlt in Licht.exe" }
-          Stop-Process -Id $proc.Id
-          "Licht.exe OK ($((Get-Item dist\Licht.exe).Length / 1MB) MB)"
+          $info = Invoke-RestMethod http://localhost:8090/api/info
+          if ($null -eq $info.desktop) { throw "PC-Funktionen fehlen" }
+
+          # Second start while Licht runs: must end by itself (it only opens the browser).
+          $second = Start-Process -FilePath $exe -PassThru
+          if (-not $second.WaitForExit(15000)) { $second.Kill(); throw "Zweiter Start beendet sich nicht" }
+
+          # "Licht beenden" from the app.
+          Invoke-RestMethod -Method Post http://localhost:8090/api/quit | Out-Null
+          if (-not $proc.WaitForExit(15000)) { $proc.Kill(); throw "Licht.exe lässt sich nicht beenden" }
+          Start-Sleep 3
+          $tray = Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" | Where-Object { $_.ParentProcessId -eq $proc.Id }
+          if ($tray) { throw "Tray-Symbol läuft nach dem Beenden weiter" }
+          Get-Content $log -Tail 5
+          "Licht.exe OK ($([math]::Round((Get-Item $exe).Length / 1MB, 1)) MB)"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -67,4 +90,4 @@ jobs:
           gh release create licht-latest dist/Licht.exe \
             --target "$GITHUB_SHA" \
             --title "Licht für Windows" \
-            --notes "Licht.exe herunterladen und doppelklicken – die App öffnet sich im Browser. Beim ersten Start: Windows-SmartScreen → „Weitere Informationen“ → „Trotzdem ausführen“, und in der Firewall „Private Netzwerke“ erlauben. Gebaut aus ${GITHUB_SHA:0:7}."
+            --notes "Licht.exe herunterladen und doppelklicken – die App öffnet sich im Browser, Licht läuft dann im Hintergrund (Symbol unten rechts in der Taskleiste). Beim ersten Start: Windows-SmartScreen → „Weitere Informationen“ → „Trotzdem ausführen“, und in der Firewall „Private Netzwerke“ erlauben. Gebaut aus ${GITHUB_SHA:0:7}."

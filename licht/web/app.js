@@ -29,6 +29,8 @@ if (params.has('demo')) storage.set(DEMO_KEY, '1');
 let lights = [];
 let loaded = false; // first real data received (until then: cached data or "loading")
 let info = { ble: false };
+let unsubscribe = () => {};
+let ended = false; // Licht.exe was quit from this page
 
 // 'online' | 'connecting' | 'offline' (older hubs only send `online`)
 const statusOf = (light) => light.status ?? (light.online ? 'online' : 'offline');
@@ -473,6 +475,8 @@ document.addEventListener('click', (e) => {
   if (!action) return;
   if (inLightMenu) return lightAction(action, menuLightId);
   if (action === 'add') openAddDialog();
+  if (action === 'autostart') toggleAutostart();
+  if (action === 'quit') quitApp();
   if (action === 'refresh') reload();
   if (action === 'demo-exit') {
     storage.remove(DEMO_KEY);
@@ -495,6 +499,40 @@ for (const button of document.querySelectorAll('[data-close]')) {
 
 $('#all-toggle').addEventListener('click', allToggle);
 
+/* ---------- PC app (Licht.exe) ---------- */
+
+function showDesktopItems() {
+  for (const item of document.querySelectorAll('[data-desktop]')) item.hidden = !info.desktop;
+  const autostart = $('[data-action="autostart"]');
+  autostart.textContent = `${info.desktop?.autostart ? '✓ ' : ''}Mit Windows starten`;
+  autostart.setAttribute('aria-checked', String(Boolean(info.desktop?.autostart)));
+}
+
+async function toggleAutostart() {
+  try {
+    info.desktop.autostart = await api.setAutostart(!info.desktop.autostart);
+    showDesktopItems();
+    toast(info.desktop.autostart ? 'Licht startet jetzt automatisch mit Windows.' : 'Autostart ist aus.', 'ok');
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
+async function quitApp() {
+  const sure = await ask({
+    title: 'Licht beenden?',
+    text: 'Die Lampen lassen sich dann nicht mehr über Licht steuern – auch nicht vom Handy über den PC.',
+    okLabel: 'Beenden',
+    danger: true,
+  });
+  if (!sure) return;
+  ended = true;
+  unsubscribe();
+  await api.quit().catch(() => {});
+  document.body.innerHTML = '<main class="quit"><h1>Licht ist beendet.</h1>'
+    + '<p class="muted">Du kannst dieses Fenster schließen. Zum Starten Licht.exe doppelklicken.</p></main>';
+}
+
 /* ---------- Start ---------- */
 
 async function start() {
@@ -505,8 +543,9 @@ async function start() {
   if (!lights.length) setStatus('Lade Lampen …');
   const [, infoResult] = await Promise.all([reload(), api.info().catch(() => info)]);
   info = infoResult;
+  showDesktopItems();
   let interrupted = false;
-  api.subscribe(onEvent, (connected) => {
+  unsubscribe = api.subscribe(onEvent, (connected) => {
     setStatus(connected ? '' : 'Verbindung zu Licht auf dem PC unterbrochen …');
     // Back after an interruption: fetch everything that may have changed in between.
     if (connected && interrupted) reload();
@@ -515,7 +554,7 @@ async function start() {
 
   // Coming back to the app/tab: reconnect lamps right away and refresh.
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'visible') return;
+    if (ended || document.visibilityState !== 'visible') return;
     api.wake?.().catch(() => {});
     reload();
   });

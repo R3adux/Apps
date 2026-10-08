@@ -9,7 +9,9 @@
 //   GET    /api/events               live updates (Server-Sent Events)
 //   GET    /api/discover             Matter devices ready to be added right now
 //   POST   /api/wake                 reconnect lamps that are not connected right now
-//   GET    /api/info                 { ble }
+//   GET    /api/info                 { ble, desktop? }
+//   POST   /api/quit                 end Licht.exe        (PC only: from this computer)
+//   POST   /api/autostart            { enabled }          (PC only: from this computer)
 
 import { createServer } from 'node:http';
 import { parsePairingCode } from '../core/pairing.js';
@@ -84,9 +86,48 @@ async function discover(hub, req) {
   }));
 }
 
+// Requests from this computer itself (the PC app), not from other devices in the network,
+// addressed as localhost (so no web page can reach these via a name that points to 127.0.0.1).
+const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
+function isLocal(req) {
+  if (!['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress)) return false;
+  try {
+    return LOCAL_HOSTS.includes(new URL(`http://${req.headers.host}`).hostname);
+  } catch {
+    return false;
+  }
+}
+
+// A web page from elsewhere, open in the same browser, must not be able to use the API
+// (cross-site requests). Browsers always send Origin with such requests.
+function fromForeignSite(req) {
+  const { origin } = req.headers;
+  if (!origin || origin === 'null') return false;
+  try {
+    return new URL(origin).host !== req.headers.host;
+  } catch {
+    return true;
+  }
+}
+
 async function api(hub, req, res, path, options) {
   const { method } = req;
-  if (path === '/api/info' && method === 'GET') return send(res, 200, { ble: Boolean(options.ble) });
+  const desktop = options.desktop && isLocal(req) ? options.desktop : undefined;
+  if (path === '/api/info' && method === 'GET') {
+    return send(res, 200, {
+      ble: Boolean(options.ble),
+      desktop: desktop ? { autostart: await desktop.autostart.get() } : undefined,
+    });
+  }
+  if (path === '/api/quit' && method === 'POST' && desktop) {
+    send(res, 200, { ok: true });
+    setTimeout(() => desktop.quit(), 100);
+    return undefined;
+  }
+  if (path === '/api/autostart' && method === 'POST' && desktop) {
+    const { enabled } = await readJson(req);
+    return send(res, 200, { autostart: await desktop.autostart.set(Boolean(enabled)) });
+  }
   if (path === '/api/events' && method === 'GET') return events(hub, req, res);
   if (path === '/api/lights' && method === 'GET') return send(res, 200, { lights: hub.lights() });
   if (path === '/api/wake' && method === 'POST') {
@@ -135,13 +176,17 @@ async function staticFile(res, web, path) {
   res.end(body);
 }
 
-/** webDir: folder with the web app, or webFiles: { '/index.html': Buffer, … } */
-export function createHttpServer(hub, { webDir, webFiles, ble = false, log = console } = {}) {
+/**
+ * webDir: folder with the web app, or webFiles: { '/index.html': Buffer, … }
+ * desktop (Licht.exe): { quit(), autostart: { get(), set(enabled) } }
+ */
+export function createHttpServer(hub, { webDir, webFiles, ble = false, desktop, log = console } = {}) {
   const web = webFiles ? { files: webFiles } : { dir: resolve(webDir) };
   return createServer(async (req, res) => {
     const { pathname } = new URL(req.url, 'http://localhost');
     try {
-      if (pathname.startsWith('/api/')) await api(hub, req, res, pathname, { ble });
+      if (pathname.startsWith('/api/') && fromForeignSite(req)) send(res, 403, { error: 'Verboten.' });
+      else if (pathname.startsWith('/api/')) await api(hub, req, res, pathname, { ble, desktop });
       else if (req.method === 'GET' || req.method === 'HEAD') await staticFile(res, web, pathname);
       else send(res, 405, { error: 'Methode nicht erlaubt.' });
     } catch (err) {

@@ -57,7 +57,8 @@ function listen(server, port) {
 }
 
 /**
- * web: { webDir } or { webFiles }. Returns { urls, dataDir, ble, close() }.
+ * web: { webDir } or { webFiles }; desktop: see createHttpServer.
+ * Returns { urls, dataDir, ble, close() }.
  */
 export async function startLicht({ web, ...options } = {}) {
   const { port, dataDir, ble: wantBle, logLevel } = { ...defaults(), ...options };
@@ -67,7 +68,7 @@ export async function startLicht({ web, ...options } = {}) {
   const ble = wantBle ? await enableBle(environment) : false;
 
   const hub = new LightHub({ environment });
-  const server = createHttpServer(hub, { ...web, ble });
+  const server = createHttpServer(hub, { ...web, ble, desktop: options.desktop });
   await listen(server, port); // before starting Matter, so a second instance stops right away
   await removeStaleLocks(dataDir);
   await hub.start();

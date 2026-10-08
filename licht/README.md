@@ -40,12 +40,15 @@ du brauchst sie aber nicht mehr.
    - Beim ersten Mal warnt Windows-SmartScreen, weil die Datei nicht signiert ist:
      **„Weitere Informationen“ → „Trotzdem ausführen“**.
    - Fragt die Firewall nach: **„Private Netzwerke“ erlauben**, sonst findet Licht die Lampe nicht.
-3. Das schwarze Fenster offen lassen. Wenn du es schließt, ist Licht beendet.
+3. Licht läuft im Hintergrund, ohne schwarzes Fenster. Unten rechts in der Taskleiste ist ein
+   **Licht-Symbol** (eventuell hinter dem Pfeil `^`):
+   - **Klick**: App im Browser öffnen. Ein erneuter Doppelklick auf `Licht.exe` macht dasselbe.
+   - **Rechtsklick**: **Mit Windows starten** (an/aus) und **Beenden**.
+   - Beides gibt es auch in der App im Menü **⋯** (nur auf dem PC selbst).
 
-Nichts weiter zu installieren. Die Kopplungsdaten liegen in `C:\Users\<Name>\.licht`.
-Ein Update ist einfach die neue `Licht.exe` an dieselbe Stelle.
-
-**Autostart:** Win+R → `shell:startup` → dort eine Verknüpfung zu `Licht.exe` anlegen.
+Nichts weiter zu installieren. Die Kopplungsdaten liegen in `C:\Users\<Name>\.licht`, dort steht
+auch das Protokoll `licht.log`, falls einmal etwas nicht klappt.
+Ein Update: Licht beenden, die neue `Licht.exe` an dieselbe Stelle legen und starten.
 
 > Läuft die Zentrale auf dem PC, geht das Handy nur, solange der PC an ist.
 > Die Android-App (siehe unten) braucht keinen PC.
@@ -124,7 +127,9 @@ Diesen Code in der Licht-App auf dem Handy unter „Lampe hinzufügen“ eingebe
 | Problem | Lösung |
 |---|---|
 | Lampe wird nicht gefunden | Ist sie im Kopplungsmodus (siehe oben)? Windows-Firewall für private Netze erlaubt? IP-Adresse unter *Erweitert* angeben. |
-| „Nicht erreichbar“ | Lampe hat keinen Strom, oder Zentrale und Lampe sind in verschiedenen Netzen (z. B. Gäste-WLAN). |
+| „Verbinde …“ | Licht baut die Verbindung zur Lampe gerade (wieder) auf, z. B. nach dem Start oder wenn die Lampe Strom bekommt. Dauert meist nur Sekunden; schalten kannst du trotzdem. |
+| „Nicht erreichbar“ | Lampe hat keinen Strom, oder Zentrale und Lampe sind in verschiedenen Netzen (z. B. Gäste-WLAN). Sobald sie wieder da ist, verbindet Licht sich von selbst. |
+| PC: Licht startet nicht | Meldung lesen; Details in `C:\Users\<Name>\.licht\licht.log`. |
 | Ausführliche Meldungen | `LICHT_LOG=info npm start` |
 
 Einstellungen über Umgebungsvariablen: `PORT` (Standard 8080), `LICHT_DATA` (Speicherort der

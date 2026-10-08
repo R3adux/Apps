@@ -1,5 +1,6 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import { request as httpRequest } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { createHttpServer } from '../server/http.js';
 
@@ -100,4 +101,44 @@ test('network search marks devices matching the entered code', async () => {
 test('wake asks the hub to reconnect', async () => {
   assert.equal((await req('/api/wake', 'POST')).status, 200);
   assert.deepEqual(calls.at(-1), ['wake']);
+});
+
+test('rejects API calls from other web sites', async () => {
+  const res = await fetch(`${base}/api/lights/7`, {
+    method: 'POST', headers: { Origin: 'https://evil.example', 'Content-Type': 'text/plain' }, body: '{"on":true}',
+  });
+  assert.equal(res.status, 403);
+  const own = await fetch(`${base}/api/lights`, { headers: { Origin: base } });
+  assert.equal(own.status, 200);
+});
+
+test('PC functions (quit, autostart) only for this computer', async () => {
+  let quit = 0;
+  let autostart = false;
+  const desktop = { quit: () => { quit++; }, autostart: { get: async () => autostart, set: async (on) => (autostart = on) } };
+  const pc = createHttpServer(hub, { webDir: fileURLToPath(new URL('../web/', import.meta.url)), desktop, log: {} });
+  await new Promise((r) => pc.listen(0, '127.0.0.1', r));
+  const url = `http://127.0.0.1:${pc.address().port}`;
+  try {
+    assert.deepEqual((await (await fetch(`${url}/api/info`)).json()).desktop, { autostart: false });
+    const set = await fetch(`${url}/api/autostart`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"enabled":true}' });
+    assert.deepEqual(await set.json(), { autostart: true });
+    assert.equal((await fetch(`${url}/api/quit`, { method: 'POST' })).status, 200);
+    await new Promise((r) => setTimeout(r, 200));
+    assert.equal(quit, 1);
+    // A web page under another name that points to this computer gets nothing.
+    const status = await new Promise((resolve, reject) => {
+      httpRequest(`${url}/api/quit`, { method: 'POST', headers: { Host: `rebind.example:${pc.address().port}` } }, (res) => {
+        res.resume();
+        resolve(res.statusCode);
+      }).on('error', reject).end();
+    });
+    assert.equal(status, 404);
+    assert.equal(quit, 1);
+  } finally {
+    pc.close();
+  }
+  // The normal server (no desktop) has none of this.
+  assert.equal((await (await req('/api/info')).json()).desktop, undefined);
+  assert.equal((await req('/api/quit', 'POST')).status, 404);
 });
