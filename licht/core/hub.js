@@ -21,6 +21,36 @@ const SHARE_WINDOW_SECONDS = 15 * 60; // Matter command parameter, in seconds
 export const COMMISSIONING_TIMEOUT = Minutes(2);
 const MATTER_PORT = 5540;
 
+// Responsiveness. Without an answer after COMMAND_TIMEOUT_MS, the lamp counts as unreachable.
+// If a command fails earlier (e.g. the lamp restarted and dropped the old connection), the
+// connection is renewed and the command sent once more – our commands are absolute values,
+// so repeating them is safe.
+export const COMMAND_TIMEOUT_MS = 8000;
+// Shutting down must never hang, e.g. on commands still waiting for an unreachable lamp.
+const CLOSE_TIMEOUT_MS = 3000;
+// Asked of the lamps as reporting interval. They may choose a longer one, so we also check ourselves:
+const KEEPALIVE_SECONDS = 30;
+// Every WATCHDOG_MS: reconnect lamps that are away (matter.js itself only retries every 10 minutes)
+// and ask lamps that have not been heard of for LIVENESS_MS whether they are still there.
+const WATCHDOG_MS = 10_000;
+const LIVENESS_MS = 15_000;
+const PROBE_TIMEOUT_MS = 4000;
+// Don't start a new connection attempt to the same lamp more often than this.
+const WAKE_THROTTLE_MS = 5000;
+// After losing the connection, a lamp is shown as "connecting" for this long, then as unreachable.
+const CONNECTING_GRACE_MS = 30_000;
+// Several attribute changes in a row (e.g. a colour change) are sent as one update.
+const EMIT_DELAY_MS = 15;
+
+/** Rejects with an error carrying `status` if `promise` takes longer than `ms`. */
+function withTimeout(promise, ms, message, status = 503) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(Object.assign(new Error(message), { status })), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 // "192.168.1.20" or "192.168.1.20:5540" → known address for faster discovery.
 function parseAddress(text) {
   const match = String(text ?? '').trim().match(/^(\d{1,3}(?:\.\d{1,3}){3})(?::(\d+))?$/);
@@ -54,6 +84,7 @@ export class LightHub {
   #controller;
   #lamps = new Map(); // id → lamp entry
   #listeners = new Set();
+  #watchdog;
 
   constructor({ environment = Environment.default, label = 'Licht', id = 'licht' } = {}) {
     this.environment = environment;
@@ -61,20 +92,78 @@ export class LightHub {
     this.id = id;
   }
 
+  /**
+   * Starts the controller. Returns as soon as the stored lamps are loaded – connecting to them
+   * happens in the background, so the lamps can be shown immediately.
+   */
   async start() {
     this.#controller = new CommissioningController({
       environment: { environment: this.environment, id: this.id },
       autoConnect: false,
       adminFabricLabel: this.label,
+      subscribeMaxIntervalCeilingSeconds: KEEPALIVE_SECONDS,
     });
     await this.#controller.start();
-    for (const nodeId of this.#controller.getCommissionedNodes()) {
-      await this.#attach(nodeId);
-    }
+    await Promise.all(this.#controller.getCommissionedNodes().map((nodeId) =>
+      this.#attach(nodeId).catch((err) => logger.warn(`Could not load lamp ${nodeId}`, err))));
+    this.#watchdog = setInterval(() => this.#checkConnections(), WATCHDOG_MS);
+    this.#watchdog.unref?.();
   }
 
   async close() {
-    await this.#controller?.close();
+    clearInterval(this.#watchdog);
+    for (const lamp of this.#lamps.values()) {
+      clearTimeout(lamp.emitTimer);
+      clearTimeout(lamp.offlineTimer);
+    }
+    if (!this.#controller) return;
+    await withTimeout(this.#controller.close(), CLOSE_TIMEOUT_MS, 'close timeout').catch((err) => {
+      logger.warn('Controller did not close in time:', err.message);
+    });
+  }
+
+  #checkConnections() {
+    this.wake();
+    const now = Date.now();
+    for (const lamp of this.#lamps.values()) {
+      if (lamp.ready && !lamp.probing && lamp.node.connectionState === NodeStates.Connected
+        && now - lamp.lastSeen > LIVENESS_MS) {
+        this.#probe(lamp);
+      }
+    }
+  }
+
+  // A tiny read; no answer means the connection is gone even if matter.js has not noticed yet.
+  async #probe(lamp) {
+    lamp.probing = true;
+    try {
+      await withTimeout(lamp.clients.onOff.attributes.onOff.get(true), PROBE_TIMEOUT_MS, 'no answer');
+      lamp.lastSeen = Date.now();
+    } catch (err) {
+      logger.info(`Lamp ${lamp.id} did not answer (${err.message}), reconnecting`);
+      lamp.lastSeen = Date.now();
+      this.wake({ ids: [lamp.id], force: true });
+    } finally {
+      lamp.probing = false;
+    }
+  }
+
+  /**
+   * Reconnects lamps that are not connected right now (throttled per lamp).
+   * force: also renew connections that look fine – e.g. after the phone app was in the
+   * background, when connections may be stale without anyone having noticed yet.
+   */
+  wake({ force = false, ids } = {}) {
+    const now = Date.now();
+    for (const lamp of this.#lamps.values()) {
+      if (ids && !ids.includes(lamp.id)) continue;
+      const state = lamp.node.connectionState;
+      if (!force && (state === NodeStates.Connected || state === NodeStates.Reconnecting)) continue;
+      if (now - lamp.lastWake < WAKE_THROTTLE_MS) continue;
+      lamp.lastWake = now;
+      lamp.node.triggerReconnect();
+      this.#changed(lamp);
+    }
   }
 
   /** Subscribe to changes: listener({ type: 'light', light } | { type: 'lights' }). */
@@ -106,7 +195,43 @@ export class LightHub {
   }
 
   #toLight(lamp) {
-    return toLight({ id: lamp.id, name: lamp.name, online: lamp.node.isConnected, attrs: lamp.attrs, features: lamp.features });
+    const status = this.#status(lamp);
+    return {
+      ...toLight({ id: lamp.id, name: lamp.name, online: status === 'online', attrs: lamp.attrs, features: lamp.features }),
+      status,
+    };
+  }
+
+  // 'online', 'connecting' (connection lost less than CONNECTING_GRACE_MS ago, or never yet
+  // established since start) or 'offline'. Stable: retries in the background don't make it flicker.
+  #status(lamp) {
+    if (lamp.node.connectionState === NodeStates.Connected) return 'online';
+    return Date.now() - lamp.lostAt < CONNECTING_GRACE_MS ? 'connecting' : 'offline';
+  }
+
+  #stateChanged(lamp, state) {
+    if (state === NodeStates.Connected) {
+      lamp.lastSeen = Date.now();
+      clearTimeout(lamp.offlineTimer);
+      this.#read(lamp);
+    } else if (lamp.wasConnected) {
+      // Just lost: "connecting" now, "offline" once the grace period is over.
+      lamp.lostAt = Date.now();
+      clearTimeout(lamp.offlineTimer);
+      lamp.offlineTimer = setTimeout(() => this.#changed(lamp), CONNECTING_GRACE_MS + 100);
+      lamp.offlineTimer.unref?.();
+    }
+    lamp.wasConnected = state === NodeStates.Connected;
+    this.#changed(lamp);
+  }
+
+  // Coalesces bursts of changes into one 'light' event.
+  #changed(lamp) {
+    if (!lamp.ready || lamp.emitTimer) return;
+    lamp.emitTimer = setTimeout(() => {
+      lamp.emitTimer = undefined;
+      if (this.#lamps.get(lamp.id) === lamp) this.#emit({ type: 'light', light: this.#toLight(lamp) });
+    }, EMIT_DELAY_MS);
   }
 
   #lamp(id) {
@@ -169,7 +294,11 @@ export class LightHub {
   /** Opens the lamp for another app (e.g. Licht on the phone). Returns a temporary setup code. */
   async share(id) {
     const lamp = this.#lamp(id);
-    const { manualPairingCode, qrPairingCode } = await lamp.node.openEnhancedCommissioningWindow(SHARE_WINDOW_SECONDS);
+    this.wake({ ids: [lamp.id] });
+    const { manualPairingCode, qrPairingCode } = await withTimeout(
+      lamp.node.openEnhancedCommissioningWindow(SHARE_WINDOW_SECONDS),
+      15_000, 'Die Lampe antwortet gerade nicht. Ist sie eingeschaltet?',
+    );
     return { code: manualPairingCode, qr: qrPairingCode, validMinutes: SHARE_WINDOW_SECONDS / 60 };
   }
 
@@ -199,11 +328,13 @@ export class LightHub {
   async remove(id) {
     const lamp = this.#lamp(id);
     try {
-      await lamp.node.decommission();
+      await withTimeout(lamp.node.decommission(), 15_000, 'Lampe antwortet nicht');
     } catch (err) {
       logger.warn(`Decommissioning ${id} failed, removing locally only`, err);
       await this.#controller.removeNode(lamp.nodeId, false);
     }
+    clearTimeout(lamp.emitTimer);
+    clearTimeout(lamp.offlineTimer);
     this.#lamps.delete(lamp.id);
     this.#emit({ type: 'lights' });
   }
@@ -213,7 +344,11 @@ export class LightHub {
     const lamp = this.#lamp(id);
     const label = String(name ?? '').trim().slice(0, 32);
     if (!label) throw Object.assign(new Error('Name darf nicht leer sein.'), { status: 400 });
-    await lamp.node.getRootClusterClient(BasicInformation.Complete)?.attributes.nodeLabel.set(label);
+    this.wake({ ids: [lamp.id] });
+    await withTimeout(
+      lamp.node.getRootClusterClient(BasicInformation.Complete)?.attributes.nodeLabel.set(label),
+      COMMAND_TIMEOUT_MS, 'Die Lampe antwortet gerade nicht. Ist sie eingeschaltet?',
+    );
     lamp.name = label;
     this.#emit({ type: 'light', light: this.#toLight(lamp) });
   }
@@ -222,16 +357,32 @@ export class LightHub {
 
   async update(id, change) {
     const lamp = this.#lamp(id);
+    // A lamp that is not connected gets a connection attempt right away; the command waits for it.
+    this.wake({ ids: [lamp.id] });
     const commands = toCommands(change, lamp);
-    try {
+    const send = async () => {
       for (const { cluster, command, args } of commands) {
         const client = lamp.clients[cluster];
         await (args === undefined ? client[command]() : client[command](args));
       }
+    };
+    const deadline = Date.now() + COMMAND_TIMEOUT_MS;
+    try {
+      try {
+        await withTimeout(send(), COMMAND_TIMEOUT_MS, 'timeout');
+      } catch (err) {
+        const left = deadline - Date.now();
+        if (err.message === 'timeout' || left < 1000) throw err;
+        logger.info(`Command for ${id} failed, reconnecting and retrying:`, err.message);
+        this.wake({ ids: [lamp.id], force: true });
+        await withTimeout(send(), left, 'timeout');
+      }
     } catch (err) {
       logger.warn(`Command for ${id} failed`, err);
-      throw Object.assign(new Error('Lampe ist nicht erreichbar.'), { status: 503 });
+      this.wake({ ids: [lamp.id], force: true });
+      throw Object.assign(new Error('Die Lampe antwortet gerade nicht. Ist sie eingeschaltet?'), { status: 503 });
     }
+    lamp.lastSeen = Date.now();
     lamp.attrs = applyChange(lamp.attrs, change, lamp.features);
     const light = this.#toLight(lamp);
     this.#emit({ type: 'light', light });
@@ -243,17 +394,24 @@ export class LightHub {
   async #attach(nodeId) {
     const id = String(nodeId);
     const node = await this.#controller.getNode(NodeId(BigInt(id)));
-    const lamp = { id, nodeId: node.nodeId, node, ready: false, attrs: {}, features: {}, clients: {}, name: 'Lampe' };
+    const lamp = {
+      id, nodeId: node.nodeId, node, ready: false, attrs: {}, features: {}, clients: {}, name: 'Lampe',
+      lastWake: 0, lastSeen: Date.now(), probing: false,
+      // Counts as "connecting" during the first moments after start.
+      lostAt: Date.now(), wasConnected: false, offlineTimer: undefined,
+    };
+    // Show "offline" if the first connection does not succeed within the grace period.
+    lamp.offlineTimer = setTimeout(() => this.#changed(lamp), CONNECTING_GRACE_MS + 100);
+    lamp.offlineTimer.unref?.();
     this.#lamps.set(id, lamp);
 
-    node.events.stateChanged.on((state) => {
-      if (state === NodeStates.Connected && node.initialized) this.#read(lamp);
-      if (lamp.ready) this.#emit({ type: 'light', light: this.#toLight(lamp) });
-    });
-    // First from stored data (fast, maybe stale), then again once the lamp itself answered.
+    // Listen before connecting, so no event is missed.
+    node.events.stateChanged.on((state) => this.#stateChanged(lamp, state));
+    // First from stored data (instant, maybe a bit old), then again once the lamp itself answered.
     node.events.initialized.on(() => this.#read(lamp));
     node.events.initializedFromRemote.on(() => this.#read(lamp));
     node.events.attributeChanged.on(({ path, value }) => {
+      lamp.lastSeen = Date.now();
       if (path.attributeName === 'nodeLabel') {
         lamp.name = value || lamp.name;
       } else if (path.endpointId === lamp.endpoint && LIGHT_ATTRIBUTES.includes(path.attributeName)) {
@@ -261,15 +419,17 @@ export class LightHub {
       } else {
         return;
       }
-      if (lamp.ready) this.#emit({ type: 'light', light: this.#toLight(lamp) });
+      this.#changed(lamp);
     });
 
+    if (node.initialized) this.#read(lamp);
     if (!node.isConnected) node.connect();
-    if (node.initialized) await this.#read(lamp);
     return lamp;
   }
 
-  async #read(lamp) {
+  // Reads the lamp's structure and values from the locally stored data – never from the network,
+  // so it is instant and works while the lamp is switched off.
+  #read(lamp) {
     const { node } = lamp;
     const device = node.getDevices().find((d) => d.getClusterClient(OnOff.Complete));
     if (!device) {
@@ -295,18 +455,22 @@ export class LightHub {
         const attribute = client.attributes[name];
         if (!attribute) continue;
         try {
-          lamp.attrs[name] = await attribute.get();
+          const value = attribute.getLocal();
+          if (value !== undefined) lamp.attrs[name] = value;
         } catch {
-          // Optional attribute the lamp doesn't have.
+          // Attribute not stored (yet).
         }
       }
     }
     const info = node.basicInformation;
     lamp.name = info?.nodeLabel || info?.productLabel || info?.productName || lamp.name;
-    const wasReady = lamp.ready;
-    lamp.ready = true;
-    lamp.readyResolve?.();
-    this.#emit(wasReady ? { type: 'light', light: this.#toLight(lamp) } : { type: 'lights' });
+    if (lamp.ready) {
+      this.#changed(lamp);
+    } else {
+      lamp.ready = true;
+      lamp.readyResolve?.();
+      this.#emit({ type: 'lights' });
+    }
   }
 
   #whenReady(lamp, timeoutMs) {

@@ -91,6 +91,22 @@
     </form>
   </dialog>
 
+  <!-- Rückfrage / Eingabe (statt prompt/confirm, die in der Android-App nicht zuverlässig sind) -->
+  <dialog id="ask-dialog" class="dialog">
+    <form id="ask-form" method="dialog">
+      <h2 id="ask-title"></h2>
+      <p id="ask-text" class="muted"></p>
+      <label id="ask-field" class="field">
+        <span id="ask-label"></span>
+        <input id="ask-input" maxlength="32" autocomplete="off">
+      </label>
+      <div class="dialog-actions">
+        <button type="button" class="btn ghost" id="ask-cancel">Abbrechen</button>
+        <button type="submit" class="btn primary" id="ask-ok">OK</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- Lampen-Menü -->
   <div id="light-menu" class="menu light-menu" role="menu" hidden>
     <button type="button" role="menuitem" data-action="rename">Umbenennen</button>

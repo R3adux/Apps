@@ -18,6 +18,7 @@ const hub = {
   async rename(id, name) { calls.push(['rename', id, name]); },
   async share(id) { calls.push(['share', id]); return { code: '12345678901', validMinutes: 15 }; },
   async remove(id) { calls.push(['remove', id]); },
+  wake() { calls.push(['wake']); },
   async discover() { return [{ name: 'Lampe', discriminator: 3840, shortDiscriminator: 15, mode: 1, addresses: ['10.0.0.5:5540'] }]; },
   subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
 };
@@ -94,4 +95,9 @@ test('network search marks devices matching the entered code', async () => {
   assert.equal(other.devices[0].matchesCode, true);
   const none = await (await req('/api/discover')).json();
   assert.equal(none.devices[0].matchesCode, undefined);
+});
+
+test('wake asks the hub to reconnect', async () => {
+  assert.equal((await req('/api/wake', 'POST')).status, 200);
+  assert.deepEqual(calls.at(-1), ['wake']);
 });

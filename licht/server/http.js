@@ -8,6 +8,7 @@
 //   DELETE /api/lights/:id           remove
 //   GET    /api/events               live updates (Server-Sent Events)
 //   GET    /api/discover             Matter devices ready to be added right now
+//   POST   /api/wake                 reconnect lamps that are not connected right now
 //   GET    /api/info                 { ble }
 
 import { createServer } from 'node:http';
@@ -88,6 +89,10 @@ async function api(hub, req, res, path, options) {
   if (path === '/api/info' && method === 'GET') return send(res, 200, { ble: Boolean(options.ble) });
   if (path === '/api/events' && method === 'GET') return events(hub, req, res);
   if (path === '/api/lights' && method === 'GET') return send(res, 200, { lights: hub.lights() });
+  if (path === '/api/wake' && method === 'POST') {
+    hub.wake();
+    return send(res, 200, { ok: true });
+  }
   if (path === '/api/discover' && method === 'GET') return send(res, 200, { devices: await discover(hub, req) });
   if (path === '/api/lights' && method === 'POST') {
     const { code, ip, wifi } = await readJson(req);

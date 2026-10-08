@@ -273,3 +273,9 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 6px; font-
   display: flex; flex-direction: column; gap: 8px; font-size: 0.9rem;
 }
 .discover-result .ok { color: var(--accent); font-weight: 600; }
+
+/* Lamp is (re)connecting: still usable, the state text says so */
+.light.connecting .light-state { color: var(--accent); }
+.light.connecting .bulb { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.55; } }
+.btn.primary.danger { background: var(--danger); border-color: var(--danger); color: #fff; }

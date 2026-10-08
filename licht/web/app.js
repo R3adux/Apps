@@ -4,6 +4,7 @@ import { PRESETS, lampRgb, temperatureToRgb, hsvToRgb } from './color.js';
 const SEND_GAP_MS = 60; // breathing room between commands to the same lamp
 const QUIET_AFTER_INPUT_MS = 1500; // ignore live updates for a lamp the user is adjusting
 const DEMO_KEY = 'licht.demo';
+const CACHE_KEY = 'licht.lights.v1'; // last known lamps, shown instantly on the next start
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -26,7 +27,12 @@ const api = demo ? new DemoApi() : (window.LichtApi ?? new HttpApi());
 if (params.has('demo')) storage.set(DEMO_KEY, '1');
 
 let lights = [];
+let loaded = false; // first real data received (until then: cached data or "loading")
 let info = { ble: false };
+
+// 'online' | 'connecting' | 'offline' (older hubs only send `online`)
+const statusOf = (light) => light.status ?? (light.online ? 'online' : 'offline');
+const usable = (light) => statusOf(light) !== 'offline';
 const cards = new Map(); // id → { el, refs }
 const senders = new Map(); // id → Sender
 const touched = new Map(); // id → time of last user input
@@ -69,6 +75,7 @@ class Sender {
 // Applies a change locally right away, then sends it. Changing light settings
 // on a lamp that is off switches it on.
 function change(light, patch) {
+  if (!light) return; // removed in the meantime
   const next = { ...patch };
   if (patch.on === undefined && !light.on) next.on = true;
   Object.assign(light, structuredClone(next));
@@ -159,17 +166,20 @@ function setValue(input, value) {
 
 function updateCard({ el, refs }, light) {
   const mode = light.supports.color && !light.supports.temperature ? 'colour' : light.mode;
-  el.classList.toggle('on', light.on && light.online);
-  el.classList.toggle('offline', !light.online);
+  const status = statusOf(light);
+  el.classList.toggle('on', light.on && status !== 'offline');
+  el.classList.toggle('offline', status === 'offline');
+  el.classList.toggle('connecting', status === 'connecting');
   el.dataset.mode = mode;
   el.style.setProperty('--lamp', lampRgb({ ...light, mode }).join(' '));
   el.style.setProperty('--glow', light.on ? (0.35 + light.brightness / 155).toFixed(2) : 0);
 
   refs.name.textContent = light.name;
-  refs.state.textContent = !light.online ? 'Nicht erreichbar' : light.on ? `An · ${light.brightness} %` : 'Aus';
+  const onText = light.on ? `An · ${light.brightness} %` : 'Aus';
+  refs.state.textContent = status === 'offline' ? 'Nicht erreichbar'
+    : status === 'connecting' ? `Verbinde … · ${onText}` : onText;
   refs.toggle.setAttribute('aria-checked', String(light.on));
   refs.toggle.setAttribute('aria-label', `${light.name} ${light.on ? 'ausschalten' : 'einschalten'}`);
-  refs.toggle.disabled = !light.online;
   refs.tabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.mode === mode)));
 
   setValue(refs.brightness, light.brightness);
@@ -191,7 +201,9 @@ function render() {
       cards.delete(id);
     }
   }
-  if (!lights.length) {
+  if (!lights.length && !loaded) {
+    container.innerHTML = '';
+  } else if (!lights.length) {
     if (!$('.empty', container)) {
       container.innerHTML = `<div class="empty"><p>Noch keine Lampe eingerichtet.</p>
         <button type="button" class="btn primary" data-action="add">Lampe hinzufügen</button></div>`;
@@ -205,10 +217,34 @@ function render() {
       container.append(card.el); // keeps the hub's order
     }
   }
-  const anyOn = lights.some((l) => l.on && l.online);
+  const anyOn = lights.some((l) => l.on && usable(l));
   const allToggle = $('#all-toggle');
   allToggle.textContent = anyOn ? 'Alle aus' : 'Alle an';
-  allToggle.disabled = !lights.some((l) => l.online);
+  allToggle.disabled = !lights.some(usable);
+  saveCache();
+}
+
+let cacheTimer = null;
+function saveCache() {
+  if (demo || !loaded || cacheTimer) return;
+  cacheTimer = setTimeout(() => {
+    cacheTimer = null;
+    storage.set(CACHE_KEY, JSON.stringify(lights));
+  }, 500);
+}
+
+// Last known lamps, so the page shows something useful before the first answer arrives.
+function loadCache() {
+  if (demo) return [];
+  try {
+    const cached = JSON.parse(storage.get(CACHE_KEY) ?? '[]');
+    if (!Array.isArray(cached)) return [];
+    return cached
+      .filter((l) => l && typeof l.id === 'string' && l.supports && l.color)
+      .map((l) => ({ ...l, status: statusOf(l) === 'online' ? 'connecting' : statusOf(l) }));
+  } catch {
+    return [];
+  }
 }
 
 /* ---------- Data ---------- */
@@ -229,6 +265,7 @@ function setStatus(text) {
 
 // Merges fresh data from the hub without undoing what the user is doing right now.
 function merge(fresh) {
+  loaded = true;
   lights = fresh.map((light) => {
     const local = lights.find((l) => l.id === light.id);
     return local && isBusy(light.id) ? { ...light, ...pickControls(local) } : light;
@@ -243,8 +280,12 @@ async function reload() {
     merge(await api.lights());
     setStatus('');
   } catch (err) {
-    setStatus(err instanceof ApiError && err.status === 0 ? 'Licht-Zentrale nicht erreichbar.' : '');
-    if (!(err instanceof ApiError && err.status === 0)) toast(err.message);
+    if (err instanceof ApiError && err.status === 0) {
+      setStatus('Keine Verbindung zu Licht auf dem PC. Läuft es dort?');
+    } else {
+      setStatus('');
+      toast(err.message);
+    }
   }
 }
 
@@ -259,9 +300,9 @@ function onEvent(event) {
 }
 
 async function allToggle() {
-  const turnOn = !lights.some((l) => l.on && l.online);
+  const turnOn = !lights.some((l) => l.on && usable(l));
   for (const light of lights) {
-    if (light.online && light.on !== turnOn) change(light, { on: turnOn });
+    if (usable(light) && light.on !== turnOn) change(light, { on: turnOn });
   }
 }
 
@@ -352,6 +393,43 @@ $('#add-form').addEventListener('submit', async (event) => {
   }
 });
 
+/**
+ * Small modal question. With `input`, resolves to the entered text (or null when cancelled),
+ * otherwise to true/false.
+ */
+function ask({ title, text = '', input, label = '', okLabel = 'OK', danger = false }) {
+  const dialog = $('#ask-dialog');
+  $('#ask-title').textContent = title;
+  $('#ask-text').textContent = text;
+  $('#ask-text').hidden = !text;
+  $('#ask-field').hidden = input === undefined;
+  $('#ask-label').textContent = label;
+  $('#ask-input').value = input ?? '';
+  const ok = $('#ask-ok');
+  ok.textContent = okLabel;
+  ok.classList.toggle('danger', danger);
+  return new Promise((resolve) => {
+    const done = (result) => {
+      dialog.removeEventListener('close', onClose);
+      $('#ask-form').removeEventListener('submit', onSubmit);
+      $('#ask-cancel').removeEventListener('click', onCancel);
+      if (dialog.open) dialog.close();
+      resolve(result);
+    };
+    const onSubmit = (e) => {
+      e.preventDefault();
+      done(input === undefined ? true : $('#ask-input').value);
+    };
+    const onCancel = () => done(input === undefined ? false : null);
+    const onClose = () => done(input === undefined ? false : null);
+    $('#ask-form').addEventListener('submit', onSubmit);
+    $('#ask-cancel').addEventListener('click', onCancel);
+    dialog.addEventListener('close', onClose);
+    dialog.showModal();
+    if (input !== undefined) $('#ask-input').select();
+  });
+}
+
 const formatCode = (code) => (/^\d{11}$/.test(code) ? `${code.slice(0, 4)}-${code.slice(4, 7)}-${code.slice(7)}` : code);
 
 async function lightAction(action, id) {
@@ -359,8 +437,8 @@ async function lightAction(action, id) {
   if (!light) return;
   try {
     if (action === 'rename') {
-      const name = prompt('Neuer Name (max. 32 Zeichen):', light.name);
-      if (!name?.trim()) return;
+      const name = await ask({ title: 'Umbenennen', label: 'Neuer Name (max. 32 Zeichen)', input: light.name, okLabel: 'Speichern' });
+      if (!name?.trim() || name.trim() === light.name) return;
       await api.rename(id, name.trim());
       light.name = name.trim().slice(0, 32);
       render();
@@ -372,7 +450,13 @@ async function lightAction(action, id) {
       $('#share-dialog').showModal();
     }
     if (action === 'remove') {
-      if (!confirm(`„${light.name}“ aus Licht entfernen? Andere Apps, mit denen die Lampe geteilt ist, funktionieren weiter.`)) return;
+      const sure = await ask({
+        title: `„${light.name}“ entfernen?`,
+        text: 'Licht vergisst die Lampe. Andere Apps, mit denen sie geteilt ist, funktionieren weiter.',
+        okLabel: 'Entfernen',
+        danger: true,
+      });
+      if (!sure) return;
       await api.remove(id);
       lights = lights.filter((l) => l.id !== id);
       render();
@@ -416,14 +500,29 @@ $('#all-toggle').addEventListener('click', allToggle);
 async function start() {
   $('#demo-badge').hidden = !demo;
   $('[data-action="demo-exit"]').hidden = !demo;
-  setStatus('Lade Lampen …');
-  info = await api.info().catch(() => info);
-  await reload();
-  api.subscribe(onEvent, (connected) => setStatus(connected ? '' : 'Verbindung zur Licht-Zentrale unterbrochen …'));
+  lights = loadCache();
+  render();
+  if (!lights.length) setStatus('Lade Lampen …');
+  const [, infoResult] = await Promise.all([reload(), api.info().catch(() => info)]);
+  info = infoResult;
+  let interrupted = false;
+  api.subscribe(onEvent, (connected) => {
+    setStatus(connected ? '' : 'Verbindung zu Licht auf dem PC unterbrochen …');
+    // Back after an interruption: fetch everything that may have changed in between.
+    if (connected && interrupted) reload();
+    interrupted = !connected;
+  });
+
+  // Coming back to the app/tab: reconnect lamps right away and refresh.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    api.wake?.().catch(() => {});
+    reload();
+  });
 
   // Shortcut from the home-screen icon (long press → "Alle aus").
   if (params.get('action') === 'all-off') {
-    lights.filter((l) => l.on && l.online).forEach((l) => change(l, { on: false }));
+    lights.filter((l) => l.on && usable(l)).forEach((l) => change(l, { on: false }));
     history.replaceState(null, '', location.pathname);
   }
 }

@@ -49,6 +49,11 @@ export class HttpApi {
     return (await this.#call('GET', `/api/discover${code ? `?code=${encodeURIComponent(code)}` : ''}`)).devices;
   }
 
+  /** Asks the hub to reconnect lamps that are not connected right now. */
+  wake() {
+    return this.#call('POST', '/api/wake');
+  }
+
   share(id) {
     return this.#call('POST', `/api/lights/${id}/share`);
   }
@@ -115,6 +120,8 @@ export class DemoApi {
   async rename(id, name) {
     this.#find(id).name = name;
   }
+
+  async wake() {}
 
   async discover() {
     await sleep(1500);
