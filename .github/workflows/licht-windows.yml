@@ -11,6 +11,11 @@ on:
 permissions:
   contents: write
 
+# A newer push replaces a build that is still running.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   windows:
     runs-on: windows-latest
@@ -87,8 +92,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete licht-latest --cleanup-tag --yes || true
-          gh release create licht-latest dist/Licht.exe \
-            --target "$GITHUB_SHA" \
-            --title "Licht für Windows" \
-            --notes "Licht.exe herunterladen und doppelklicken – die App öffnet sich im Browser, Licht läuft dann im Hintergrund (Symbol unten rechts in der Taskleiste). Beim ersten Start: Windows-SmartScreen → „Weitere Informationen“ → „Trotzdem ausführen“, und in der Firewall „Private Netzwerke“ erlauben. Gebaut aus ${GITHUB_SHA:0:7}."
+          # Replace the file in the existing release, so the download link never breaks.
+          notes="Licht.exe herunterladen und doppelklicken – die App öffnet sich im Browser, Licht läuft dann im Hintergrund (Symbol unten rechts in der Taskleiste). Beim ersten Start: Windows-SmartScreen → „Weitere Informationen“ → „Trotzdem ausführen“, und in der Firewall „Private Netzwerke“ erlauben. Gebaut aus ${GITHUB_SHA:0:7}."
+          if gh release view licht-latest >/dev/null 2>&1; then
+            gh release upload licht-latest dist/Licht.exe --clobber
+            gh release edit licht-latest --title "Licht für Windows" --notes "$notes"
+          else
+            gh release create licht-latest dist/Licht.exe --target "$GITHUB_SHA" --title "Licht für Windows" --notes "$notes" \
+              || gh release create licht-latest dist/Licht.exe --title "Licht für Windows" --notes "$notes"
+          fi
