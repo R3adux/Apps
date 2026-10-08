@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Linking, StatusBar, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { AppState, Linking, StatusBar, StyleSheet } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { Logger } from '@matter/main';
@@ -9,36 +9,53 @@ import { selfTest } from './selftest';
 import webHtml from './web-html';
 
 const BACKGROUND = '#101217';
+// The page is given as HTML; this origin only exists so the page has local storage.
+// Nothing is ever loaded from it.
+const PAGE_ORIGIN = 'https://licht.app/';
+// After this long in the background, connections may be stale: renew them right away.
+const STALE_AFTER_MS = 15_000;
 
 // Quiet by default; the self-test turns on more detail (see selftest.js).
 Logger.level = 'warn';
 
-// One hub for the whole app lifetime.
+// One hub for the whole app lifetime. Starting is quick: lamps are loaded from storage,
+// connecting to them happens in the background.
 const hub = new LightHub({ label: 'Licht Handy', id: 'licht-android' });
-const hubReady = hub.start().catch((err) => {
-  console.error('Licht: Matter konnte nicht starten', err);
-  throw err;
-});
+const hubReady = hub.start();
+hubReady.catch((err) => console.error('Licht: Matter konnte nicht starten', err));
 
 export default function App() {
   const webView = useRef(null);
-  const [error, setError] = useState(null);
+  const send = (script) => webView.current?.injectJavaScript(script);
 
   // Live updates from the lamps → page
   useEffect(() => hub.subscribe((event) => {
-    const payload = event.type === 'lights' ? { type: 'lights', lights: hub.lights() } : event;
-    webView.current?.injectJavaScript(eventScript(payload));
+    send(eventScript(event.type === 'lights' ? { type: 'lights', lights: hub.lights() } : event));
   }), []);
+
+  // Back from the background: renew connections at once instead of waiting for a timeout.
+  useEffect(() => {
+    let backgroundSince = 0;
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') {
+        backgroundSince ||= Date.now();
+        return;
+      }
+      const stale = backgroundSince && Date.now() - backgroundSince > STALE_AFTER_MS;
+      backgroundSince = 0;
+      hubReady.then(() => {
+        hub.wake({ force: Boolean(stale) });
+        send(eventScript({ type: 'lights', lights: hub.lights() }));
+      }, () => {});
+    });
+    return () => subscription.remove();
+  }, []);
 
   // Automated test (CI): licht://selftest?code=…&ip=…
   useEffect(() => {
     Linking.getInitialURL().then((url) => {
       if (url?.startsWith('licht://selftest')) selfTest(hub, hubReady, url);
     });
-  }, []);
-
-  useEffect(() => {
-    hubReady.catch((err) => setError(err));
   }, []);
 
   const onMessage = async (event) => {
@@ -52,30 +69,35 @@ export default function App() {
     try {
       await hubReady;
       const result = await handleCall(hub, method, args ?? []);
-      webView.current?.injectJavaScript(replyScript(id, true, result));
+      send(replyScript(id, true, result));
     } catch (err) {
-      const reason = { message: err?.message ?? String(err), status: err?.status ?? (error ? 0 : 500) };
-      webView.current?.injectJavaScript(replyScript(id, false, reason));
+      send(replyScript(id, false, { message: err?.message ?? String(err), status: err?.status ?? 500 }));
     }
   };
 
+  // The page never navigates anywhere – block everything except the page itself.
+  const onlyThePage = (request) => request.url === PAGE_ORIGIN || request.url.startsWith('about:')
+    || request.url.startsWith('data:');
+
   return (
     <SafeAreaProvider>
-    <SafeAreaView style={styles.root} edges={['top', 'bottom', 'left', 'right']}>
-      <StatusBar barStyle="light-content" backgroundColor={BACKGROUND} />
-      <WebView
-        ref={webView}
-        style={styles.root}
-        originWhitelist={['*']}
-        source={{ html: webHtml, baseUrl: 'https://licht.app/' }}
-        injectedJavaScriptBeforeContentLoaded={injectedApi}
-        onMessage={onMessage}
-        javaScriptEnabled
-        domStorageEnabled
-        setSupportMultipleWindows={false}
-        overScrollMode="never"
-      />
-    </SafeAreaView>
+      <SafeAreaView style={styles.root} edges={['top', 'bottom', 'left', 'right']}>
+        <StatusBar barStyle="light-content" backgroundColor={BACKGROUND} />
+        <WebView
+          ref={webView}
+          style={styles.root}
+          originWhitelist={['*']}
+          source={{ html: webHtml, baseUrl: PAGE_ORIGIN }}
+          injectedJavaScriptBeforeContentLoaded={injectedApi}
+          onMessage={onMessage}
+          onShouldStartLoadWithRequest={onlyThePage}
+          javaScriptEnabled
+          domStorageEnabled
+          setSupportMultipleWindows={false}
+          overScrollMode="never"
+          cacheEnabled={false}
+        />
+      </SafeAreaView>
     </SafeAreaProvider>
   );
 }

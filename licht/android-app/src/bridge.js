@@ -37,6 +37,7 @@ export const injectedApi = `
     share: function (id) { return call('share', [id]); },
     remove: function (id) { return call('remove', [id]); },
     discover: function (code) { return call('discover', [code]); },
+    wake: function () { return call('wake', []); },
     subscribe: function (onEvent, onStatus) {
       listeners.add(onEvent);
       onStatus(true);
@@ -71,6 +72,9 @@ export async function handleCall(hub, method, args) {
       return { ok: true };
     case 'discover':
       return hub.discover();
+    case 'wake':
+      hub.wake();
+      return { ok: true };
     default:
       throw Object.assign(new Error(`Unbekannte Funktion: ${method}`), { status: 400 });
   }
