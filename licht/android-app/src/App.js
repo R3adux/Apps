@@ -11,7 +11,7 @@ import webHtml from './web-html';
 const BACKGROUND = '#101217';
 // The page is given as HTML; this origin only exists so the page has local storage.
 // Nothing is ever loaded from it.
-const PAGE_ORIGIN = 'https://licht.app/';
+const PAGE_ORIGIN = 'https://licht.invalid/'; // reserved name: can never point to a real server
 // The bridge to the hub is part of the page itself, so it is there before the page's own script
 // runs. (Injecting it separately races with the page on Android: when the page was faster, it
 // looked for Licht on a PC and reported "no connection".)
