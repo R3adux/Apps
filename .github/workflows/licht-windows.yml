@@ -73,6 +73,7 @@ jobs:
           $tray = Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" | Where-Object { $_.ParentProcessId -eq $proc.Id }
           if ($tray) { throw "Tray-Symbol läuft nach dem Beenden weiter" }
           Get-Content $log -Tail 5
+          if (Select-String -Path $log -Pattern ' ERROR ' -Quiet) { throw "Fehler im Protokoll (licht.log)" }
           "Licht.exe OK ($([math]::Round((Get-Item $exe).Length / 1MB, 1)) MB)"
 
       - uses: actions/upload-artifact@v4

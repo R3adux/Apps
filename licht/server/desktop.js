@@ -79,7 +79,11 @@ export function startTray(script, { autostartEnabled, hello, ...handlers }) {
     return undefined;
   }
   child.on('error', (err) => console.error('Tray icon could not start:', err));
-  child.stderr.on('data', (data) => console.error('Tray:', String(data).trim()));
+  child.stderr.on('data', (data) => {
+    // PowerShell also reports progress on stderr (as "#< CLIXML"); only real errors matter.
+    const text = String(data).replace(/#< CLIXML/g, '').trim();
+    if (text && !(text.startsWith('<Objs') && !text.includes('S="Error"'))) console.error('Tray:', text);
+  });
   child.on('exit', (code) => console.warn(`Tray icon ended (${code})`));
   createInterface({ input: child.stdout }).on('line', (line) => {
     const command = line.trim();

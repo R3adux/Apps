@@ -6,6 +6,7 @@
 #   LICHT_TRAY_SELFTEST=1 (create the icon, report "ready", exit – used by the build).
 
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
