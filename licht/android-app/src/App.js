@@ -12,6 +12,10 @@ const BACKGROUND = '#101217';
 // The page is given as HTML; this origin only exists so the page has local storage.
 // Nothing is ever loaded from it.
 const PAGE_ORIGIN = 'https://licht.app/';
+// The bridge to the hub is part of the page itself, so it is there before the page's own script
+// runs. (Injecting it separately races with the page on Android: when the page was faster, it
+// looked for Licht on a PC and reported "no connection".)
+const PAGE_HTML = webHtml.replace('</head>', () => `<script>${injectedApi}</script>\n</head>`);
 // After this long in the background, connections may be stale: renew them right away.
 const STALE_AFTER_MS = 15_000;
 
@@ -87,8 +91,7 @@ export default function App() {
           ref={webView}
           style={styles.root}
           originWhitelist={['*']}
-          source={{ html: webHtml, baseUrl: PAGE_ORIGIN }}
-          injectedJavaScriptBeforeContentLoaded={injectedApi}
+          source={{ html: PAGE_HTML, baseUrl: PAGE_ORIGIN }}
           onMessage={onMessage}
           onShouldStartLoadWithRequest={onlyThePage}
           javaScriptEnabled
