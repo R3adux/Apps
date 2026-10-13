@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Stratagem.App/Stratagem.App.csproj" />
+    <Project Path="src/Stratagem.Core/Stratagem.Core.csproj" />
+    <Project Path="src/Stratagem.Dev/Stratagem.Dev.csproj" />
+    <Project Path="src/Stratagem.Server/Stratagem.Server.csproj" />
+    <Project Path="src/Stratagem.Windows/Stratagem.Windows.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Stratagem.Core.Tests/Stratagem.Core.Tests.csproj" />
+  </Folder>
+</Solution>

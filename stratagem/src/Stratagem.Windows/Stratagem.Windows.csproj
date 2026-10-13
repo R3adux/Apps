@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Everything that needs Windows: SendInput, low-level hooks, foreground window, overlay, tray, registry.
+       Kept thin: the logic lives in Stratagem.Core and is tested there. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Stratagem.Core\Stratagem.Core.csproj" />
+  </ItemGroup>
+</Project>

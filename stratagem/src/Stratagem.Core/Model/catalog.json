@@ -1,0 +1,234 @@
+[
+ {
+  "name": "Resupply",
+  "code": "DDUR"
+ },
+ {
+  "name": "Orbital Illumination Flare",
+  "code": "RRLL"
+ },
+ {
+  "name": "Hellbomb",
+  "code": "DULDURDU"
+ },
+ {
+  "name": "Reinforce",
+  "code": "UDRLU"
+ },
+ {
+  "name": "SOS Beacon",
+  "code": "UDRU"
+ },
+ {
+  "name": "Machine Gun",
+  "code": "DLDUR"
+ },
+ {
+  "name": "Heavy Machine Gun",
+  "code": "DLUDD"
+ },
+ {
+  "name": "Anti-Materiel Rifle",
+  "code": "DLRUD"
+ },
+ {
+  "name": "Stalwart",
+  "code": "DLDUUL"
+ },
+ {
+  "name": "Expendable Anti-Tank",
+  "code": "DDLUR"
+ },
+ {
+  "name": "Recoilless Rifle",
+  "code": "DLRRL"
+ },
+ {
+  "name": "Flamethrower",
+  "code": "DLUDU"
+ },
+ {
+  "name": "Autocannon",
+  "code": "DLDUUR"
+ },
+ {
+  "name": "Railgun",
+  "code": "DRDULR"
+ },
+ {
+  "name": "Spear",
+  "code": "DDUDD"
+ },
+ {
+  "name": "Eagle Strafing Run",
+  "code": "URR"
+ },
+ {
+  "name": "Eagle Airstrike",
+  "code": "URDR"
+ },
+ {
+  "name": "Eagle Cluster Bomb",
+  "code": "URDDR"
+ },
+ {
+  "name": "Eagle Napalm Airstrike",
+  "code": "URDU"
+ },
+ {
+  "name": "Jump Pack",
+  "code": "DUUDU"
+ },
+ {
+  "name": "Eagle Smoke Strike",
+  "code": "URUD"
+ },
+ {
+  "name": "Eagle 110mm Rocket Pods",
+  "code": "URUL"
+ },
+ {
+  "name": "Eagle 500kg Bomb",
+  "code": "URDDD"
+ },
+ {
+  "name": "Orbital Gatling Barrage",
+  "code": "RDLUU"
+ },
+ {
+  "name": "Orbital Airburst Strike",
+  "code": "RRR"
+ },
+ {
+  "name": "Orbital 120mm HE Barrage",
+  "code": "RRDLRD"
+ },
+ {
+  "name": "Orbital Walking Barrage",
+  "code": "RDRDRD"
+ },
+ {
+  "name": "Orbital 380mm HE Barrage",
+  "code": "RDUULDD"
+ },
+ {
+  "name": "Orbital Lasers",
+  "code": "RDURD"
+ },
+ {
+  "name": "Orbital Railcannon Strike",
+  "code": "RUDDR"
+ },
+ {
+  "name": "Orbital Precision Strike",
+  "code": "RRU"
+ },
+ {
+  "name": "Orbital Gas Strike",
+  "code": "RRDR"
+ },
+ {
+  "name": "Orbital EMS Strike",
+  "code": "RRLD"
+ },
+ {
+  "name": "Orbital Smoke Strike",
+  "code": "RRDU"
+ },
+ {
+  "name": "Orbital Napalm Barrage",
+  "code": "RRDLRU"
+ },
+ {
+  "name": "HMG Emplacement",
+  "code": "DULRRL"
+ },
+ {
+  "name": "Shield Generation Relay",
+  "code": "DDLRLR"
+ },
+ {
+  "name": "Tesla Tower",
+  "code": "DURULR"
+ },
+ {
+  "name": "Machine Gun Sentry",
+  "code": "DURRU"
+ },
+ {
+  "name": "Gatling Sentry",
+  "code": "DURL"
+ },
+ {
+  "name": "Mortar Sentry",
+  "code": "DURRD"
+ },
+ {
+  "name": "Guard Dog",
+  "code": "DULURD"
+ },
+ {
+  "name": "Autocannon Sentry",
+  "code": "DURULU"
+ },
+ {
+  "name": "Rocket Sentry",
+  "code": "DURRL"
+ },
+ {
+  "name": "EMS Mortar Sentry",
+  "code": "DURDR"
+ },
+ {
+  "name": "Anti-Personnel Minefield",
+  "code": "DLUR"
+ },
+ {
+  "name": "Supply Pack",
+  "code": "DLDUUD"
+ },
+ {
+  "name": "Grenade Launcher",
+  "code": "DLULD"
+ },
+ {
+  "name": "Quasar Cannon",
+  "code": "DDULR"
+ },
+ {
+  "name": "Laser Cannon",
+  "code": "DLDUL"
+ },
+ {
+  "name": "Incendiary Mines",
+  "code": "DLLD"
+ },
+ {
+  "name": "Guard Dog Rover",
+  "code": "DULURR"
+ },
+ {
+  "name": "Ballistic Shield Backpack",
+  "code": "DLDDUL"
+ },
+ {
+  "name": "Arc Thrower",
+  "code": "DRDULL"
+ },
+ {
+  "name": "Shield Generator Pack",
+  "code": "DULRLR"
+ },
+ {
+  "name": "Patriot Exosuit",
+  "code": "LDRULDD"
+ },
+ {
+  "name": "Emancipator Exosuit",
+  "code": "LDRULDU"
+ },
+ {
+  "name": "Commando",
+  "code": "DLUDR"
+ }
+]

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Everything that does not need Windows: model, macro planning, radial logic, game files, settings.
+       Runs and is tested on any OS. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Model\catalog.json" LogicalName="catalog.json" />
+    <InternalsVisibleTo Include="Stratagem.Core.Tests" />
+  </ItemGroup>
+</Project>

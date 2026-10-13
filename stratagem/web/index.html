@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Stratagem</title>
+  <meta name="description" content="Stratagems per Radialmenü, Taste, Handy oder Stream Deck">
+  <meta name="theme-color" content="#101217">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <h1>Stratagem</h1>
+    <span id="game-pill" class="pill">Spiel …</span>
+    <div class="topbar-actions">
+      <button id="pause-btn" type="button" class="btn pill">Pausieren</button>
+      <button id="menu-btn" type="button" class="icon-btn" aria-label="Menü" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+      </button>
+      <div id="menu" class="menu" role="menu" hidden>
+        <a role="menuitem" href="deck">Deck-Ansicht (Handy)</a>
+        <button type="button" role="menuitem" data-action="autostart" data-desktop hidden>Mit Windows starten</button>
+        <button type="button" role="menuitem" data-action="folder" data-desktop hidden>Datenordner öffnen</button>
+        <button type="button" role="menuitem" data-action="quit" data-desktop hidden>Stratagem beenden</button>
+      </div>
+    </div>
+  </header>
+
+  <p id="offline" class="banner error" hidden>Keine Verbindung zu Stratagem. Läuft das Programm noch?</p>
+  <p id="inactive-hint" class="banner" hidden></p>
+
+  <main class="grid">
+    <section class="card" id="list-card">
+      <div class="card-head">
+        <h2>Stratagems</h2>
+        <select id="source" aria-label="Quelle der Liste">
+          <option value="Manual">Eigene Liste</option>
+          <option value="Screen">Aus dem Spiel lesen (kommt bald)</option>
+        </select>
+      </div>
+      <p id="list-problem" class="muted small" hidden></p>
+      <ol id="items" class="items"></ol>
+      <form id="add-form" class="add">
+        <input id="add-name" list="catalog" placeholder="Name, z. B. Eagle 500kg Bomb" autocomplete="off" aria-label="Name">
+        <datalist id="catalog"></datalist>
+        <div class="code-input">
+          <output id="add-code" aria-label="Code">–</output>
+          <button type="button" class="arrow" data-dir="U" aria-label="hoch">↑</button>
+          <button type="button" class="arrow" data-dir="D" aria-label="runter">↓</button>
+          <button type="button" class="arrow" data-dir="L" aria-label="links">←</button>
+          <button type="button" class="arrow" data-dir="R" aria-label="rechts">→</button>
+          <button type="button" class="arrow" data-dir="back" aria-label="löschen">⌫</button>
+        </div>
+        <button type="submit" class="btn primary">Hinzufügen</button>
+      </form>
+      <p class="muted small">Tipp: Name aus der Liste wählen füllt den Code aus. Pfeiltasten der Tastatur funktionieren im Code-Feld auch.</p>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Radialmenü</h2>
+        <label class="switch"><input id="radial-enabled" type="checkbox"><span></span></label>
+      </div>
+      <div class="radial-preview"><svg id="preview" viewBox="-110 -110 220 220" aria-label="Vorschau"></svg></div>
+      <label class="field">Bedienung
+        <select id="radial-mode">
+          <option value="HoldRelease">Halten &amp; Loslassen – Taste halten, Maus schieben, loslassen</option>
+          <option value="TapDrag">Antippen &amp; Ziehen – antippen, mit gedrückter Maustaste ziehen</option>
+        </select>
+      </label>
+      <div class="row">
+        <label class="field">Taste <button type="button" class="btn key" id="radial-trigger" data-capture="radial.trigger"></button></label>
+        <label class="field" id="drag-field">Zieh-Maustaste
+          <select id="radial-drag">
+            <option value="Left">Links</option><option value="Right">Rechts</option><option value="Middle">Mitte</option>
+            <option value="X1">Seitentaste 1</option><option value="X2">Seitentaste 2</option>
+          </select>
+        </label>
+      </div>
+      <label class="field">Mitte (Abbrechen-Bereich) <span class="val" id="deadzone-val"></span>
+        <input id="radial-deadzone" type="range" min="10" max="200" step="5"></label>
+      <label class="field">Größe <span class="val" id="size-val"></span>
+        <input id="radial-size" type="range" min="240" max="900" step="20"></label>
+      <label class="field">Deckkraft <span class="val" id="opacity-val"></span>
+        <input id="radial-opacity" type="range" min="0.3" max="1" step="0.05"></label>
+      <p class="muted small" id="radial-help"></p>
+    </section>
+
+    <section class="card">
+      <h2>Direkte Tasten</h2>
+      <p class="muted small">Eine Taste oder Maustaste ruft einen Platz der Liste (oder ein festes Stratagem) auf – ohne Radialmenü.</p>
+      <ul id="hotkeys" class="hotkeys"></ul>
+      <button type="button" id="hotkey-add" class="btn">Taste hinzufügen</button>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Tastenbelegung im Spiel</h2>
+        <button type="button" id="reload-bindings" class="btn small">Neu einlesen</button>
+      </div>
+      <label class="check"><input id="read-game" type="checkbox"> Aus den Spieleinstellungen lesen (empfohlen)</label>
+      <dl id="bindings" class="bindings"></dl>
+      <ul id="binding-notes" class="notes"></ul>
+      <div id="manual-bindings" hidden>
+        <div class="row">
+          <label class="field">Stratagem-Liste <button type="button" class="btn key" data-capture="game.menuKey"></button></label>
+          <label class="field">öffnet per
+            <select id="menu-mode"><option value="Hold">Halten</option><option value="Press">Drücken</option></select>
+          </label>
+        </div>
+        <div class="row four">
+          <label class="field">↑ <button type="button" class="btn key" data-capture="game.up"></button></label>
+          <label class="field">↓ <button type="button" class="btn key" data-capture="game.down"></button></label>
+          <label class="field">← <button type="button" class="btn key" data-capture="game.left"></button></label>
+          <label class="field">→ <button type="button" class="btn key" data-capture="game.right"></button></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Timing</h2>
+      <p class="muted small">Gehen Eingaben verloren, die Werte erhöhen. Das Spiel liest einmal pro Bild: unter ~20 ms gehen Tasten bei niedrigen FPS verloren.</p>
+      <label class="field">Taste halten <span class="val" id="hold-val"></span>
+        <input id="timing-hold" type="range" min="10" max="150" step="5"></label>
+      <label class="field">Pause zwischen Tasten <span class="val" id="gap-val"></span>
+        <input id="timing-gap" type="range" min="10" max="150" step="5"></label>
+      <label class="field">Warten nach Öffnen der Liste <span class="val" id="open-val"></span>
+        <input id="timing-open" type="range" min="0" max="300" step="10"></label>
+      <label class="check"><input id="only-focused" type="checkbox"> Nur wenn das Spiel im Vordergrund ist (empfohlen)</label>
+    </section>
+
+    <section class="card">
+      <h2>Handy als Stream Deck</h2>
+      <label class="check"><input id="allow-lan" type="checkbox"> Im Heimnetz erreichbar (nach Neustart von Stratagem)</label>
+      <div id="lan-urls" class="muted small"></div>
+      <p class="muted small">Den Link auf dem Handy öffnen (gleiches WLAN). Er enthält einen geheimen Schlüssel – nicht weitergeben.</p>
+    </section>
+
+    <section class="card wide">
+      <h2>Protokoll</h2>
+      <ul id="events" class="events"></ul>
+    </section>
+  </main>
+
+  <div id="capture" class="capture" hidden>
+    <div class="capture-box">
+      <p>Taste oder Maustaste drücken …</p>
+      <p class="muted small">Esc = abbrechen</p>
+    </div>
+  </div>
+</body>
+</html>

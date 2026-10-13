@@ -1,0 +1,105 @@
+name: Stratagem.exe bauen
+
+on:
+  push:
+    branches: [main]
+    paths: ['stratagem/**', '.github/workflows/stratagem-windows.yml']
+  pull_request:
+    paths: ['stratagem/**', '.github/workflows/stratagem-windows.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# A newer push replaces a build that is still running.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: stratagem
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Tests
+        run: dotnet test -c Release
+
+      - name: Stratagem.exe bauen
+        run: dotnet publish src/Stratagem.App -c Release -r win-x64 -o dist -p:CopyOutputSymbolsToPublishDirectory=false
+
+      - name: Stratagem.exe starten und prüfen
+        shell: pwsh
+        timeout-minutes: 5
+        run: |
+          $exe = (Resolve-Path dist\Stratagem.exe).Path
+          # Window program (no black console window)?
+          $bytes = [IO.File]::ReadAllBytes($exe)
+          $pe = [BitConverter]::ToInt32($bytes, 0x3c)
+          $subsystem = [BitConverter]::ToUInt16($bytes, $pe + 4 + 20 + 68)
+          if ($subsystem -ne 2) { throw "Stratagem.exe ist kein Fensterprogramm (Subsystem $subsystem)" }
+
+          $env:STRATAGEM_NO_BROWSER = "1"
+          $env:PORT = "8191"
+          $env:STRATAGEM_DATA = "$env:RUNNER_TEMP\stratagem-data"
+          $log = "$env:STRATAGEM_DATA\stratagem.log"
+          $proc = Start-Process -FilePath $exe -PassThru
+          $state = $null
+          for ($i = 0; $i -lt 40 -and -not $state; $i++) {
+            try { $state = Invoke-RestMethod http://localhost:8191/api/state } catch { Start-Sleep 1 }
+          }
+          for ($i = 0; $i -lt 30 -and -not (Select-String -Path $log -Pattern 'Tray-Symbol bereit' -Quiet -ErrorAction SilentlyContinue); $i++) { Start-Sleep 1 }
+          Get-Content $log
+          if (-not $state) { throw "Stratagem.exe antwortet nicht" }
+          if ($state.list.items.Count -lt 1) { throw "Liste leer" }
+          if (-not (Select-String -Path $log -Pattern 'Tray-Symbol bereit' -Quiet)) { throw "Tray-Symbol fehlt" }
+          $html = (Invoke-WebRequest http://localhost:8191/ -UseBasicParsing).Content
+          if ($html -notmatch "<title>Stratagem</title>") { throw "Weboberfläche fehlt in Stratagem.exe" }
+
+          # Without the protection header nothing may happen.
+          try {
+            Invoke-RestMethod -Method Post http://localhost:8191/api/activate -ContentType 'application/json' -Body '{"slot":0}' | Out-Null
+            throw "Aktivieren ohne Header wurde angenommen"
+          } catch [Microsoft.PowerShell.Commands.HttpResponseException] {
+            if ($_.Exception.Response.StatusCode -ne 403) { throw }
+          }
+
+          # Second start while Stratagem runs: must end by itself (it only opens the browser).
+          $second = Start-Process -FilePath $exe -PassThru
+          if (-not $second.WaitForExit(15000)) { $second.Kill(); throw "Zweiter Start beendet sich nicht" }
+
+          # "Beenden" from the web UI.
+          Invoke-RestMethod -Method Post http://localhost:8191/api/quit -Headers @{ 'X-Stratagem' = '1' } -ContentType 'application/json' -Body '{}' | Out-Null
+          if (-not $proc.WaitForExit(15000)) { $proc.Kill(); throw "Stratagem.exe lässt sich nicht beenden" }
+          Start-Sleep 1
+          Get-Content $log -Tail 5
+          if (Select-String -Path $log -Pattern 'Unerwarteter Fehler|Start fehlgeschlagen' -Quiet) { throw "Fehler im Protokoll (stratagem.log)" }
+          "Stratagem.exe OK ($([math]::Round((Get-Item $exe).Length / 1MB, 1)) MB)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Stratagem-Windows
+          path: stratagem/dist/Stratagem.exe
+
+      - name: Download-Seite (Release) aktualisieren
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Replace the file in the existing release, so the download link never breaks.
+          notes="Stratagem.exe herunterladen und doppelklicken – die Einstellungen öffnen sich im Browser, Stratagem läuft dann im Hintergrund (Symbol unten rechts in der Taskleiste). Beim ersten Start: Windows-SmartScreen → „Weitere Informationen“ → „Trotzdem ausführen“. Experimentell, siehe stratagem/README.md. Gebaut aus ${GITHUB_SHA:0:7}."
+          if gh release view stratagem-latest >/dev/null 2>&1; then
+            gh release upload stratagem-latest dist/Stratagem.exe --clobber
+            gh release edit stratagem-latest --title "Stratagem für Windows (experimentell)" --notes "$notes" --prerelease
+          else
+            gh release create stratagem-latest dist/Stratagem.exe --target "$GITHUB_SHA" --prerelease --title "Stratagem für Windows (experimentell)" --notes "$notes" \
+              || gh release create stratagem-latest dist/Stratagem.exe --prerelease --title "Stratagem für Windows (experimentell)" --notes "$notes"
+          fi
