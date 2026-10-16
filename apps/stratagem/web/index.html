@@ -151,8 +151,16 @@
     <section class="card">
       <h2>Handy als Stream Deck</h2>
       <label class="check"><input id="allow-lan" type="checkbox"> Im Heimnetz erreichbar (nach Neustart von Stratagem)</label>
-      <div id="lan-urls" class="muted small"></div>
-      <p class="muted small">Den Link auf dem Handy öffnen (gleiches WLAN). Er enthält einen geheimen Schlüssel – nicht weitergeben.</p>
+      <label class="field">Name im Heimnetz
+        <span class="suffix"><input id="lan-name" type="text" maxlength="63" spellcheck="false" autocomplete="off"><span>.local</span></span></label>
+      <div id="lan" class="lan" hidden>
+        <img id="lan-qr" class="qr" alt="QR-Code für das Handy" width="148" height="148">
+        <div>
+          <p class="small">Mit der Handy-Kamera scannen (gleiches WLAN). Danach reicht im Handy-Browser <b id="lan-short"></b>.</p>
+          <div id="lan-urls" class="lan-urls muted small"></div>
+        </div>
+      </div>
+      <p class="muted small">Der QR-Code enthält einen geheimen Schlüssel – nicht weitergeben. Findet das Handy den Namen nicht (ältere Android-Versionen), den Link mit der IP-Adresse nehmen.</p>
     </section>
 
     <section class="card wide">

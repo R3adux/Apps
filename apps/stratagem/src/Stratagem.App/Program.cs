@@ -1,9 +1,10 @@
 // Entry point of Stratagem.exe.
 //
-// Runs in the background with a tray icon; the settings are a web page (http://localhost:8133).
-// Started by Windows at login (--autostart) it does not open the browser. A second start only opens the browser.
-// Data: %USERPROFILE%\.stratagem (settings.json, stratagem.log).
-// Environment (mainly for tests): STRATAGEM_DATA, PORT, STRATAGEM_NO_BROWSER=1, STRATAGEM_NO_HOOKS=1.
+// Runs in the background with a tray icon; the settings are a web page (http://localhost:8133), shown in the
+// Stratagem window (WebView2) or, as a fallback, in the browser. The phone opens http://<name>.local (mDNS).
+// Started by Windows at login (--autostart) it opens no window. A second start only shows the window.
+// Data: %USERPROFILE%\.stratagem (settings.json, stratagem.log, window.json, WebView2\).
+// Environment (mainly for tests): STRATAGEM_DATA, PORT, STRATAGEM_NO_BROWSER=1 (no window at start), STRATAGEM_NO_HOOKS=1.
 
 using System.Diagnostics;
 using System.Windows.Forms;
@@ -32,7 +33,7 @@ internal static class Program
         using var single = new Mutex(true, $@"Local\Stratagem-{Environment.UserName}", out var first);
         if (!first)
         {
-            if (!atLogin) OpenBrowser(url);
+            if (!atLogin && !AskToShowWindow(port)) OpenBrowser(url);
             return 0;
         }
 
@@ -101,19 +102,41 @@ internal static class Program
         SyncHooks();
         game.Changed += () => log.Log(game.IsFocused ? "Spiel im Vordergrund" : game.IsRunning ? "Spiel im Hintergrund" : "Spiel nicht gestartet");
 
+        AppWindow? window = null;
         WebServer server;
         try
         {
             server = WebServer.StartAsync(service, new WebServerOptions(port, settings.Web.AllowLan, settings.Web.Token,
-                new DesktopActions(dataDir, () => ui.Post(_ => Application.Exit(), null)), Environment.GetEnvironmentVariable("STRATAGEM_WEB_DIR"), log.Log)).GetAwaiter().GetResult();
+                new DesktopActions(dataDir, () => ui.Post(_ => Application.Exit(), null), () => ui.Post(_ => window?.Show(), null)),
+                Environment.GetEnvironmentVariable("STRATAGEM_WEB_DIR"), log.Log, settings.Web.LanPort)).GetAwaiter().GetResult();
         }
         catch (IOException e)
         {
             throw new InvalidOperationException($"Port {port} ist belegt ({e.Message}). Läuft Stratagem schon, oder nutzt ein anderes Programm den Port?", e);
         }
-        log.Log($"Weboberfläche auf {url}{(settings.Web.AllowLan ? " (auch im Heimnetz)" : "")}");
+        log.Log($"Weboberfläche auf {url}");
 
-        using var tray = new TrayIcon(() => OpenBrowser(url), paused => service.SetPaused(paused), Application.Exit);
+        // Phone: http://<name>.local – answered here, so no router setting is needed.
+        MdnsResponder? mdns = null;
+        if (settings.Web.AllowLan)
+        {
+            try { mdns = new MdnsResponder(() => service.Current.Web.Name, log.Log); }
+            catch (Exception e) { log.Log($"Name im Heimnetz nicht möglich ({e.Message}) – das Handy braucht die IP-Adresse"); }
+            var lanPort = server.LanPort == 80 ? "" : $":{(server.LanPort != 0 ? server.LanPort : port)}";
+            log.Log($"Im Heimnetz: http://{settings.Web.Name}.local{lanPort}");
+        }
+        using var _mdns = mdns;
+
+        using var tray = new TrayIcon(() => window?.Show(), () => OpenBrowser(url), paused => service.SetPaused(paused), Application.Exit);
+        window = new AppWindow(url, dataDir, tray.AppIcon, log.Log, () => OpenBrowser(url));
+        using var _window = window;
+        var toldBackground = false;
+        window.Closed += byUser =>
+        {
+            if (!byUser || toldBackground) return;
+            toldBackground = true;
+            tray.Notify("Stratagem läuft im Hintergrund weiter. Öffnen: Symbol unten rechts in der Taskleiste.");
+        };
         // Tray and overlay follow the service, but only touch Windows when something they show changed,
         // and many changes in a row (a macro, a burst of log lines) become one update on the UI thread.
         var uiPending = 0;
@@ -135,7 +158,7 @@ internal static class Program
         UpdateUi();
         log.Log("Tray-Symbol bereit");
 
-        if (!atLogin && Environment.GetEnvironmentVariable("STRATAGEM_NO_BROWSER") != "1") OpenBrowser(url);
+        if (!atLogin && Environment.GetEnvironmentVariable("STRATAGEM_NO_BROWSER") != "1") window.Show();
         if (!settings.List.Manual.Any() && settings.List.Source == ListSource.Manual) tray.Notify("Liste ist leer – in der App Stratagems hinzufügen.");
 
         Application.Run();
@@ -150,13 +173,27 @@ internal static class Program
 
     private sealed record UiState(bool Paused, bool Focused, int Size, double Opacity, IReadOnlyList<Stratagem.Core.Model.StratagemItem> Items);
 
+    // A second start: the running Stratagem shows its window (false: it did not answer).
+    private static bool AskToShowWindow(int port)
+    {
+        try
+        {
+            AppWindow.LetOtherProcessComeToFront();
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            using var req = new HttpRequestMessage(HttpMethod.Post, $"http://127.0.0.1:{port}/api/show-window");
+            req.Headers.Add(WebServer.HeaderName, "1");
+            return http.Send(req).IsSuccessStatusCode;
+        }
+        catch (Exception) { return false; }
+    }
+
     internal static void OpenBrowser(string url)
     {
         try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
         catch (Exception) { /* no browser: the tray still works */ }
     }
 
-    private sealed class DesktopActions(string dataDir, Action quit) : IDesktop
+    private sealed class DesktopActions(string dataDir, Action quit, Action showWindow) : IDesktop
     {
         public bool Autostart
         {
@@ -165,6 +202,8 @@ internal static class Program
         }
 
         public void Quit() => quit();
+
+        public void ShowWindow() => showWindow();
 
         public void OpenDataFolder() => Process.Start(new ProcessStartInfo("explorer.exe", $"\"{dataDir}\"") { UseShellExecute = true });
     }

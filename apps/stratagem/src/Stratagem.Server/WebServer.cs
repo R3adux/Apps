@@ -20,9 +20,13 @@ public interface IDesktop
     bool Autostart { get; set; }
     void Quit();
     void OpenDataFolder();
+    /// <summary>Shows the Stratagem window (a second start of Stratagem.exe asks for it).</summary>
+    void ShowWindow();
 }
 
-public sealed record WebServerOptions(int Port, bool AllowLan, string Token, IDesktop? Desktop = null, string? WebDir = null, Action<string>? Log = null);
+/// <param name="LanPort">Extra port for the home network (80: the address needs no ":port"); 0 = none.
+/// If it is taken, the server runs without it.</param>
+public sealed record WebServerOptions(int Port, bool AllowLan, string Token, IDesktop? Desktop = null, string? WebDir = null, Action<string>? Log = null, int LanPort = 0);
 
 /// <summary>
 /// Local web server (Kestrel). API under /api, see docs/API.md.
@@ -56,13 +60,34 @@ public sealed class WebServer : IAsyncDisposable
 
     public int Port { get; private set; }
 
+    /// <summary>The extra home network port, if it could be opened (0 = none).</summary>
+    public int LanPort { get; private set; }
+
     public static async Task<WebServer> StartAsync(StratagemService service, WebServerOptions options)
+    {
+        var lanPort = options.AllowLan && options.LanPort > 0 && options.LanPort != options.Port ? options.LanPort : 0;
+        if (lanPort != 0)
+        {
+            try { return await StartAsync(service, options, lanPort); }
+            catch (Exception e) when (e is IOException or System.Net.Sockets.SocketException or UnauthorizedAccessException)
+            {
+                options.Log?.Invoke($"Port {lanPort} fürs Heimnetz belegt – Adresse mit :{options.Port} ({e.Message})");
+            }
+        }
+        return await StartAsync(service, options, 0);
+    }
+
+    private static async Task<WebServer> StartAsync(StratagemService service, WebServerOptions options, int lanPort)
     {
         var builder = WebApplication.CreateSlimBuilder();
         builder.Logging.ClearProviders();
         builder.WebHost.ConfigureKestrel(k =>
         {
-            if (options.AllowLan) k.Listen(IPAddress.Any, options.Port);
+            if (options.AllowLan)
+            {
+                k.Listen(IPAddress.Any, options.Port);
+                if (lanPort != 0) k.Listen(IPAddress.Any, lanPort);
+            }
             else
             {
                 k.Listen(IPAddress.Loopback, options.Port);
@@ -78,11 +103,19 @@ public sealed class WebServer : IAsyncDisposable
         var app = builder.Build();
         var server = new WebServer(app, service, options);
         server.Map();
-        await app.StartAsync();
+        try { await app.StartAsync(); }
+        catch (Exception)
+        {
+            service.Changed -= server.SchedulePush;
+            await server._pushTimer.DisposeAsync();
+            await app.DisposeAsync();
+            throw;
+        }
+        server.LanPort = lanPort;
         var addresses = app.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>()
             .Features.Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()?.Addresses;
         server.Port = options.Port != 0 ? options.Port
-            : addresses?.Select(a => new Uri(a.Replace("[::]", "localhost").Replace("0.0.0.0", "localhost")).Port).FirstOrDefault() ?? 0;
+            : addresses?.Select(a => new Uri(a.Replace("[::]", "localhost").Replace("0.0.0.0", "localhost")).Port).FirstOrDefault(p => p != lanPort) ?? 0;
         return server;
     }
 
@@ -176,6 +209,20 @@ public sealed class WebServer : IAsyncDisposable
             d.OpenDataFolder();
             return Results.Ok();
         });
+        app.MapPost("/api/show-window", (HttpContext ctx) =>
+        {
+            if (_options.Desktop is not { } d || !IsLoopback(ctx)) return Results.NotFound();
+            d.ShowWindow();
+            return Results.Ok();
+        });
+        // QR code of a phone link (index into "lan" of /api/info), so the phone only has to scan it.
+        app.MapGet("/api/qr/{index:int}", (int index, HttpContext ctx) =>
+        {
+            if (!IsLoopback(ctx)) return Results.NotFound();
+            var urls = LanUrls();
+            if (index < 0 || index >= urls.Count) return Results.NotFound();
+            return Results.Text(QrCode.Encode(urls[index]).ToSvg(), "image/svg+xml");
+        });
         app.MapPost("/api/quit", (HttpContext ctx) =>
         {
             if (_options.Desktop is not { } d || !IsLoopback(ctx)) return Results.NotFound();
@@ -183,7 +230,9 @@ public sealed class WebServer : IAsyncDisposable
             return Results.Ok();
         });
         app.Map("/api/events", Events);
-        app.MapGet("/{**path}", StaticFile);
+        app.MapGet("/{**path}", (string? path, HttpContext ctx) =>
+            // The phone opens the bare address: it wants the deck, not the settings.
+            string.IsNullOrEmpty(path) && !IsLoopback(ctx) ? Results.Redirect("/deck") : StaticFile(path));
     }
 
     private static readonly JsonSerializerOptions JsonOptions = SettingsStore.Json;
@@ -200,7 +249,8 @@ public sealed class WebServer : IAsyncDisposable
         // DNS rebinding: a foreign page must not reach us under its own host name.
         var host = req.Host.Host;
         var hostOk = host is "localhost" or "127.0.0.1" or "[::1]" or "::1"
-                     || (_options.AllowLan && IPAddress.TryParse(host.Trim('[', ']'), out _));
+                     || (_options.AllowLan && (IPAddress.TryParse(host.Trim('[', ']'), out _)
+                                               || string.Equals(host, LocalName, StringComparison.OrdinalIgnoreCase)));
         if (!hostOk)
         {
             ctx.Response.StatusCode = StatusCodes.Status421MisdirectedRequest;
@@ -249,20 +299,17 @@ public sealed class WebServer : IAsyncDisposable
 
     private static bool IsLoopback(HttpContext ctx) => ctx.Connection.RemoteIpAddress is { } ip && IPAddress.IsLoopback(ip);
 
+    /// <summary>The name the phone uses, e.g. "hellwheel.local" (answered by <see cref="MdnsResponder"/>).</summary>
+    private string LocalName => _service.Current.Web.Name + ".local";
+
+    /// <summary>Phone links: first by name, then by IP address (for phones that do not know .local names).</summary>
     private IReadOnlyList<string> LanUrls()
     {
-        var urls = new List<string>();
+        var port = LanPort == 80 ? "" : $":{(LanPort != 0 ? LanPort : Port)}";
+        var urls = new List<string> { $"http://{LocalName}{port}/deck?token={_options.Token}" };
         try
         {
-            foreach (var nic in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
-            {
-                if (nic.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up) continue;
-                foreach (var a in nic.GetIPProperties().UnicastAddresses)
-                {
-                    if (a.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork || IPAddress.IsLoopback(a.Address)) continue;
-                    urls.Add($"http://{a.Address}:{Port}/deck?token={_options.Token}");
-                }
-            }
+            foreach (var a in LocalAddress.All()) urls.Add($"http://{a.Address}{port}/deck?token={_options.Token}");
         }
         catch (Exception e) { _options.Log?.Invoke($"Netzwerkadressen nicht lesbar: {e.Message}"); }
         return urls;

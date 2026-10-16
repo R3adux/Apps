@@ -50,6 +50,9 @@ jobs:
           $env:PORT = "8191"
           $env:STRATAGEM_DATA = "$env:RUNNER_TEMP\stratagem-data"
           $log = "$env:STRATAGEM_DATA\stratagem.log"
+          # Phone access on, so the home network part (mDNS name, extra port) starts too.
+          New-Item -ItemType Directory -Force $env:STRATAGEM_DATA | Out-Null
+          '{"web":{"allowLan":true,"name":"hellwheel"}}' | Set-Content "$env:STRATAGEM_DATA\settings.json"
           $proc = Start-Process -FilePath $exe -PassThru
           $state = $null
           for ($i = 0; $i -lt 40 -and -not $state; $i++) {
@@ -63,6 +66,33 @@ jobs:
           $html = (Invoke-WebRequest http://localhost:8191/ -UseBasicParsing).Content
           if ($html -notmatch "<title>Stratagem</title>") { throw "Weboberfläche fehlt in Stratagem.exe" }
 
+          # The Stratagem window (WebView2) opens and loads the page.
+          Invoke-RestMethod -Method Post http://localhost:8191/api/show-window -Headers @{ 'X-Stratagem' = '1' } -ContentType 'application/json' -Body '{}' | Out-Null
+          for ($i = 0; $i -lt 40 -and -not (Select-String -Path $log -Pattern 'App-Fenster (geladen|nicht)' -Quiet); $i++) { Start-Sleep 1 }
+          Select-String -Path $log -Pattern 'App-Fenster'
+          if (-not (Select-String -Path $log -Pattern 'App-Fenster geladen' -Quiet)) { throw "App-Fenster öffnet nicht" }
+
+          # The phone name answers via mDNS (question like a phone's, sent to the mDNS group).
+          $udp = New-Object System.Net.Sockets.UdpClient 0
+          $udp.Client.ReceiveTimeout = 3000
+          [byte[]]$query = @(0x12,0x34, 0,0, 0,1, 0,0, 0,0, 0,0, 9) + [Text.Encoding]::ASCII.GetBytes('hellwheel') + @(5) + [Text.Encoding]::ASCII.GetBytes('local') + @(0, 0,1, 0,1)
+          $udp.Send($query, $query.Length, '224.0.0.251', 5353) | Out-Null
+          $from = New-Object System.Net.IPEndPoint ([Net.IPAddress]::Any, 0)
+          try { $answer = $udp.Receive([ref]$from) } catch { throw "Keine mDNS-Antwort für hellwheel.local" }
+          if ($answer[0] -ne 0x12 -or $answer[1] -ne 0x34 -or $answer[7] -lt 1) { throw "mDNS-Antwort ungültig" }
+          $ip = [Net.IPAddress]::new([byte[]]$answer[($answer.Length - 4)..($answer.Length - 1)])
+          "hellwheel.local -> $ip"
+          try { "Windows löst auf: " + ([Net.Dns]::GetHostAddresses('hellwheel.local') -join ', ') } catch { Write-Warning "Windows selbst löst hellwheel.local nicht auf: $_" }
+
+          # Phone: by name with the token (the bare address leads to the deck); QR code for the settings page.
+          $phoneLink = (Invoke-RestMethod http://localhost:8191/api/info).lan[0]
+          "Handy-Link: $($phoneLink -replace 'token=.*', 'token=…')"
+          if ($phoneLink -notmatch '^http://hellwheel\.local(:\d+)?/deck\?token=(\w+)$') { throw "Handy-Link unerwartet" }
+          $deck = Invoke-WebRequest "http://$($ip):8191/deck?token=$($Matches[2])" -Headers @{ Host = 'hellwheel.local:8191' } -UseBasicParsing
+          if ($deck.Content -notmatch "<title>Stratagem Deck</title>") { throw "Deck übers Heimnetz nicht erreichbar" }
+          $qr = (Invoke-WebRequest http://localhost:8191/api/qr/0 -UseBasicParsing).Content
+          if ($qr -notmatch "^<svg") { throw "QR-Code fehlt" }
+
           # Without the protection header nothing may happen.
           try {
             Invoke-RestMethod -Method Post http://localhost:8191/api/activate -ContentType 'application/json' -Body '{"slot":0}' | Out-Null
@@ -71,7 +101,7 @@ jobs:
             if ($_.Exception.Response.StatusCode -ne 403) { throw }
           }
 
-          # Second start while Stratagem runs: must end by itself (it only opens the browser).
+          # Second start while Stratagem runs: must end by itself (it only brings the window to the front).
           $second = Start-Process -FilePath $exe -PassThru
           if (-not $second.WaitForExit(15000)) { $second.Kill(); throw "Zweiter Start beendet sich nicht" }
 

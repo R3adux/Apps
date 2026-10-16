@@ -386,12 +386,35 @@ const renderers = [
   bindSelect('#menu-mode', 'game.menuMode'),
 ];
 
+// Text field: saved when done typing (Enter or leaving the field), so re-rendering never moves the cursor.
+$('#lan-name').addEventListener('change', async (e) => {
+  set('web.name', e.target.value);
+  changed();
+  setTimeout(() => api.info().then((info) => renderLan(info.lan)).catch(() => {}), 800);
+});
+
+// Phone links: by name first, then by IP address; the QR code shows the chosen one.
+function renderLan(urls) {
+  $('#lan').hidden = !urls?.length;
+  if (!urls?.length) return;
+  const show = (i) => {
+    $('#lan-qr').src = `/api/qr/${i}?v=${encodeURIComponent(urls[i])}`;
+    $$('#lan-urls button').forEach((b, j) => b.classList.toggle('on', i === j));
+  };
+  $('#lan-short').textContent = new URL(urls[0]).host;
+  $('#lan-urls').replaceChildren(...urls.map((u, i) => el('div', {},
+    el('button', { type: 'button', className: 'btn small', textContent: 'QR', title: 'QR-Code für diesen Link', onclick: () => show(i) }),
+    el('a', { href: u, textContent: u.replace(/\?token=.*/, '?token=…'), target: '_blank' }))));
+  show(0);
+}
+
 $('#reload-bindings').addEventListener('click', () => api.reloadBindings().catch((e) => flash(e.message)));
 
 function renderSettings() {
   if (!settings) return;
   renderers.forEach((r) => r());
   $('#source').value = settings.list.source;
+  if (document.activeElement !== $('#lan-name')) $('#lan-name').value = settings.web.name;
   $$('[data-capture]').forEach((b) => { b.textContent = keyLabel(get(b.dataset.capture)); });
   $('#drag-field').hidden = settings.radial.mode !== 'TapDrag';
   $('#radial-help').textContent = radialHelp();
@@ -510,7 +533,7 @@ async function start() {
       $$('[data-desktop]').forEach((b) => { b.hidden = false; });
       menu.querySelector('[data-action="autostart"]').classList.toggle('on', info.desktop.autostart);
     }
-    $('#lan-urls').replaceChildren(...(info.lan ?? []).map((u) => el('div', {}, el('a', { href: u, textContent: u }))));
+    renderLan(info.lan);
     $('#catalog').replaceChildren(...catalog.map((c) => el('option', { value: c.name })));
   } catch (e) {
     $('#offline').hidden = false;

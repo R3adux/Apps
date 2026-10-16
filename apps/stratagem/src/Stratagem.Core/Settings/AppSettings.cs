@@ -96,6 +96,10 @@ public sealed class AppSettings
         if (List.ScreenScale is < 0.5 or > 2.0 || double.IsNaN(List.ScreenScale)) { List.ScreenScale = 1.0; fixes.Add("HUD-Größe"); }
         Web.Port = Clamp(Web.Port, 1024, 65535, nameof(Web.Port), fixes);
         if (string.IsNullOrWhiteSpace(Web.Token) || Web.Token.Length < 16) Web.Token = WebSettings.NewToken();
+        Web.Name = (Web.Name ?? "").Trim().ToLowerInvariant();
+        if (Web.Name.EndsWith(".local")) Web.Name = Web.Name[..^6];
+        if (!WebSettings.IsValidName(Web.Name)) { fixes.Add($"Name im Heimnetz '{Web.Name}' ungültig, zurück auf {WebSettings.DefaultName}."); Web.Name = WebSettings.DefaultName; }
+        if (Web.LanPort != 0) Web.LanPort = Clamp(Web.LanPort, 1, 65535, nameof(Web.LanPort), fixes);
         if (string.IsNullOrWhiteSpace(Game.WindowTitle)) Game.WindowTitle = new GameSettings().WindowTitle;
         if (string.IsNullOrWhiteSpace(Game.ProcessName)) Game.ProcessName = new GameSettings().ProcessName;
         Version = CurrentVersion;
@@ -199,6 +203,15 @@ public sealed class WebSettings
     /// <summary>Reachable from the home network (phone as stream deck). Needs the token.</summary>
     public bool AllowLan { get; set; }
     public string Token { get; set; } = NewToken();
+    /// <summary>Name in the home network: the phone opens http://&lt;name&gt;.local (letters, digits, '-').</summary>
+    public string Name { get; set; } = DefaultName;
+    /// <summary>Extra port for the home network, so the address needs no ":port" (0 = off). Falls back to Port if taken.</summary>
+    public int LanPort { get; set; } = 80;
+
+    public const string DefaultName = "hellwheel";
+
+    public static bool IsValidName(string? name) =>
+        name is { Length: > 0 and <= 63 } && System.Text.RegularExpressions.Regex.IsMatch(name, "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$");
 
     public static string NewToken() => Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(12)).ToLowerInvariant();
 }

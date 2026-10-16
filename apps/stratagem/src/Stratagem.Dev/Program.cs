@@ -21,7 +21,9 @@ var testScreen = Environment.GetEnvironmentVariable("STRATAGEM_TEST_SCREEN");
 var service = new StratagemService(store, settings, new ServicePlatform(new ConsoleOutput(), new ConsoleView(), game,
     ReadGameBindings: readBindings, Capture: testScreen is null ? null : new PictureCapture(testScreen), DataDir: dataDir), log: Console.WriteLine);
 var port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var p) ? p : settings.Web.Port;
-await using var server = await WebServer.StartAsync(service, new WebServerOptions(port, settings.Web.AllowLan, settings.Web.Token, WebDir: webDir, Log: Console.WriteLine));
+var lanPort = int.TryParse(Environment.GetEnvironmentVariable("LAN_PORT"), out var lp) ? lp : settings.Web.LanPort;
+await using var server = await WebServer.StartAsync(service, new WebServerOptions(port, settings.Web.AllowLan, settings.Web.Token, WebDir: webDir, Log: Console.WriteLine, LanPort: lanPort));
+using var mdns = settings.Web.AllowLan ? new MdnsResponder(() => service.Current.Web.Name, Console.WriteLine) : null;
 Console.WriteLine($"Stratagem (Entwicklung) auf http://localhost:{server.Port} – Web-Dateien aus {webDir}");
 
 if (Console.IsInputRedirected)

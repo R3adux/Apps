@@ -5,9 +5,11 @@ Standard: `http://localhost:8133`. JSON in camelCase, Aufzählungen als Text.
 
 ## Schutz
 - Jede ändernde Anfrage (alles außer GET) braucht den Header `X-Stratagem: 1`.
-- Anfragen mit fremdem `Origin` und fremdem `Host` werden abgelehnt.
+- Anfragen mit fremdem `Origin` und fremdem `Host` werden abgelehnt (erlaubt: `localhost`, IP-Adressen und im
+  Heimnetz `<name>.local`).
 - Aus dem Heimnetz (Option „Im Heimnetz erreichbar“) nur mit Token: `?token=…` (setzt ein Cookie),
-  Cookie `stratagem_token` oder Header `X-Stratagem-Token`.
+  Cookie `stratagem_token` oder Header `X-Stratagem-Token`. `/` führt dort zum Deck.
+- Im Heimnetz: zusätzlich Port `web.lanPort` (80, falls frei) und mDNS-Antwort für `web.name` + `.local`.
 
 ## Endpunkte
 
@@ -24,7 +26,8 @@ Standard: `http://localhost:8133`. JSON in camelCase, Aufzählungen als Text.
 | GET | `/api/keys` | gültige Tastennamen (W3C `KeyboardEvent.code`) |
 | GET | `/api/icon/{index}` | PNG-Icon eines Listeneintrags (sobald die Bildschirmerkennung Icons liefert) |
 | GET | `/api/info` | Version, `apiVersion`; nur lokal: `desktop.autostart`, Heimnetz-Links |
-| POST | `/api/autostart`, `/api/open-folder`, `/api/quit` | nur lokal (Tray-App) |
+| GET | `/api/qr/{index}` | nur lokal: QR-Code (SVG) des Heimnetz-Links `lan[index]` aus `/api/info` |
+| POST | `/api/autostart`, `/api/open-folder`, `/api/show-window`, `/api/quit` | nur lokal (Tray-App) |
 | WS | `/api/events` | sendet bei jeder Änderung `{ "type": "state", "state": … }`, beim Verbinden sofort |
 
 `activate` gibt `ok: false` zurück, wenn das Spiel nicht im Vordergrund ist, pausiert ist, der Eintrag

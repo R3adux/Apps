@@ -9,5 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Stratagem.Core\Stratagem.Core.csproj" />
+    <!-- App window: shows the same web UI as the browser, with Edge's engine that comes with Windows 10/11. -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
   </ItemGroup>
 </Project>

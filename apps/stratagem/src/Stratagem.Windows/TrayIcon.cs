@@ -4,7 +4,7 @@ using System.Windows.Forms;
 
 namespace Stratagem.Windows;
 
-/// <summary>Icon in the notification area: click = open the web UI, right-click = pause, autostart, quit.</summary>
+/// <summary>Icon in the notification area: click = open the Stratagem window, right-click = pause, autostart, quit.</summary>
 public sealed class TrayIcon : IDisposable
 {
     private readonly NotifyIcon _icon;
@@ -13,7 +13,7 @@ public sealed class TrayIcon : IDisposable
     private readonly Icon _active = Draw(paused: false);
     private readonly Icon _paused = Draw(paused: true);
 
-    public TrayIcon(Action open, Action<bool> setPaused, Action quit)
+    public TrayIcon(Action open, Action openBrowser, Action<bool> setPaused, Action quit)
     {
         _pause = new ToolStripMenuItem("Pausieren", null, (_, _) => setPaused(!_pause!.Checked));
         _autostart = new ToolStripMenuItem("Mit Windows starten", null, (_, _) =>
@@ -23,6 +23,7 @@ public sealed class TrayIcon : IDisposable
         });
         var menu = new ContextMenuStrip();
         menu.Items.Add(new ToolStripMenuItem("Stratagem öffnen", null, (_, _) => open()) { Font = new Font(menu.Font, FontStyle.Bold) });
+        menu.Items.Add(new ToolStripMenuItem("Im Browser öffnen", null, (_, _) => openBrowser()));
         menu.Items.Add(_pause);
         menu.Items.Add(_autostart);
         menu.Items.Add(new ToolStripSeparator());
@@ -32,6 +33,8 @@ public sealed class TrayIcon : IDisposable
         _icon = new NotifyIcon { Icon = _active, Text = "Stratagem", ContextMenuStrip = menu, Visible = true };
         _icon.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) open(); };
     }
+
+    public Icon AppIcon => _active;
 
     /// <summary>Called on the UI thread with the current status.</summary>
     public void Update(bool paused, bool gameFocused, int count)

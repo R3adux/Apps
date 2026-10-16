@@ -199,4 +199,19 @@ internal static unsafe partial class Native
 
     [LibraryImport("winmm.dll")]
     public static partial uint timeEndPeriod(uint ms);
+
+    // --- app window ---
+    public const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+    public const int ASFW_ANY = -1;
+
+    [LibraryImport("dwmapi.dll")]
+    public static partial int DwmSetWindowAttribute(nint hwnd, int attribute, ref int value, int size);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool SetForegroundWindow(nint hwnd);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool AllowSetForegroundWindow(int processId);
 }

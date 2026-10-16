@@ -1,0 +1,9 @@
+<Project>
+  <!-- The WebView2 package always references its WPF control too; Stratagem uses only the WinForms one.
+       Dropping it avoids a WindowsBase version conflict and keeps it out of Stratagem.exe. -->
+  <Target Name="DropWebView2Wpf" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <Reference Remove="@(Reference)" Condition="'%(Filename)' == 'Microsoft.Web.WebView2.Wpf'" />
+    </ItemGroup>
+  </Target>
+</Project>

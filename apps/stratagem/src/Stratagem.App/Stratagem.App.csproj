@@ -18,6 +18,7 @@
     <!-- Precompiled machine code: fast start and no JIT pauses on the first key press in the game. -->
     <PublishReadyToRun>true</PublishReadyToRun>
     <DebugType>embedded</DebugType>
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Stratagem.Windows\Stratagem.Windows.csproj" />

@@ -215,3 +215,13 @@ body.deck { padding-left: 10px; padding-right: 10px; }
 @media (max-width: 480px) {
   .row.four { grid-template-columns: 1fr 1fr; }
 }
+
+/* phone link */
+.suffix { display: flex; align-items: center; gap: 6px; color: var(--text); }
+.suffix input { flex: 1; min-width: 0; }
+.lan { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; margin: 12px 0 4px; }
+.qr { width: 148px; height: 148px; border-radius: 10px; background: #fff; image-rendering: pixelated; }
+.lan-urls div { display: flex; gap: 8px; align-items: center; margin-top: 6px; overflow-wrap: anywhere; }
+.lan-urls .btn { flex: none; white-space: nowrap; }
+.lan-urls .btn.on { border-color: var(--accent); color: var(--accent); }
+@media (max-width: 480px) { .lan { grid-template-columns: 1fr; } }

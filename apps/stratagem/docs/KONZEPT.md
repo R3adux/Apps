@@ -21,11 +21,11 @@ selbst vom Bildschirm, sodass nie eine Liste gepflegt werden muss.
 | Projekt | Inhalt | Läuft auf |
 |---|---|---|
 | `src/Stratagem.Core` | Codes, Tasten (Scancodes), Makro-Planung und -Ablauf, Radialmenü-Logik als Zustandsautomat, Spieldatei-Leser (SJSON), Einstellungen, zentraler Dienst | jedem OS, voll getestet |
-| `src/Stratagem.Server` | Webserver (Kestrel): Weboberfläche, Handy-Deck, JSON/WebSocket-API | jedem OS, getestet |
-| `src/Stratagem.Windows` | SendInput, Low-Level-Hooks, Spielfenster-Erkennung, Overlay, Tray, Autostart, Steam-Pfade | nur Windows, dünn gehalten |
+| `src/Stratagem.Server` | Webserver (Kestrel): Weboberfläche, Handy-Deck, JSON/WebSocket-API; mDNS-Name fürs Handy, QR-Code | jedem OS, getestet |
+| `src/Stratagem.Windows` | SendInput, Low-Level-Hooks, Spielfenster-Erkennung, Overlay, Tray, App-Fenster (WebView2), Autostart, Steam-Pfade | nur Windows, dünn gehalten |
 | `src/Stratagem.App` | `Stratagem.exe`: verbindet alles | Windows |
 | `src/Stratagem.Dev` | Entwicklungs-Start ohne Windows/Spiel (Eingaben werden nur ausgegeben) | jedem OS |
-| `web/` | Oberfläche (HTML/CSS/JS ohne Build-Schritt, wie bei Licht) | Browser |
+| `web/` | Oberfläche (HTML/CSS/JS ohne Build-Schritt, wie bei Licht) | App-Fenster, Browser, Handy |
 
 **Warum so geschnitten:** Alles, was schiefgehen kann, ist Logik – und die liegt im Kern, ohne Windows,
 mit Tests (132 Stück): Welche Taste wird geschluckt, wann wird ausgelöst, was passiert bei Abbruch,
@@ -136,6 +136,8 @@ nur Namen und kann veralten, ohne etwas kaputtzumachen.
 
 | Problem | Was passiert / Abhilfe |
 |---|---|
+| Handy findet `hellwheel.local` nicht | Ältere Android-Versionen kennen keine `.local`-Namen → Link mit IP-Adresse (eigener QR-Code). Firewall-Frage nicht mit „Abbrechen“ beantwortet? Sonst in der Windows-Firewall Stratagem für private Netzwerke erlauben. |
+| Fenster bleibt leer / öffnet Browser | WebView2 fehlt oder startet nicht (steht im Protokoll) → Einstellungen laufen im Browser genauso. |
 | Overlay erscheint nicht | Spiel im exklusiven Vollbild → in den Grafikeinstellungen „Randlos“ wählen. |
 | Kamera dreht sich beim Auswählen | Siehe schwierige Stelle 1 – bitte melden, dann kommt Plan B. |
 | Stratagem kommt nicht an / falsches Stratagem | Timing erhöhen (Oberfläche → Timing). Niedrige FPS brauchen längere Werte. |
