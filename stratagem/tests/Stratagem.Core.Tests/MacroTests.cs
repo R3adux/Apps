@@ -32,10 +32,10 @@ public class MacroPlannerTests
     }
 
     [Fact]
-    public void Menu_already_open_only_types_the_code()
+    public void Menu_already_open_types_the_code_and_releases_the_held_key()
     {
         var steps = MacroPlanner.Plan(StratagemCode.Parse("UD"), GameBindings.Default, Timing, menuAlreadyOpen: true);
-        Assert.Equal("+KeyW 30 -KeyW 20 +KeyS 30 -KeyS", Describe(steps));
+        Assert.Equal("+KeyW 30 -KeyW 20 +KeyS 30 -KeyS 20 -ControlLeft", Describe(steps)); // hold mode: the held key is released after the code
     }
 
     [Fact]

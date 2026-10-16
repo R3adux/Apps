@@ -289,6 +289,8 @@ public sealed class RadialOverlay : Form, IRadialView
                 g.DrawLine(sep, c + (float)Math.Cos(a) * inner, c + (float)Math.Sin(a) * inner, c + (float)Math.Cos(a) * outer, c + (float)Math.Sin(a) * outer);
             }
 
+            if (item.IsEmpty) continue; // free place: keeps the other directions, shows nothing
+
             var rad = mid * Math.PI / 180;
             var r = (outer + inner) / 2;
             var x = c + (float)Math.Cos(rad) * r;
@@ -319,7 +321,7 @@ public sealed class RadialOverlay : Form, IRadialView
             g.FillEllipse(hub, c - inner, c - inner, inner * 2, inner * 2);
         g.DrawEllipse(rim, c - inner, c - inner, inner * 2, inner * 2);
         using var muted = new SolidBrush(Color.FromArgb(154, 161, 176));
-        var hint = n == 0 ? "Liste leer –\nin der App füllen" : _mode == RadialMode.HoldRelease ? "loslassen =\nabbrechen" : "Esc =\nschließen";
+        var hint = _items.All(i => i.IsEmpty) ? "Keine\nStratagems" : _mode == RadialMode.HoldRelease ? "loslassen =\nabbrechen" : "Esc =\nschließen";
         using var twoLines = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
         g.DrawString(hint, fonts.Small, muted, new RectangleF(c - inner, c - inner, inner * 2, inner * 2), twoLines);
     }

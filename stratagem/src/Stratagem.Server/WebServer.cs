@@ -124,6 +124,34 @@ public sealed class WebServer : IAsyncDisposable
             _service.ReloadBindings();
             return Results.Json(_service.GetState().Bindings, JsonOptions);
         });
+        // Diagnosis: read the stratagem list from a screenshot (PNG, whole screen) without the game.
+        app.MapPost("/api/read-picture", async (HttpRequest req) =>
+        {
+            using var ms = new MemoryStream();
+            await req.Body.CopyToAsync(ms);
+            if (ms.Length is 0 or > 30_000_000) return Results.BadRequest(new { error = "Bitte ein PNG-Bildschirmfoto schicken (max. 30 MB)." });
+            Stratagem.Core.Recognition.PixelImage image;
+            try { image = Stratagem.Core.Recognition.Png.Decode(ms.ToArray()); }
+            catch (Exception e) { return Results.BadRequest(new { error = $"Kein lesbares PNG ({e.Message}). Bildschirmfotos mit Win+Alt+Druck sind PNG." }); }
+            var scale = image.Height / 1080.0 * _service.Current.List.ScreenScale;
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var rows = _service.ReadPicture(image, scale);
+            return Results.Json(new
+            {
+                width = image.Width,
+                height = image.Height,
+                ms = watch.ElapsedMilliseconds,
+                rows = rows.Select(r => new
+                {
+                    r.Index,
+                    State = r.State.ToString(),
+                    Code = r.Code?.Letters,
+                    Arrows = r.Code?.Arrows,
+                    Name = r.Code is { } c ? _service.Catalog.NameOf(c) : null,
+                    Icon = Convert.ToBase64String(r.Icon),
+                }),
+            }, JsonOptions);
+        });
         app.MapGet("/api/catalog", () => Results.Json(
             _service.Catalog.Entries.Select(e => new { e.Name, Code = e.Code.Letters, e.Code.Arrows }), JsonOptions));
         app.MapGet("/api/keys", () => Results.Json(KeyNames.All, JsonOptions));

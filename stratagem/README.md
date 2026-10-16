@@ -9,7 +9,9 @@ Stratagem ruft Stratagems in Helldivers 2 für dich auf:
 - **Direkte Tasten:** jede Taste oder Maus-Seitentaste → Platz der Liste oder festes Stratagem.
 - **Handy als Stream Deck:** große Kacheln im Handy-Browser (gleiches WLAN).
 - **Liest deine Tastenbelegung aus dem Spiel** – auch wenn du sie später änderst.
-- Geplant: verfügbare Stratagems **direkt vom Bildschirm lesen** (dann keine Liste mehr pflegen), Stream-Deck-Plugin.
+- **Liest die verfügbaren Stratagems aus dem Spiel** (experimentell): Pfeile, Icons und Abklingzeit direkt vom
+  Bildschirm – keine Liste mehr pflegen. Jedes Stratagem behält seine Richtung im Radialmenü.
+- Geplant: Stream-Deck-Plugin.
 
 Leistung: Außerhalb des Spiels fängt Stratagem nichts ab, im Spiel nur Tastendrücke – die Maus erst,
 wenn das Radialmenü offen ist. Details: [Konzept → Leistung](docs/KONZEPT.md#leistung-kein-merkbarer-einfluss-aufs-spiel).

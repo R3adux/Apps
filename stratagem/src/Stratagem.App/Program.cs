@@ -69,7 +69,8 @@ internal static class Program
         using var bindings = new GameBindingsSource(log.Log);
 
         service = new StratagemService(store, settings,
-            new ServicePlatform(new WindowsInput(log.Log), overlay, game, new PrecisionTimer(), bindings.Read),
+            new ServicePlatform(new WindowsInput(log.Log), overlay, game, new PrecisionTimer(), bindings.Read,
+                new GdiScreenCapture(() => game.Window, log.Log), dataDir),
             log: log.Log);
         using var _service = service;
         bindings.Changed += () =>

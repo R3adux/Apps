@@ -40,6 +40,11 @@ public static class Warmup
             _ = router.NeedsMouse;
         }
         _ = MacroPlanner.Plan(items[0].Code, GameBindings.Default, new MacroTiming());
+        // The screen reader on a small synthetic picture (an "icon" column with structure, no list behind it).
+        var picture = new byte[200 * 200 * 4];
+        for (var i = 0; i < picture.Length; i += 4) picture[i] = picture[i + 1] = picture[i + 2] = (byte)(i % 97 * 2);
+        _ = Recognition.MenuReader.Read(new Recognition.PixelImage(200, 200, picture), 1.0);
+        _ = new Recognition.RadialSlots().Arrange(items);
     }
 
     private sealed class NoOutput : IInputOutput

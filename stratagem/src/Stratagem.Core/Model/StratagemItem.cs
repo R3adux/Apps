@@ -10,4 +10,9 @@ namespace Stratagem.Core.Model;
 public sealed record StratagemItem(StratagemCode Code, string? Name, bool Available = true, byte[]? Icon = null)
 {
     public string Label => Name ?? Code.Arrows;
+
+    /// <summary>An empty place in the radial menu (keeps the other directions where they were). Never callable.</summary>
+    public static StratagemItem Empty { get; } = new(new StratagemCode([Direction.Up]), null, Available: false);
+
+    public bool IsEmpty => ReferenceEquals(this, Empty);
 }

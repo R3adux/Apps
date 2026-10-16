@@ -38,7 +38,8 @@ public sealed class PhysicalKeyState
 
 /// <summary>
 /// Plays macros one at a time on its own thread.
-/// Guarantees: no key stays pressed (also on cancel/error), keys the player still holds are pressed
+/// Guarantees: no key stays pressed (also on cancel/error) unless a job explicitly keeps it held for the next
+/// one (the open stratagem list while the radial menu is open), keys the player still holds are pressed
 /// again afterwards (e.g. W for walking), and while a macro runs the player's presses of the keys it
 /// uses are held back from the game, so they cannot mix into the code.
 /// </summary>
@@ -48,14 +49,17 @@ public sealed class MacroRunner : IDisposable
     private readonly PhysicalKeyState _physical;
     private readonly IPrecisionTimer? _timer;
     private readonly Action<string> _log;
-    private readonly BlockingCollection<Job> _queue = new(boundedCapacity: 1);
+    private readonly BlockingCollection<Job> _queue = new();
     private readonly Thread _thread;
+    private readonly HashSet<Key> _held = []; // kept pressed between jobs; macro thread only
     private volatile HashSet<Key> _busyKeys = [];
+    private volatile bool _anyHeld;
     private CancellationTokenSource? _current;
     private int _pending;
+    private int _generation;
     private readonly object _gate = new();
 
-    private sealed record Job(IReadOnlyList<MacroStep> Steps, string Label, TaskCompletionSource<bool> Done);
+    private sealed record Job(IReadOnlyList<MacroStep> Steps, string Label, IReadOnlySet<Key> KeepHeld, int Generation, TaskCompletionSource<bool> Done);
 
     public MacroRunner(IInputOutput output, PhysicalKeyState physical, IPrecisionTimer? timer = null, Action<string>? log = null)
     {
@@ -67,7 +71,8 @@ public sealed class MacroRunner : IDisposable
         _thread.Start();
     }
 
-    public bool IsRunning => Volatile.Read(ref _pending) == 1;
+    /// <summary>A job is running or waiting.</summary>
+    public bool IsRunning => Volatile.Read(ref _pending) > 0;
 
     /// <summary>
     /// True if a player event for this key must not reach the game right now (the macro uses it).
@@ -76,24 +81,50 @@ public sealed class MacroRunner : IDisposable
     public bool ShouldHoldBack(Key key) => _busyKeys.Contains(key);
 
     /// <summary>
-    /// Queues a macro. Returns false right away if one is already running or waiting:
-    /// in the game a second code would only replace the first, so dropping is the expected behaviour.
-    /// The task completes with true when the macro ran to the end.
+    /// Runs a macro only if nothing runs or waits: in the game a second code would only replace the first,
+    /// so dropping is the expected behaviour. The task completes with true when the macro ran to the end.
     /// </summary>
     public bool TryRun(IReadOnlyList<MacroStep> steps, string label, out Task<bool> done)
     {
-        var job = new Job(steps, label, new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously));
-        done = job.Done.Task;
+        done = Task.FromResult(false);
         if (_queue.IsAddingCompleted || Interlocked.CompareExchange(ref _pending, 1, 0) != 0) return false;
-        if (_queue.TryAdd(job)) return true;
-        Volatile.Write(ref _pending, 0);
-        return false;
+        done = Add(steps, label, null);
+        return true;
     }
 
-    /// <summary>Stops the running macro (e.g. game lost focus). Pressed keys are released.</summary>
+    /// <summary>
+    /// Queues a job after the current ones (a sequence that belongs together: open the list, read it, enter the code).
+    /// <paramref name="keepHeld"/>: keys this job leaves pressed for a later job, which releases them.
+    /// </summary>
+    public Task<bool> Enqueue(IReadOnlyList<MacroStep> steps, string label, IReadOnlySet<Key>? keepHeld = null)
+    {
+        if (_queue.IsAddingCompleted) return Task.FromResult(false);
+        Interlocked.Increment(ref _pending);
+        return Add(steps, label, keepHeld);
+    }
+
+    private Task<bool> Add(IReadOnlyList<MacroStep> steps, string label, IReadOnlySet<Key>? keepHeld)
+    {
+        var job = new Job(steps, label, keepHeld ?? new HashSet<Key>(), Volatile.Read(ref _generation),
+            new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously));
+        try { _queue.Add(job); }
+        catch (InvalidOperationException)
+        {
+            Interlocked.Decrement(ref _pending);
+            job.Done.TrySetResult(false);
+        }
+        return job.Done.Task;
+    }
+
+    /// <summary>
+    /// Stops the running macro and drops waiting ones (e.g. game lost focus). Every key we pressed is released,
+    /// also one kept held between jobs.
+    /// </summary>
     public void Cancel()
     {
+        Interlocked.Increment(ref _generation);
         lock (_gate) _current?.Cancel();
+        if (_anyHeld && !_queue.IsAddingCompleted) Enqueue([new MacroStep.ReleaseHeld()], "Tasten freigeben");
     }
 
     private void Loop()
@@ -105,7 +136,9 @@ public sealed class MacroRunner : IDisposable
             var completed = false;
             try
             {
-                completed = Execute(job, cts.Token);
+                // Dropped by Cancel() while waiting (the release job itself always runs).
+                var stale = job.Generation != Volatile.Read(ref _generation) && job.Steps is not [MacroStep.ReleaseHeld];
+                if (!stale) completed = Execute(job, cts.Token);
             }
             catch (Exception e)
             {
@@ -115,16 +148,19 @@ public sealed class MacroRunner : IDisposable
             {
                 lock (_gate) _current = null;
                 cts.Dispose();
-                Volatile.Write(ref _pending, 0); // before completing: whoever awaits sees "not running"
+                Interlocked.Decrement(ref _pending); // before completing: whoever awaits sees "not running"
                 job.Done.TrySetResult(completed);
             }
         }
+        foreach (var key in _held) _output.Send(key, false);
+        _held.Clear();
     }
 
     private bool Execute(Job job, CancellationToken ct)
     {
         var used = job.Steps.OfType<MacroStep.Press>().Select(p => p.Key).ToHashSet();
         var pressed = new HashSet<Key>();
+        var completed = false;
         _busyKeys = used;
         using var precision = _timer?.HighResolution();
         try
@@ -144,27 +180,47 @@ public sealed class MacroRunner : IDisposable
                     case MacroStep.Release r:
                         _output.Send(r.Key, false);
                         pressed.Remove(r.Key);
+                        _held.Remove(r.Key);
                         break;
                     case MacroStep.Wait w:
                         if (ct.WaitHandle.WaitOne(w.Ms)) return false;
                         break;
+                    case MacroStep.Run run:
+                        run.Action();
+                        break;
+                    case MacroStep.ReleaseHeld:
+                        foreach (var key in _held) _output.Send(key, false);
+                        _held.Clear();
+                        break;
                 }
             }
+            completed = true;
             return true;
         }
         finally
         {
-            foreach (var key in pressed) _output.Send(key, false);
+            foreach (var key in pressed)
+            {
+                if (completed && job.KeepHeld.Contains(key)) _held.Add(key);
+                else _output.Send(key, false);
+            }
+            if (!completed)
+            {
+                foreach (var key in _held) _output.Send(key, false);
+                _held.Clear();
+            }
             // Hand the keys back: whatever the player still holds is pressed again.
-            foreach (var key in used.Where(_physical.IsDown)) _output.Send(key, true);
+            foreach (var key in used.Where(k => _physical.IsDown(k) && !_held.Contains(k))) _output.Send(key, true);
+            _anyHeld = _held.Count > 0;
             _busyKeys = [];
         }
     }
 
     public void Dispose()
     {
+        Interlocked.Increment(ref _generation);
+        lock (_gate) _current?.Cancel();
         _queue.CompleteAdding();
-        Cancel();
         _thread.Join(TimeSpan.FromSeconds(2));
         _queue.Dispose();
     }

@@ -16,7 +16,10 @@ var game = new GameWatcherStub { IsRunning = true, IsFocused = true };
 var gameConfig = Environment.GetEnvironmentVariable("STRATAGEM_GAME_CONFIG");
 Func<Stratagem.Core.Game.BindingsResult?>? readBindings = gameConfig is null ? null
     : () => Stratagem.Core.Game.GameInputSettings.Read(File.ReadAllText(gameConfig), gameConfig);
-var service = new StratagemService(store, settings, new ServicePlatform(new ConsoleOutput(), new ConsoleView(), game, ReadGameBindings: readBindings), log: Console.WriteLine);
+// STRATAGEM_TEST_SCREEN=screenshot.png: "screen capture" returns this picture (reading the list without the game).
+var testScreen = Environment.GetEnvironmentVariable("STRATAGEM_TEST_SCREEN");
+var service = new StratagemService(store, settings, new ServicePlatform(new ConsoleOutput(), new ConsoleView(), game,
+    ReadGameBindings: readBindings, Capture: testScreen is null ? null : new PictureCapture(testScreen), DataDir: dataDir), log: Console.WriteLine);
 var port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var p) ? p : settings.Web.Port;
 await using var server = await WebServer.StartAsync(service, new WebServerOptions(port, settings.Web.AllowLan, settings.Web.Token, WebDir: webDir, Log: Console.WriteLine));
 Console.WriteLine($"Stratagem (Entwicklung) auf http://localhost:{server.Port} – Web-Dateien aus {webDir}");
@@ -57,4 +60,14 @@ sealed class ConsoleView : IRadialView
     public void Show(IReadOnlyList<StratagemItem> items, RadialMode mode) => Console.WriteLine($"[Radial auf: {items.Count} Einträge]");
     public void Highlight(int? index) => Console.WriteLine($"[Radial: {index?.ToString() ?? "Mitte"}]");
     public void Hide(bool selected) => Console.WriteLine(selected ? "[Radial zu: ausgewählt]" : "[Radial zu]");
+}
+
+sealed class PictureCapture(string path) : Stratagem.Core.Recognition.IScreenCapture
+{
+    public Stratagem.Core.Recognition.PixelImage? CaptureMenuArea(out double scale)
+    {
+        var image = Stratagem.Core.Recognition.Png.Decode(File.ReadAllBytes(path));
+        scale = image.Height / 1080.0;
+        return image;
+    }
 }

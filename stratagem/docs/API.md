@@ -19,6 +19,7 @@ Standard: `http://localhost:8133`. JSON in camelCase, Aufzählungen als Text.
 | POST | `/api/activate` | `{ "slot": 0 }` (0-basiert) oder `{ "code": "URDDD" }`, optional `"origin": "Stream Deck"` → `{ "ok": true }` |
 | POST | `/api/pause` | `{ "paused": true }` |
 | POST | `/api/reload-bindings` | Tastenbelegung des Spiels neu lesen |
+| POST | `/api/read-picture` | Bildschirmfoto (PNG, ganzer Bildschirm) als Body → erkannte Zeilen `[{ index, state, code, arrows, name, icon }]` (Diagnose ohne Spiel) |
 | GET | `/api/catalog` | bekannte Stratagems `[{ name, code, arrows }]` |
 | GET | `/api/keys` | gültige Tastennamen (W3C `KeyboardEvent.code`) |
 | GET | `/api/icon/{index}` | PNG-Icon eines Listeneintrags (sobald die Bildschirmerkennung Icons liefert) |

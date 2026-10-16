@@ -127,6 +127,8 @@ function renderList() {
       actions);
   }));
   $('#add-form').hidden = !manual;
+  $('#manual-tip').hidden = !manual;
+  $('#screen-settings').hidden = manual;
   const problem = state?.list.problem;
   $('#list-problem').hidden = !problem;
   $('#list-problem').textContent = problem ?? '';
@@ -356,6 +358,8 @@ const renderers = [
   bindRange('#timing-hold', 'timing.keyHoldMs', '#hold-val', ms),
   bindRange('#timing-gap', 'timing.keyGapMs', '#gap-val', ms),
   bindRange('#timing-open', 'timing.menuOpenMs', '#open-val', ms),
+  bindRange('#screen-slots', 'radial.screenSlots', '#slots-val', (v) => (v === 0 ? 'so viele wie Stratagems' : `${v}`)),
+  bindRange('#screen-scale', 'list.screenScale', '#scale-val', (v) => `${Math.round(v * 100)} %`),
   bindCheck('#radial-enabled', 'radial.enabled'),
   bindCheck('#read-game', 'game.readBindingsFromGame'),
   bindCheck('#only-focused', 'onlyWhenGameFocused'),
@@ -379,6 +383,34 @@ function renderSettings() {
   renderHotkeys();
   renderBindings();
 }
+
+// --- reading test -------------------------------------------------------------------------------
+
+const rowStates = { Callable: 'aufrufbar', Cooldown: 'Abklingzeit', Active: 'unterwegs', Idle: 'bereit, nicht aufrufbar' };
+
+$('#read-file').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const out = $('#read-result');
+  out.replaceChildren(el('li', { textContent: 'Wird gelesen …' }));
+  try {
+    const res = await fetch('/api/read-picture', { method: 'POST', headers: { 'X-Stratagem': '1', 'Content-Type': 'image/png' }, body: file });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Fehler ${res.status}`);
+    if (data.rows.length === 0) {
+      out.replaceChildren(el('li', { textContent: `Keine Stratagem-Liste gefunden (${data.width}×${data.height}). Ist die Liste offen? Ggf. HUD-Größe anpassen.` }));
+      return;
+    }
+    out.replaceChildren(...data.rows.map((r) => el('li', { className: r.state === 'Callable' ? '' : 'unavailable' },
+      el('img', { src: `data:image/png;base64,${r.icon}`, alt: '', className: 'icon' }),
+      el('div', { className: 'item-text' },
+        el('strong', { textContent: r.name ?? (r.code ? 'Unbekannter Name' : rowStates[r.state]) }),
+        el('span', { className: r.arrows ? 'code' : 'muted small', textContent: r.arrows ?? 'keine Pfeile sichtbar' })))));
+    out.append(el('li', { className: 'muted small', textContent: `${data.rows.length} Zeilen in ${data.ms} ms gelesen. Codes werden gemerkt.` }));
+  } catch (err) {
+    out.replaceChildren(el('li', { className: 'error', textContent: err.message }));
+  }
+});
 
 // --- live state ---------------------------------------------------------------------------------
 

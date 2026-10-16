@@ -230,5 +230,13 @@
  {
   "name": "Commando",
   "code": "DLUDR"
+ },
+ {
+  "name": "Eagle Rearm",
+  "code": "UULUR"
+ },
+ {
+  "name": "Warp Pack",
+  "code": "DLRDLR"
  }
 ]

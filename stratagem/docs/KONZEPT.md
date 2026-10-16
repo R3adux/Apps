@@ -28,7 +28,7 @@ selbst vom Bildschirm, sodass nie eine Liste gepflegt werden muss.
 | `web/` | Oberfläche (HTML/CSS/JS ohne Build-Schritt, wie bei Licht) | Browser |
 
 **Warum so geschnitten:** Alles, was schiefgehen kann, ist Logik – und die liegt im Kern, ohne Windows,
-mit Tests (111 Stück): Welche Taste wird geschluckt, wann wird ausgelöst, was passiert bei Abbruch,
+mit Tests (129 Stück): Welche Taste wird geschluckt, wann wird ausgelöst, was passiert bei Abbruch,
 Fokusverlust, Tastenkombinationen, gehaltenen Lauftasten. Der Windows-Teil übersetzt nur Ereignisse.
 
 **Erweiterungspunkte** (Schnittstellen im Kern):
@@ -128,7 +128,7 @@ nur Namen und kann veralten, ohne etwas kaputtzumachen.
 | 8 | Falsches Fenster bekommt Tasten | gelöst | Aktiv nur, wenn das Vordergrundfenster zum Prozess `helldivers2` gehört (oder exakt den Spieltitel trägt). Ein Browser-Tab „Helldivers 2 – Reddit“ zählt nicht. Fokusverlust bricht Makros ab. |
 | 9 | AltGr auf deutschen Tastaturen erzeugt ein falsches Strg | gelöst | Das falsche Strg hat Scancode 0x21D, das echte 0x1D → löst nie das Menü aus. |
 | 10 | Andere Webseiten im Browser drücken Tasten über den lokalen Server | gelöst | Änderungen nur mit Header `X-Stratagem: 1` (erzwingt CORS-Preflight, das nie erlaubt wird), Host-Prüfung gegen DNS-Rebinding, fremde `Origin` abgelehnt, Heimnetz nur mit Token. Getestet. |
-| 11 | **Bildschirmerkennung** der Stratagem-Liste | hoch | Noch nicht gebaut – braucht Bildschirmfotos. Plan siehe Abschnitt 5. |
+| 11 | **Bildschirmerkennung** der Stratagem-Liste | hoch | Gebaut und an echten Bildern getestet (Abschnitt 5). Im Spiel noch nicht ausprobiert. |
 | 12 | Spiel als Administrator | niedrig | Windows (UIPI) verwirft dann unsere Eingaben. Wird erkannt und im Protokoll erklärt. |
 | 13 | Virenscanner | mittel | Hooks + SendInput sehen für Heuristiken wie ein Keylogger aus. Gegenmittel: Quelloffen, reproduzierbar in GitHub Actions gebaut, keine Verschleierung. Später ggf. Code-Signatur. |
 
@@ -153,33 +153,52 @@ nur Namen und kann veralten, ohne etwas kaputtzumachen.
 | Steam Deck / Linux | Nicht unterstützt (Windows-Hooks). |
 | Bann-Risiko | Siehe Anti-Cheat oben. Kein Eingriff ins Spiel, aber keine Garantie. |
 
-## 5. Bildschirmerkennung (nächster großer Schritt)
+## 5. Bildschirmerkennung (gebaut, experimentell)
 
-Beim Öffnen der Stratagem-Liste zeigt das Spiel links oben jedes verfügbare Stratagem mit Icon und
-Pfeilfolge, ausgegraute Einträge sind im Cooldown.
+Grundlage: fünf echte Bildschirmfotos (1920×1080, deutsche Spieloberfläche, „Drücken“-Modus), zwei davon als
+Testfälle unter `tests/Stratagem.Core.Tests/data/`.
 
-Plan:
-1. **Kalibrieren:** Einmal die Liste öffnen, das Tool sucht den Bereich (Auflösung/UI-Skalierung).
-   Ergebnis als Profil in `settings.json` (Daten, kein Code → Patches = neues Profil, kein neues Programm).
-2. **Lesen:** Bildschirmfoto nur dieses Bereichs. Zeilen trennen, je Zeile die Pfeile per Formvergleich
-   lesen (vier Richtungen, einfache Formen), Helligkeit → verfügbar/Cooldown, Icon ausschneiden.
-   Sprachunabhängig, weil kein Text gelesen wird. Der Name kommt optional aus dem Katalog.
-3. **Wann:** Bei jedem Öffnen des Radialmenüs (das Tool öffnet die Liste im Spiel dann ohnehin), Ergebnis
-   zwischengespeichert, damit das Menü sofort erscheint. Ziel: < 100 ms.
-4. **Technik:** Bildschirmaufnahme über Windows (Desktop Duplication / Graphics Capture), Erkennung im Kern
-   (plattformunabhängig, mit Bildschirmfotos als Testdaten).
-5. **Fallback:** Erkennung unsicher → letzte gute Liste oder eigene Liste, mit Hinweis in der Oberfläche.
+**Was die Bilder gezeigt haben:**
+- Die Liste („TAKTIKAUSRÜSTUNGEN“) steht links oben, halbtransparent über der Spielszene (Feuertornado, Nebel,
+  helle Sonne – der Hintergrund ändert sich ständig). Zeilenabstand 52,3 px, Icon 48 px breit (bei 1080p).
+- **Pfeile zeigt das Spiel nur, solange ein Stratagem aufrufbar ist.** Sonst steht dort ein Text
+  („Abklingzeit T-00:57“, „Ankunft in …“, „Aktivierung“, bei Verstärkung „Bereit“ ohne Pfeile).
+- Während der Abklingzeit legt das Spiel eine helle Füllung über das Icon, die mit der Zeit wandert;
+  Zahlen-Abzeichen (Anzahl übrig) und farbige Balken ändern sich ebenfalls.
+- **Die Liste ändert sich während einer Mission:** „Adler – Auffüllen“ erscheint erst nach dem ersten Adler-Einsatz,
+  mitten in der Liste. Bei „n Segmente = n Stratagems“ würden alle Richtungen springen.
 
-Risiken: HDR (Farben), Farbfilter für Farbenblinde, UI-Skalierung, Animationen beim Öffnen, Bewegungsunschärfe.
+**Wie gelesen wird** (`Recognition/MenuReader.cs`, ~1 ms für den Listenbereich, sprachunabhängig – kein Text):
+1. Zeilen: Die Icon-Spalte hat Struktur, das Panel nicht; ab der ersten Zeile im festen Abstand weiter.
+2. Pfeile: helle Formen (~15×15 px) in der zweiten Zeile; Richtung per Vergleich mit einer Pfeil-Vorlage
+   (aus echten Bildern gemittelt) in allen vier Drehungen. Getestet bei 75–200 % Auflösung.
+3. Zustand: Pfeile = aufrufbar; sonst über die Helligkeit des Titels (gedimmt = Abklingzeit, hell = unterwegs).
+4. Icon: ausgeschnitten (PNG, für Radialmenü/Weboberfläche) und als Fingerabdruck (Differenz-Hash, unempfindlich
+   gegen die helle Abklingzeit-Füllung).
 
-**Benötigt:** PNG-Bildschirmfotos der geöffneten Liste in deiner Auflösung (normal, mit Cooldowns, Mission mit
-Zusatz-Stratagems, ggf. zweite Auflösung). Die `input_settings.config` liegt vor.
+**Gedächtnis** (`icons.json`): Sobald ein Stratagem mit Pfeilen gesehen wurde, ist sein Code für das Icon bekannt –
+auch während der Abklingzeit und in späteren Sitzungen. Zuordnung streng (ähnliche Icons wie die zwei Adler liegen
+nah beieinander) und eindeutig (ein Code nur einmal pro Lesung): lieber kurz unbekannt als falsch.
+
+**Feste Plätze im Radialmenü:** Jedes Stratagem behält seine Richtung (Standard 8 Plätze; neue nehmen einen freien
+Platz, verschwundene lassen ihren frei). Einstellbar, 0 = so viele wie Stratagems.
+
+**Ablauf im Spiel:** Radialmenü öffnen → Stratagem öffnet die Spielliste (Halten: Taste bleibt gedrückt; Drücken:
+einmal tippen), wartet bis sie gezeichnet ist (150 ms), liest sie, aktualisiert den offenen Kreis. Auswahl → nur
+noch die Pfeile. Abbrechen → Liste wird wieder geschlossen. Alles in einer Warteschlange, nie durcheinander.
+Aufnahme per GDI nur vom Listenbereich (ein paar Millisekunden), schwarze Aufnahmen (Vollbild/HDR) werden gemeldet.
+
+**Ohne Spiel testen:** Weboberfläche → „Erkennung mit einem Bildschirmfoto testen“ (PNG hochladen).
+
+**Offen / Risiken:** Namen kommen aus dem englischen Katalog (das Spiel ist deutsch – Texterkennung wäre möglich,
+kostet aber Größe), andere HUD-Größen (Einstellung „HUD-Größe“), HDR, Farbfilter, Ultrawide (Liste vermutlich
+weiterhin am linken Rand), Missions-Stratagems (noch kein Bild).
 
 ## 6. Fahrplan
 
 1. ✅ Kern, Radialmenü (beide Modi), direkte Tasten, Weboberfläche, Handy-Deck, Spieldatei, Tray, Build.
 2. ⏳ **Test im Spiel** (Liste unten) → Plan B für die Maus falls nötig, Timing-Standardwerte anpassen.
-3. Bildschirmerkennung (Abschnitt 5).
+3. ✅ Bildschirmerkennung (Abschnitt 5) – experimentell, im Spiel noch ungetestet.
 4. Stream-Deck-Plugin (pausiert).
 5. Optional: Code-Signatur, Icons im Radialmenü, Mausrad-Auswahl, zweiter Ring bei vielen Stratagems.
 
@@ -197,4 +216,6 @@ Spiel im **Randlos-Modus**, `Stratagem.exe` starten, Weboberfläche öffnet sich
 7. Chat öffnen, Strg+V: Funktioniert Einfügen?
 8. Direkte Taste (z. B. Num 1 → Platz 1): Kommt das Stratagem?
 9. Gehen Eingaben verloren? Dann Timing schrittweise erhöhen und die Werte notieren.
-10. Bei Problemen: `stratagem.log` (Menü ⋯ → Datenordner öffnen) schicken.
+10. Liste „Aus dem Spiel lesen“: Radialmenü öffnen – erscheinen nach kurzem Moment die Stratagems mit Icons?
+    Stimmen Richtung und Code? Bleiben die Richtungen gleich, wenn „Adler – Auffüllen“ dazukommt?
+11. Bei Problemen: `stratagem.log` (Menü ⋯ → Datenordner öffnen) schicken.

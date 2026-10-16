@@ -90,6 +90,32 @@ public sealed class RadialController
     /// <summary>Raised when <see cref="CapturesMouse"/> changes, from the hook thread inside the lock: must not block.</summary>
     public event Action<bool>? MouseCaptureChanged;
 
+    /// <summary>The menu appeared (inside the lock: must not block).</summary>
+    public event Action? Opened;
+
+    /// <summary>The menu closed; true = a stratagem was selected (raised before it is activated). Must not block.</summary>
+    public event Action<bool>? Closed;
+
+    /// <summary>
+    /// New items while the menu is open (e.g. the list was just read from the game). The current direction is
+    /// applied to the new items at once.
+    /// </summary>
+    public void Refresh(IReadOnlyList<StratagemItem> items)
+    {
+        lock (_gate)
+        {
+            if (_state is not (RadialState.Held or RadialState.Open or RadialState.Dragging) || ReferenceEquals(items, _shown)) return;
+            _shown = items;
+            _view.Show(items, _options.Mode);
+            if (_state is RadialState.Held or RadialState.Dragging)
+            {
+                _highlight = RadialLayout.Hit(_x, _y, items.Count, _options.DeadzoneCounts);
+                if (_highlight is not null) _view.Highlight(_highlight);
+            }
+            else _highlight = null;
+        }
+    }
+
     private bool _capturesMouse;
     public int? Highlighted { get { lock (_gate) return _highlight; } }
 
@@ -298,6 +324,7 @@ public sealed class RadialController
         _openedAt = _clockMs();
         SetState(state);
         _view.Show(_shown, _options.Mode);
+        Opened?.Invoke();
     }
 
     private void SelectAndClose()
@@ -314,7 +341,9 @@ public sealed class RadialController
         var wasOpen = _state is RadialState.Held or RadialState.Open or RadialState.Dragging;
         SetState(RadialState.Idle);
         _highlight = null;
-        if (wasOpen) _view.Hide(selected);
+        if (!wasOpen) return;
+        _view.Hide(selected);
+        Closed?.Invoke(selected);
     }
 
     private void SetState(RadialState state)

@@ -86,6 +86,9 @@ public sealed class AppSettings
         Timing.KeyHoldMs = Clamp(Timing.KeyHoldMs, 5, 500, nameof(Timing.KeyHoldMs), fixes);
         Timing.KeyGapMs = Clamp(Timing.KeyGapMs, 5, 500, nameof(Timing.KeyGapMs), fixes);
         Timing.MenuOpenMs = Clamp(Timing.MenuOpenMs, 0, 2000, nameof(Timing.MenuOpenMs), fixes);
+        Timing.ListReadMs = Clamp(Timing.ListReadMs, 30, 1000, nameof(Timing.ListReadMs), fixes);
+        Radial.ScreenSlots = Clamp(Radial.ScreenSlots, 0, 16, nameof(Radial.ScreenSlots), fixes);
+        if (List.ScreenScale is < 0.5 or > 2.0 || double.IsNaN(List.ScreenScale)) { List.ScreenScale = 1.0; fixes.Add("HUD-Größe"); }
         Web.Port = Clamp(Web.Port, 1024, 65535, nameof(Web.Port), fixes);
         if (string.IsNullOrWhiteSpace(Web.Token) || Web.Token.Length < 16) Web.Token = WebSettings.NewToken();
         if (string.IsNullOrWhiteSpace(Game.WindowTitle)) Game.WindowTitle = new GameSettings().WindowTitle;
@@ -130,6 +133,8 @@ public sealed class RadialSettings
     public int TimeoutMs { get; set; } = 5000;
     public int SizePx { get; set; } = 420;
     public double Opacity { get; set; } = 0.85;
+    /// <summary>Places in the menu for a list read from the game (each stratagem keeps its direction). 0 = as many as stratagems.</summary>
+    public int ScreenSlots { get; set; } = 8;
 }
 
 public sealed class TimingSettings
@@ -137,19 +142,23 @@ public sealed class TimingSettings
     public int KeyHoldMs { get; set; } = 35;
     public int KeyGapMs { get; set; } = 35;
     public int MenuOpenMs { get; set; } = 60;
+    /// <summary>After opening the list: wait until it is fully drawn before reading it.</summary>
+    public int ListReadMs { get; set; } = 150;
 }
 
 public enum ListSource
 {
     /// <summary>The player maintains the list in the web UI.</summary>
     Manual,
-    /// <summary>Read from the in-game stratagem list on screen (not built yet: needs screenshots).</summary>
+    /// <summary>Read from the in-game stratagem list on screen (experimental).</summary>
     Screen,
 }
 
 public sealed class ListSettings
 {
     public ListSource Source { get; set; } = ListSource.Manual;
+    /// <summary>Size of the game's HUD relative to 100 % (if the list is not found with a changed HUD size).</summary>
+    public double ScreenScale { get; set; } = 1.0;
     public List<ManualEntry> Manual { get; set; } =
     [
         new() { Name = "Reinforce", Code = "UDRLU" },

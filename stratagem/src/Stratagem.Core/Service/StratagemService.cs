@@ -3,6 +3,7 @@ using Stratagem.Core.Game;
 using Stratagem.Core.Input;
 using Stratagem.Core.Model;
 using Stratagem.Core.Radial;
+using Stratagem.Core.Recognition;
 using Stratagem.Core.Settings;
 
 namespace Stratagem.Core.Service;
@@ -15,8 +16,10 @@ public sealed record ServicePlatform(
     IPrecisionTimer? Timer = null,
     /// <summary>Finds and reads the game's input_settings.config; null if not found.</summary>
     Func<BindingsResult?>? ReadGameBindings = null,
-    /// <summary>The screen reader, once it exists. Null = only the manual list.</summary>
-    IStratagemSource? ScreenSource = null);
+    /// <summary>Screen capture of the game (for reading its stratagem list). Null = only the manual list.</summary>
+    IScreenCapture? Capture = null,
+    /// <summary>Where learned icons are stored (icons.json). Null = not stored.</summary>
+    string? DataDir = null);
 
 /// <summary>
 /// The core of the tool: holds settings, bindings and the current list, and is the only place that
@@ -47,11 +50,18 @@ public sealed class StratagemService : IDisposable
 
         Physical = new PhysicalKeyState();
         Runner = new MacroRunner(platform.Output, Physical, platform.Timer, _log);
-        Radial = new RadialController(platform.RadialView, () => Items, (_, item) => Activate(item, "Radialmenü"), Inject);
+        Radial = new RadialController(platform.RadialView, () => RadialItems, (_, item) => ActivateFromRadial(item), Inject);
         Router = new InputRouter(Radial, Runner, Physical, () => IsActive, OnHotkey);
+        Radial.Opened += OnRadialOpened;
+        Radial.Closed += OnRadialClosed;
+        if (platform.Capture is not null)
+        {
+            _screen = new ScreenStratagemSource(
+                new IconMemory(platform.DataDir is { } dir ? Path.Combine(dir, "icons.json") : null, _log), _catalog);
+            _screen.Changed += OnListChanged;
+        }
 
         platform.Game.Changed += OnGameChanged;
-        if (platform.ScreenSource is { } screen) screen.Changed += RaiseChanged;
         Apply(settings);
     }
 
@@ -89,15 +99,33 @@ public sealed class StratagemService : IDisposable
 
     private volatile bool _active;
 
+    /// <summary>The list in the game's order (web UI, phone deck, "place n" hotkeys).</summary>
     public IReadOnlyList<StratagemItem> Items
     {
         get
         {
-            lock (_gate) return UseScreen ? _platform.ScreenSource!.Current : _manual;
+            lock (_gate) return UseScreen ? _screen!.Current : _manual;
         }
     }
 
-    private bool UseScreen => _settings.List.Source == ListSource.Screen && _platform.ScreenSource is not null;
+    /// <summary>
+    /// The radial menu's places. For the list read from the game every stratagem keeps its direction
+    /// (with empty places); the own list is shown as it is. Same instance until something changes.
+    /// </summary>
+    public IReadOnlyList<StratagemItem> RadialItems
+    {
+        get
+        {
+            lock (_gate) return _radialItems;
+        }
+    }
+
+    private readonly ScreenStratagemSource? _screen;
+    private readonly RadialSlots _slots = new();
+    private IReadOnlyList<StratagemItem> _radialItems = [];
+    private int _menuOpenedByUs;
+
+    private bool UseScreen => _settings.List.Source == ListSource.Screen && _screen is not null;
 
     public void UpdateSettings(AppSettings settings)
     {
@@ -145,6 +173,111 @@ public sealed class StratagemService : IDisposable
     public bool Activate(StratagemCode code, string origin) =>
         Activate(new StratagemItem(code, _catalog.NameOf(code)), origin);
 
+    /// <summary>
+    /// Selection in the radial menu. If the game's list was opened when the menu appeared (to read it), only the
+    /// arrows are typed, right after the reading (same queue).
+    /// </summary>
+    private bool ActivateFromRadial(StratagemItem item)
+    {
+        var opened = Interlocked.Exchange(ref _menuOpenedByUs, 0) == 1;
+        if (!opened) return Activate(item, "Radialmenü");
+        if (!IsActive || !item.Available)
+        {
+            CloseOpenedMenu();
+            return Activate(item, "Radialmenü"); // logs why
+        }
+        GameBindings bindings;
+        MacroTiming timing;
+        lock (_gate)
+        {
+            bindings = _bindings.Bindings;
+            timing = _settings.ToTiming();
+        }
+        Log($"Radialmenü: {item.Label} ({item.Code.Arrows})");
+        Runner.Enqueue(MacroPlanner.Plan(item.Code, bindings, timing, menuAlreadyOpen: true), item.Label)
+            .ContinueWith(t => { if (!t.Result) Log($"{item.Label} abgebrochen"); RaiseChanged(); }, TaskScheduler.Default);
+        return true;
+    }
+
+    private void OnRadialOpened()
+    {
+        if (!UseScreen || !IsActive || _platform.Capture is null) return;
+        GameBindings bindings;
+        MacroTiming timing;
+        int readMs;
+        lock (_gate)
+        {
+            bindings = _bindings.Bindings;
+            timing = _settings.ToTiming();
+            readMs = _settings.Timing.ListReadMs;
+        }
+        Interlocked.Exchange(ref _menuOpenedByUs, 1);
+        Runner.Enqueue(MacroPlanner.OpenMenu(bindings, timing, readMs, ReadScreen), "Liste öffnen", MacroPlanner.KeepHeld(bindings));
+    }
+
+    private void OnRadialClosed(bool selected)
+    {
+        if (!selected) CloseOpenedMenu();
+    }
+
+    private void CloseOpenedMenu()
+    {
+        if (Interlocked.Exchange(ref _menuOpenedByUs, 0) == 0) return;
+        GameBindings bindings;
+        MacroTiming timing;
+        lock (_gate)
+        {
+            bindings = _bindings.Bindings;
+            timing = _settings.ToTiming();
+        }
+        Runner.Enqueue(MacroPlanner.CloseMenu(bindings, timing), "Liste schließen");
+    }
+
+    /// <summary>On the macro thread, while the game's list is open: read it.</summary>
+    private void ReadScreen()
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        double scale = 1;
+        var image = _platform.Capture?.CaptureMenuArea(out scale);
+        if (image is null)
+        {
+            Log("Bildschirm nicht lesbar (Spiel nicht im Vordergrund oder Aufnahme blockiert).");
+            return;
+        }
+        var rows = MenuReader.Read(image, scale * Current.List.ScreenScale);
+        _screen!.Update(rows);
+        if (watch.ElapsedMilliseconds > 30) _log($"Liste gelesen in {watch.ElapsedMilliseconds} ms ({rows.Count} Zeilen)");
+    }
+
+    /// <summary>Reads the game's list from a picture (diagnosis: uploaded screenshot). Returns the rows found.</summary>
+    public IReadOnlyList<MenuRow> ReadPicture(PixelImage image, double scale)
+    {
+        var rows = MenuReader.Read(image, scale);
+        _screen?.Update(rows);
+        return rows;
+    }
+
+    private void OnListChanged()
+    {
+        UpdateRadialItems();
+        Radial.Refresh(RadialItems);
+        RaiseChanged();
+    }
+
+    private void UpdateRadialItems()
+    {
+        lock (_gate)
+        {
+            if (UseScreen)
+            {
+                _slots.MinSlots = _settings.Radial.ScreenSlots;
+                var arranged = _slots.Arrange(_screen!.Current);
+                if (!arranged.SequenceEqual(_radialItems, ReferenceEqualityComparer.Instance)) _radialItems = arranged;
+            }
+            else _radialItems = _manual;
+        }
+    }
+
     public bool Activate(StratagemItem item, string origin)
     {
         if (!IsActive)
@@ -185,10 +318,10 @@ public sealed class StratagemService : IDisposable
         lock (_gate)
         {
             var b = _bindings.Bindings;
-            var items = UseScreen ? _platform.ScreenSource!.Current : _manual;
-            string? problem = UseScreen ? _platform.ScreenSource!.Problem : null;
-            if (_settings.List.Source == ListSource.Screen && _platform.ScreenSource is null)
-                problem = "Bildschirmerkennung gibt es noch nicht – die eigene Liste wird verwendet.";
+            var items = UseScreen ? _screen!.Current : _manual;
+            string? problem = UseScreen ? _screen!.Problem : null;
+            if (_settings.List.Source == ListSource.Screen && _screen is null)
+                problem = "Bildschirm lesen geht hier nicht – die eigene Liste wird verwendet.";
             return new StateSnapshot(
                 ApiVersion,
                 AppVersion,
@@ -257,6 +390,7 @@ public sealed class StratagemService : IDisposable
             _manual = settings.ToManualItems(_catalog);
             _bindings = ResolveBindings(settings);
         }
+        UpdateRadialItems();
         var options = settings.ToRadialOptions();
         if (Radial.Options != options) Radial.Options = options; // setting it closes an open menu
         Router.SetHotkeys(settings.ToHotkeys());
@@ -285,7 +419,11 @@ public sealed class StratagemService : IDisposable
     private void OnGameChanged()
     {
         UpdateEnabled();
-        if (!_platform.Game.IsFocused) Runner.Cancel(); // never type into another window
+        if (!_platform.Game.IsFocused)
+        {
+            Interlocked.Exchange(ref _menuOpenedByUs, 0);
+            Runner.Cancel(); // never type into another window; also releases a held list key
+        }
         RaiseChanged();
     }
 
