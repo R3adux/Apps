@@ -175,7 +175,8 @@ public class ScreenFlowTests
             var angle = Radial.RadialLayout.CenterAngle(mg, 8) * Math.PI / 180;
             service.Router.OnMouseMove((int)(Math.Cos(angle) * 150), (int)(Math.Sin(angle) * 150));
             Assert.True(service.Router.OnKey(KeyNames.ControlLeft, false));
-            await MacroRunnerTests.WaitUntil(() => !service.Runner.IsRunning && output.Events.Count >= 12);
+            await MacroRunnerTests.WaitUntil(() => !service.Runner.IsRunning && output.Events.Count >= 12,
+                () => $"Ereignisse: {string.Join(" ", output.Events)}, läuft: {service.Runner.IsRunning}");
             Assert.Equal(
                 ["+ControlLeft", "+KeyS", "-KeyS", "+KeyW", "-KeyW", "+KeyD", "-KeyD", "+KeyD", "-KeyD", "+KeyW", "-KeyW", "-ControlLeft"],
                 output.Events);
@@ -199,7 +200,8 @@ public class ScreenFlowTests
         {
             service.Router.OnKey(KeyNames.ControlLeft, true);
             service.Router.OnKey(KeyNames.ControlLeft, false); // released in the centre = cancel
-            await MacroRunnerTests.WaitUntil(() => !service.Runner.IsRunning && output.Events.Count == 2);
+            await MacroRunnerTests.WaitUntil(() => !service.Runner.IsRunning && output.Events.Count == 2,
+                () => $"Ereignisse: {string.Join(" ", output.Events)}, läuft: {service.Runner.IsRunning}, Radial: {service.Radial.State}");
             Assert.Equal(["+ControlLeft", "-ControlLeft"], output.Events);
         }
         finally { Directory.Delete(dir, true); }

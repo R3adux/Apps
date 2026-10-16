@@ -72,7 +72,11 @@ public sealed class InputRouter
     /// <summary>Player key event (never one of our own injected events). True = swallow.</summary>
     public bool OnKey(Key key, bool down)
     {
-        if (_runner.ShouldHoldBack(key))
+        // The radial trigger always belongs to the radial menu, also while a macro uses the same key (Ctrl is
+        // both the trigger and the game's list key): otherwise releasing it while the list is being opened
+        // would be held back and the menu would never close.
+        var isTrigger = _radial.Options.Trigger.Key == key;
+        if (!isTrigger && _runner.ShouldHoldBack(key))
         {
             _physical.Set(key, down); // the runner presses it again afterwards if still held
             return true;

@@ -117,10 +117,10 @@ public class MacroRunnerTests
         Assert.Equal(["-KeyW", "+KeyW", "-KeyW"], output.Events);
     }
 
-    internal static async Task WaitUntil(Func<bool> condition)
+    internal static async Task WaitUntil(Func<bool> condition, Func<string>? describe = null)
     {
         for (var i = 0; i < 500 && !condition(); i++) await Task.Delay(10);
-        Assert.True(condition());
+        Assert.True(condition(), describe?.Invoke());
     }
 }
 
@@ -174,6 +174,25 @@ public class InputRouterTests
         Assert.False(router.OnKey(KeyNames.KeyD, true));
         Assert.True(await done.WaitAsync(TimeSpan.FromSeconds(5)));
         Assert.Equal("+KeyW", _output.Events[^1]); // still held: handed back to the game
+    }
+
+    [Fact]
+    public async Task Trigger_reaches_the_radial_menu_while_a_macro_uses_the_same_key()
+    {
+        // Ctrl is the radial trigger and the game's list key: the release must close the menu even while
+        // a macro is opening the list with Ctrl (fast tap on a fast PC).
+        var physical = new PhysicalKeyState();
+        using var runner = new MacroRunner(_output, physical);
+        var view = new FakeView();
+        var radial = new RadialController(view, () => Items.Four, (_, _) => { }, (_, _) => { }) { Enabled = true };
+        var router = new InputRouter(radial, runner, physical, () => true, _fired.Add);
+        runner.TryRun([new MacroStep.Press(KeyNames.ControlLeft), new MacroStep.Wait(300), new MacroStep.Release(KeyNames.ControlLeft)], "open", out var done);
+        await MacroRunnerTests.WaitUntil(() => runner.ShouldHoldBack(KeyNames.ControlLeft));
+        Assert.True(router.OnKey(KeyNames.ControlLeft, true));
+        Assert.True(view.Visible);
+        Assert.True(router.OnKey(KeyNames.ControlLeft, false));
+        Assert.False(view.Visible);
+        await done;
     }
 
     [Fact]
