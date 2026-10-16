@@ -14,7 +14,11 @@ public sealed record StateSnapshot(
 
 public sealed record GameInfo(bool Running, bool Focused, string WindowTitle, bool OnlyWhenFocused);
 
-public sealed record BindingsInfo(string Menu, string MenuMode, string Up, string Down, string Left, string Right, string? SourceFile, IReadOnlyList<string> Notes);
+public sealed record BindingsInfo(string Menu, string MenuMode, string Up, string Down, string Left, string Right, string? SourceFile, IReadOnlyList<string> Notes,
+    IReadOnlyList<ConflictInfo> Conflicts);
+
+/// <summary>A key/button of this tool that the game also uses. By: "radial" (trigger) or "hotkey".</summary>
+public sealed record ConflictInfo(string Input, string By, string Section, string Action, string? Trigger);
 
 public sealed record ListInfo(string Source, string? Problem, IReadOnlyList<ItemInfo> Items);
 

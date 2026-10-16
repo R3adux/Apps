@@ -28,7 +28,7 @@ selbst vom Bildschirm, sodass nie eine Liste gepflegt werden muss.
 | `web/` | Oberfläche (HTML/CSS/JS ohne Build-Schritt, wie bei Licht) | Browser |
 
 **Warum so geschnitten:** Alles, was schiefgehen kann, ist Logik – und die liegt im Kern, ohne Windows,
-mit Tests (108 Stück): Welche Taste wird geschluckt, wann wird ausgelöst, was passiert bei Abbruch,
+mit Tests (111 Stück): Welche Taste wird geschluckt, wann wird ausgelöst, was passiert bei Abbruch,
 Fokusverlust, Tastenkombinationen, gehaltenen Lauftasten. Der Windows-Teil übersetzt nur Ereignisse.
 
 **Erweiterungspunkte** (Schnittstellen im Kern):
@@ -73,10 +73,14 @@ nur Namen und kann veralten, ohne etwas kaputtzumachen.
   (Fallback laut Arrowhead: `%APPDATA%\Arrowhead\Helldivers2\`). Gibt es erst, wenn im Spiel eine Taste geändert wurde.
 - Aktiver Steam-Nutzer: Registry `HKCU\Software\Valve\Steam\ActiveProcess\ActiveUser`, Steam-Pfad: `HKCU\Software\Valve\Steam\SteamPath`.
 - Format: SJSON der Stingray-Engine (`key = value`, `{}`, `[]`, Kommas optional). Abschnitt `Stratagem`
-  mit `Up/Down/Left/Right` und `Start` (Liste öffnen, `trigger = "Hold" | "Press" | …`), je Eintrag
-  `device_type`, `input`, `trigger`. **Nicht dokumentiert** – Aufbau aus dem Community-Tool
-  NicholasDJM/Helldivers-2-Stratagem-Macros abgeleitet. Der Parser ist deshalb tolerant und meldet
-  Unbekanntes in der Oberfläche, statt zu scheitern. → **Offen: echte Datei zum Abgleich.**
+  mit `Up/Down/Left/Right` und `Start` (Liste öffnen), je Eintrag `trigger`, `device_type`, `input`,
+  `threshold`, `input_type`. **Mit einer echten Datei abgeglichen** (liegt als Testfall unter
+  `tests/Stratagem.Core.Tests/data/`). Arrowhead verlinkt im Dateikopf eine eigene Anleitung
+  (content.thehelldiversgame.com/help/inputs.md).
+- Gespeichert werden **nur Aktionen, die vom Standard abweichen** – eine Aktion dann mit all ihren Belegungen
+  (auch Controller). Tastennamen: `"left ctrl"`, `"left shift"`, `"up"`, `"tab"`, `"c"`, `"4"`;
+  Maus: `"MouseButton1…5"`, `"MouseWheel"` (Achse). Auslöser: `Press`, `Hold`, `Tap`, `LongPress`, `Y+`/`Y-`.
+- Der Parser bleibt tolerant und meldet Unbekanntes in der Oberfläche, statt zu scheitern.
 - Die Datei wird überwacht: Änderst du im Spiel eine Taste, übernimmt Stratagem sie ohne Neustart.
 
 ### Timing
@@ -119,6 +123,7 @@ nur Namen und kann veralten, ohne etwas kaputtzumachen.
 | 6 | Laufen während des Makros (W gehalten, Code nutzt W) | gelöst | W wird vorher losgelassen, nach dem Code wieder gedrückt, falls noch gehalten. Spieler-Drücke der Makro-Tasten werden währenddessen zurückgehalten, damit sie sich nicht in den Code mischen. Besser: im Spiel Pfeiltasten für Stratagems (das Tool bevorzugt sie automatisch). |
 | 7 | Hooks werden von Windows entfernt (Timeout ~1 s) | mittel | Hook-Callbacks arbeiten nur im Speicher, Log schreibt im Hintergrund, Hooks werden bei jedem Wechsel ins Spiel neu gesetzt (außerhalb gibt es sie gar nicht). |
 | 14 | Markierung flackert an Segmentgrenzen / am Rand der Mitte | gelöst | Hysterese: Die Markierung wechselt erst 7° hinter der Grenze und fällt erst bei 75 % des Abbrechen-Bereichs zurück. Getestet. |
+| 16 | Auslöser oder direkte Taste ist im Spiel schon belegt (z. B. Maus-Seitentaste = Kameraseite wechseln) | gelöst | Alle Belegungen aus der Spieldatei werden mit Auslöser und Tasten verglichen; die Oberfläche warnt mit dem Namen der Spielaktion. Strg als Auslöser auf der Stratagem-Taste ist gewollt und keine Warnung. Grenze: Standardbelegungen stehen nicht in der Datei. |
 | 15 | Kurzes Antippen lässt das Menü aufblitzen | gelöst | Im Halten-Modus erscheint der Kreis erst nach 90 ms – oder sofort, sobald ein Segment gewählt wird. Schnelle „Flicks“ funktionieren ohne Wartezeit, die Auswahl wird mit kurzem Ausblenden bestätigt. |
 | 8 | Falsches Fenster bekommt Tasten | gelöst | Aktiv nur, wenn das Vordergrundfenster zum Prozess `helldivers2` gehört (oder exakt den Spieltitel trägt). Ein Browser-Tab „Helldivers 2 – Reddit“ zählt nicht. Fokusverlust bricht Makros ab. |
 | 9 | AltGr auf deutschen Tastaturen erzeugt ein falsches Strg | gelöst | Das falsche Strg hat Scancode 0x21D, das echte 0x1D → löst nie das Menü aus. |
@@ -135,6 +140,7 @@ nur Namen und kann veralten, ohne etwas kaputtzumachen.
 | Kamera dreht sich beim Auswählen | Siehe schwierige Stelle 1 – bitte melden, dann kommt Plan B. |
 | Stratagem kommt nicht an / falsches Stratagem | Timing erhöhen (Oberfläche → Timing). Niedrige FPS brauchen längere Werte. |
 | Taste im Spiel umgelegt | Wird aus der Spieldatei gelesen, auch live. Ohne Datei: in der Oberfläche einstellen. |
+| Gewählte Taste ist im Spiel schon belegt | Warnung in der Oberfläche mit der betroffenen Spielaktion. |
 | „Liste öffnen“ steht im Spiel auf Doppeltippen/Lang drücken | Wird gemeldet; nur „Halten“ und „Drücken“ werden unterstützt. |
 | Strg im Chat (Strg+V) | Funktioniert durch die Akkord-Regel. |
 | Menü bleibt nach Alt+Tab offen / Tasten hängen | Fokusverlust schließt das Menü und gibt alles frei. |
@@ -167,7 +173,7 @@ Plan:
 Risiken: HDR (Farben), Farbfilter für Farbenblinde, UI-Skalierung, Animationen beim Öffnen, Bewegungsunschärfe.
 
 **Benötigt:** PNG-Bildschirmfotos der geöffneten Liste in deiner Auflösung (normal, mit Cooldowns, Mission mit
-Zusatz-Stratagems, ggf. zweite Auflösung) und deine `input_settings.config`.
+Zusatz-Stratagems, ggf. zweite Auflösung). Die `input_settings.config` liegt vor.
 
 ## 6. Fahrplan
 

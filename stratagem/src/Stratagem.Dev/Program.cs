@@ -12,7 +12,11 @@ var webDir = Environment.GetEnvironmentVariable("STRATAGEM_WEB_DIR") ?? FindWebD
 var store = new SettingsStore(Path.Combine(dataDir, "settings.json"), Console.WriteLine);
 var settings = store.Load();
 var game = new GameWatcherStub { IsRunning = true, IsFocused = true };
-var service = new StratagemService(store, settings, new ServicePlatform(new ConsoleOutput(), new ConsoleView(), game), log: Console.WriteLine);
+// STRATAGEM_GAME_CONFIG=path/to/input_settings.config: use the game's bindings from that file.
+var gameConfig = Environment.GetEnvironmentVariable("STRATAGEM_GAME_CONFIG");
+Func<Stratagem.Core.Game.BindingsResult?>? readBindings = gameConfig is null ? null
+    : () => Stratagem.Core.Game.GameInputSettings.Read(File.ReadAllText(gameConfig), gameConfig);
+var service = new StratagemService(store, settings, new ServicePlatform(new ConsoleOutput(), new ConsoleView(), game, ReadGameBindings: readBindings), log: Console.WriteLine);
 var port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var p) ? p : settings.Web.Port;
 await using var server = await WebServer.StartAsync(service, new WebServerOptions(port, settings.Web.AllowLan, settings.Web.Token, WebDir: webDir, Log: Console.WriteLine));
 Console.WriteLine($"Stratagem (Entwicklung) auf http://localhost:{server.Port} – Web-Dateien aus {webDir}");

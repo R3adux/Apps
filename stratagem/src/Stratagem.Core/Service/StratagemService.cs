@@ -196,11 +196,36 @@ public sealed class StratagemService : IDisposable
                 _active,
                 Runner.IsRunning,
                 new GameInfo(_platform.Game.IsRunning, _platform.Game.IsFocused, _settings.Game.WindowTitle, _settings.OnlyWhenGameFocused),
-                new BindingsInfo(b.Menu.Name, b.MenuMode.ToString(), b.Up.Name, b.Down.Name, b.Left.Name, b.Right.Name, _bindings.SourceFile, _bindings.Notes),
+                new BindingsInfo(b.Menu.Name, b.MenuMode.ToString(), b.Up.Name, b.Down.Name, b.Left.Name, b.Right.Name, _bindings.SourceFile, _bindings.Notes,
+                    Conflicts(_settings, _bindings)),
                 new ListInfo(_settings.List.Source.ToString(), problem,
                     items.Select((it, i) => new ItemInfo(i, it.Label, it.Name, it.Code.Letters, it.Code.Arrows, it.Available, it.Icon is not null)).ToList()),
                 _events.ToList());
         }
+    }
+
+    /// <summary>
+    /// Keys/buttons of this tool that the game also uses: there they would no longer reach the game.
+    /// The trigger on the game's "open stratagem list" key is fine on purpose (the tool passes it on).
+    /// Only bindings the player changed are known (the file has no defaults).
+    /// </summary>
+    private static IReadOnlyList<ConflictInfo> Conflicts(AppSettings settings, BindingsResult bindings)
+    {
+        if (bindings.AllBindings.Count == 0) return [];
+        var mine = new List<(InputRef Input, string By)>();
+        if (settings.Radial.Enabled && InputRef.TryParse(settings.Radial.Trigger, out var trigger)) mine.Add((trigger, "radial"));
+        mine.AddRange(settings.ToHotkeys().Keys.Select(k => (k, "hotkey")));
+        var result = new List<ConflictInfo>();
+        foreach (var (input, by) in mine)
+        {
+            foreach (var g in bindings.AllBindings)
+            {
+                if (g.Input != input) continue;
+                if (by == "radial" && g.Section == "Stratagem" && g.Action == "Start") continue;
+                result.Add(new ConflictInfo(input.Name, by, g.Section, g.Action, g.Trigger));
+            }
+        }
+        return result;
     }
 
     /// <summary>Icon of a list entry (PNG), if the source provides one.</summary>

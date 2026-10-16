@@ -285,7 +285,30 @@ $('#hotkey-add').addEventListener('click', async () => {
 
 // --- bindings, timing, misc ---------------------------------------------------------------------
 
+// Game actions as the player knows them (names from input_settings.config).
+const gameActions = {
+  'Stratagem.Start': 'Stratagem-Liste öffnen', 'Stratagem.Up': 'Stratagem ↑', 'Stratagem.Down': 'Stratagem ↓',
+  'Stratagem.Left': 'Stratagem ←', 'Stratagem.Right': 'Stratagem →',
+  'Avatar.Prone': 'Hinlegen', 'Avatar.Sprint': 'Sprinten', 'Avatar.Reload': 'Nachladen',
+  'Avatar.CameraSwitchSide': 'Kameraseite wechseln', 'Avatar.ChangeEquipmentGrenade': 'Granate wählen',
+  'Avatar.ChangeEquipmentQuickGrenade': 'Schnellgranate', 'Player.VoicePushToTalk': 'Sprachchat (Push-to-Talk)',
+};
+const gameTriggers = { Press: 'drücken', Hold: 'halten', Tap: 'antippen', LongPress: 'lang drücken', DoubleTap: 'doppelt tippen' };
+
+function conflictText(c) {
+  const action = gameActions[`${c.section}.${c.action}`] ?? `${c.section} → ${c.action}`;
+  const how = gameTriggers[c.trigger] ? ` (${gameTriggers[c.trigger]})` : '';
+  return `${keyLabel(c.input)} ist im Spiel belegt: ${action}${how}. Im Spiel kommt diese Taste dann nicht mehr an.`;
+}
+
+function renderConflicts() {
+  const conflicts = state?.bindings.conflicts ?? [];
+  $('#radial-conflicts').replaceChildren(...conflicts.filter((c) => c.by === 'radial').map((c) => el('li', { textContent: conflictText(c) })));
+  $('#hotkey-conflicts').replaceChildren(...conflicts.filter((c) => c.by === 'hotkey').map((c) => el('li', { textContent: conflictText(c) })));
+}
+
 function renderBindings() {
+  renderConflicts();
   const b = state?.bindings;
   const readGame = settings.game.readBindingsFromGame;
   $('#manual-bindings').hidden = readGame;

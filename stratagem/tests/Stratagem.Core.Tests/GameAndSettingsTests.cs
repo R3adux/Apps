@@ -36,7 +36,7 @@ public class SjsonTests
 
 public class GameInputSettingsTests
 {
-    // Shape as described by community tools (NicholasDJM/Helldivers-2-Stratagem-Macros). To be checked against a real file.
+    // Made-up variant (WASD + arrows, pads mixed in) to test choices the real file below does not contain.
     private const string Sample = """
         Menu = {
         	Start = [
@@ -218,5 +218,52 @@ public class SettingsTests
 
         s.Game.Up = "ArrowUp";
         Assert.Equal(KeyNames.ArrowUp, s.ToManualBindings().Up);
+    }
+}
+
+public class RealGameFileTests
+{
+    private static string RealFile => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "data", "input_settings.real.config"));
+
+    [Fact]
+    public void Reads_the_real_file()
+    {
+        var r = GameInputSettings.Read(RealFile);
+        Assert.Equal(KeyNames.ControlLeft, r.Bindings.Menu);
+        Assert.Equal(MenuMode.Press, r.Bindings.MenuMode);
+        Assert.Equal(KeyNames.ArrowUp, r.Bindings.Up);
+        Assert.Equal(KeyNames.ArrowDown, r.Bindings.Down);
+        Assert.Equal(KeyNames.ArrowLeft, r.Bindings.Left);
+        Assert.Equal(KeyNames.ArrowRight, r.Bindings.Right);
+        Assert.Empty(r.Notes);
+    }
+
+    [Fact]
+    public void Collects_all_keyboard_and_mouse_bindings()
+    {
+        var all = GameInputSettings.Read(RealFile).AllBindings;
+        Assert.Contains(all, b => b.Input == InputRef.Of(MouseButton.X1) && b.Action == "CameraSwitchSide" && b.Trigger == "LongPress");
+        Assert.Contains(all, b => b.Input == InputRef.Parse("KeyC") && b.Action == "Prone");
+        Assert.Contains(all, b => b.Input == InputRef.Parse("ShiftLeft") && b.Action == "Sprint");
+        Assert.Contains(all, b => b.Input == InputRef.Parse("Tab") && b.Section == "Player");
+        Assert.Contains(all, b => b.Input == InputRef.Parse("Digit4") && b.Action == "ChangeEquipmentQuickGrenade");
+        Assert.DoesNotContain(all, b => b.Action.StartsWith("ChangeEquipmentContextSensitive")); // mouse wheel axes
+        Assert.DoesNotContain(all, b => b.Input.Name.StartsWith("SC_"));
+    }
+
+    [Fact]
+    public void Warns_when_a_tool_key_is_used_by_the_game()
+    {
+        var real = GameInputSettings.Read(RealFile, "real");
+        using var f = new ServiceFixture(() => real);
+        Assert.Empty(f.Service.GetState().Bindings.Conflicts); // Ctrl as trigger = the game's list key: intended
+
+        var s = f.Service.Settings;
+        s.Radial.Trigger = "MouseX1";
+        s.Hotkeys.Add(new HotkeySetting { Input = "KeyR", Slot = 1 });
+        f.Service.UpdateSettings(s);
+        var conflicts = f.Service.GetState().Bindings.Conflicts;
+        Assert.Contains(conflicts, c => c.By == "radial" && c.Input == "MouseX1" && c.Action == "CameraSwitchSide");
+        Assert.Contains(conflicts, c => c.By == "hotkey" && c.Input == "KeyR" && c.Action == "Reload");
     }
 }

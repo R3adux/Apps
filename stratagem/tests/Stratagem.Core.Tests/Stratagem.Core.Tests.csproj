@@ -14,6 +14,10 @@
     <ProjectReference Include="..\..\src\Stratagem.Server\Stratagem.Server.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <!-- input_settings.real.config: a real file from the game (bindings only, nothing personal). -->
+    <None Include="data\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 </Project>

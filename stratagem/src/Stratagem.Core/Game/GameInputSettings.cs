@@ -3,19 +3,29 @@ using Stratagem.Core.Input;
 namespace Stratagem.Core.Game;
 
 /// <summary>Result of reading the game's key bindings. Notes explain what could not be used (shown in the web UI).</summary>
-public sealed record BindingsResult(GameBindings Bindings, string? SourceFile, IReadOnlyList<string> Notes);
+/// <param name="Others">Every keyboard/mouse binding found in the file (all sections), to warn about collisions.</param>
+public sealed record BindingsResult(GameBindings Bindings, string? SourceFile, IReadOnlyList<string> Notes, IReadOnlyList<GameBinding>? Others = null)
+{
+    public IReadOnlyList<GameBinding> AllBindings => Others ?? [];
+}
+
+/// <summary>One binding of the game: e.g. MouseX1 → Avatar.CameraSwitchSide (LongPress).</summary>
+public sealed record GameBinding(InputRef Input, string Section, string Action, string? Trigger);
 
 /// <summary>
 /// Reads the stratagem bindings from the game's <c>input_settings.config</c>
 /// (Steam\userdata\&lt;id&gt;\553850\remote\). The file only exists once the player changed a binding;
 /// without it the game defaults apply.
-/// Known structure (from community tools, not documented by Arrowhead):
+/// Structure (checked against a real file from October 2026; Arrowhead's own guide is linked in the file header):
 /// <code>
 /// Stratagem = {
-///     Up = [ { device_type = "Keyboard"  input = "w"  trigger = "Press" ... } ]
-///     Start = [ { ... trigger = "Hold" } ]   // open the stratagem list
+///     Up = [ { trigger = "Press"  device_type = "Keyboard"  input = "up"  threshold = 0.2  input_type = "Button" } ]
+///     Start = [ { trigger = "Press"  device_type = "Keyboard"  input = "left ctrl" ... } ]   // open the stratagem list
 /// }
 /// </code>
+/// Only actions that differ from the game's defaults are stored; an action lists all its bindings (pads too).
+/// Seen key names: "left ctrl", "left shift", "up", "tab", "c", "4"; mouse: "MouseButton1…5", "MouseWheel".
+/// Seen triggers: Press, Hold, Tap, LongPress, and Y+/Y- for axes.
 /// </summary>
 public static class GameInputSettings
 {
@@ -33,11 +43,12 @@ public static class GameInputSettings
             return new BindingsResult(GameBindings.Default, sourceFile, notes);
         }
 
+        var all = CollectAll(root);
         var section = FindSection(root, "Stratagem");
         if (section is null)
         {
-            notes.Add("Kein Abschnitt 'Stratagem' gefunden – Standardbelegung des Spiels wird verwendet.");
-            return new BindingsResult(GameBindings.Default, sourceFile, notes);
+            notes.Add("Stratagem-Tasten im Spiel nicht geändert – Standardbelegung des Spiels wird verwendet.");
+            return new BindingsResult(GameBindings.Default, sourceFile, notes, all);
         }
 
         var d = GameBindings.Default;
@@ -68,7 +79,45 @@ public static class GameInputSettings
                 notes.Add($"Stratagem-Liste öffnet per '{trigger}' – das wird nicht unterstützt. Bitte im Spiel auf 'Halten' oder 'Drücken' stellen.");
         }
 
-        return new BindingsResult(new GameBindings(menu, mode, up, down, left, right), sourceFile, notes);
+        return new BindingsResult(new GameBindings(menu, mode, up, down, left, right), sourceFile, notes, all);
+    }
+
+    /// <summary>All keyboard keys and mouse buttons bound anywhere in the file (axes like the wheel are skipped).</summary>
+    private static List<GameBinding> CollectAll(Dictionary<string, object?> root)
+    {
+        var result = new List<GameBinding>();
+        foreach (var (sectionName, sectionValue) in root)
+        {
+            if (sectionValue is not Dictionary<string, object?> section) continue;
+            foreach (var action in section.Keys)
+            {
+                foreach (var entry in Entries(section, action))
+                {
+                    var input = ToInput(Str(entry, "device_type"), Str(entry, "input"));
+                    if (input is { } i) result.Add(new GameBinding(i, sectionName, action, Str(entry, "trigger")));
+                }
+            }
+        }
+        return result;
+    }
+
+    internal static InputRef? ToInput(string? device, string? input)
+    {
+        if (string.Equals(device, "Keyboard", StringComparison.OrdinalIgnoreCase))
+            return KeyNames.FromGameName(input) is { } key ? InputRef.Of(key) : null;
+        if (string.Equals(device, "Mouse", StringComparison.OrdinalIgnoreCase))
+        {
+            return input?.ToLowerInvariant() switch
+            {
+                "mousebutton1" => InputRef.Of(MouseButton.Left),
+                "mousebutton2" => InputRef.Of(MouseButton.Right),
+                "mousebutton3" => InputRef.Of(MouseButton.Middle),
+                "mousebutton4" => InputRef.Of(MouseButton.X1),
+                "mousebutton5" => InputRef.Of(MouseButton.X2),
+                _ => null,
+            };
+        }
+        return null;
     }
 
     /// <summary>
