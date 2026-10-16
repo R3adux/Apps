@@ -64,24 +64,30 @@ public sealed class StratagemService : IDisposable
     /// <summary>Fires on every visible change (list, game focus, settings, macro finished). From any thread.</summary>
     public event Action? Changed;
 
+    /// <summary>
+    /// <see cref="IsActive"/> changed: the Windows side installs its input hooks only while active, so outside
+    /// the game (or paused) no keyboard or mouse event passes through this tool at all.
+    /// </summary>
+    public event Action<bool>? ActiveChanged;
+
+    /// <summary>A copy to edit and pass to <see cref="UpdateSettings"/>.</summary>
     public AppSettings Settings
     {
         get { lock (_gate) return SettingsStore.Clone(_settings); }
     }
+
+    /// <summary>The current settings, shared and read-only by convention (no copy: for frequent reads). Never modify.</summary>
+    public AppSettings Current => Volatile.Read(ref _settings);
 
     public GameBindings Bindings
     {
         get { lock (_gate) return _bindings.Bindings; }
     }
 
-    /// <summary>Hotkeys and the radial menu act only now.</summary>
-    public bool IsActive
-    {
-        get
-        {
-            lock (_gate) return !_settings.Paused && (_platform.Game.IsFocused || !_settings.OnlyWhenGameFocused);
-        }
-    }
+    /// <summary>Hotkeys and the radial menu act only now. Lock-free: read on the hook thread.</summary>
+    public bool IsActive => _active;
+
+    private volatile bool _active;
 
     public IReadOnlyList<StratagemItem> Items
     {
@@ -143,7 +149,7 @@ public sealed class StratagemService : IDisposable
     {
         if (!IsActive)
         {
-            Log($"{origin}: {item.Label} ignoriert – {(Settings.Paused ? "pausiert" : "Spiel nicht im Vordergrund")}");
+            Log($"{origin}: {item.Label} ignoriert – {(Current.Paused ? "pausiert" : "Spiel nicht im Vordergrund")}");
             return false;
         }
         if (!item.Available)
@@ -187,7 +193,7 @@ public sealed class StratagemService : IDisposable
                 ApiVersion,
                 AppVersion,
                 _settings.Paused,
-                !_settings.Paused && (_platform.Game.IsFocused || !_settings.OnlyWhenGameFocused),
+                _active,
                 Runner.IsRunning,
                 new GameInfo(_platform.Game.IsRunning, _platform.Game.IsFocused, _settings.Game.WindowTitle, _settings.OnlyWhenGameFocused),
                 new BindingsInfo(b.Menu.Name, b.MenuMode.ToString(), b.Up.Name, b.Down.Name, b.Left.Name, b.Right.Name, _bindings.SourceFile, _bindings.Notes),
@@ -226,7 +232,8 @@ public sealed class StratagemService : IDisposable
             _manual = settings.ToManualItems(_catalog);
             _bindings = ResolveBindings(settings);
         }
-        Radial.Options = settings.ToRadialOptions();
+        var options = settings.ToRadialOptions();
+        if (Radial.Options != options) Radial.Options = options; // setting it closes an open menu
         Router.SetHotkeys(settings.ToHotkeys());
         UpdateEnabled();
         RaiseChanged();
@@ -259,9 +266,16 @@ public sealed class StratagemService : IDisposable
 
     private void UpdateEnabled()
     {
-        bool enabled;
-        lock (_gate) enabled = _settings.Radial.Enabled;
-        Radial.Enabled = enabled && IsActive;
+        bool active, radial, changed;
+        lock (_gate) // game focus and settings change on different threads
+        {
+            active = !_settings.Paused && (_platform.Game.IsFocused || !_settings.OnlyWhenGameFocused);
+            radial = _settings.Radial.Enabled;
+            changed = active != _active;
+            _active = active;
+        }
+        Radial.Enabled = radial && active;
+        if (changed) ActiveChanged?.Invoke(active);
     }
 
     private void OnHotkey(HotkeyAction action)

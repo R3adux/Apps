@@ -37,6 +37,8 @@ internal static class Program
         }
 
         log.Log($"Stratagem {StratagemService.AppVersion} startet{(atLogin ? " (Autostart)" : "")}");
+        // No long blocking garbage collections: the hook thread must never wait.
+        System.Runtime.GCSettings.LatencyMode = System.Runtime.GCLatencyMode.SustainedLowLatency;
         ApplicationConfiguration.Initialize();
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
         Application.ThreadException += (_, e) => log.Log($"Unerwarteter Fehler: {e.Exception}");
@@ -60,10 +62,10 @@ internal static class Program
         var ui = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
         using var game = new GameWatcher(() =>
         {
-            var g = service?.Settings.Game ?? settings.Game;
+            var g = (service?.Current ?? settings).Game;
             return (g.WindowTitle, g.ProcessName);
         });
-        using var overlay = new RadialOverlay(() => game.WindowBounds);
+        using var overlay = new RadialOverlay(() => game.WindowBounds, () => service?.Radial.OnTimer());
         using var bindings = new GameBindingsSource(log.Log);
 
         service = new StratagemService(store, settings,
@@ -76,18 +78,27 @@ internal static class Program
             service.ReloadBindings();
         };
 
-        // Hooks: everything the player presses goes through the router first.
+        // Compile the input paths now, not on the first Ctrl press in the game.
+        Warmup.Run();
+
+        // Hooks exist only while needed: keyboard while active (game in front, not paused),
+        // mouse only while the radial menu is open or a mouse button is bound.
         using var hooks = new InputHooks(service.Router, log.Log);
-        if (Environment.GetEnvironmentVariable("STRATAGEM_NO_HOOKS") != "1")
+        var hooksEnabled = Environment.GetEnvironmentVariable("STRATAGEM_NO_HOOKS") != "1";
+        void SyncHooks()
         {
-            hooks.Start();
-            log.Log(hooks.Installed ? "Eingabe-Hooks aktiv" : "Eingabe-Hooks NICHT aktiv – Radialmenü und Tasten gehen nicht");
+            var active = hooksEnabled && service.IsActive;
+            hooks.Update(active, active && service.Router.NeedsMouse);
         }
-        game.Changed += () =>
+        if (hooksEnabled) hooks.Start();
+        service.ActiveChanged += active =>
         {
-            if (game.IsFocused) hooks.Reinstall(); // Windows may have dropped them (timeout)
-            log.Log(game.IsFocused ? "Spiel im Vordergrund" : game.IsRunning ? "Spiel im Hintergrund" : "Spiel nicht gestartet");
+            SyncHooks();
+            log.Log(active ? "Aktiv – Eingaben werden abgefangen" : "Inaktiv – keine Eingaben werden abgefangen");
         };
+        service.Router.MouseNeedChanged += SyncHooks; // also from inside a hook callback: SyncHooks only posts a message
+        SyncHooks();
+        game.Changed += () => log.Log(game.IsFocused ? "Spiel im Vordergrund" : game.IsRunning ? "Spiel im Hintergrund" : "Spiel nicht gestartet");
 
         WebServer server;
         try
@@ -102,21 +113,26 @@ internal static class Program
         log.Log($"Weboberfläche auf {url}{(settings.Web.AllowLan ? " (auch im Heimnetz)" : "")}");
 
         using var tray = new TrayIcon(() => OpenBrowser(url), paused => service.SetPaused(paused), Application.Exit);
-        void UpdateTray()
+        // Tray and overlay follow the service, but only touch Windows when something they show changed,
+        // and many changes in a row (a macro, a burst of log lines) become one update on the UI thread.
+        var uiPending = 0;
+        UiState? shown = null;
+        void UpdateUi()
         {
-            var s = service.GetState();
-            tray.Update(s.Paused, s.Game.Focused, s.List.Items.Count);
-            var r = service.Settings.Radial;
-            overlay.Configure(r.SizePx, r.Opacity);
+            Interlocked.Exchange(ref uiPending, 0);
+            var current = service.Current;
+            var now = new UiState(current.Paused, game.IsFocused, current.Radial.SizePx, current.Radial.Opacity, service.Items);
+            if (now == shown) return; // the list compares by reference: a new list means new content
+            tray.Update(now.Paused, now.Focused, now.Items.Count);
+            overlay.Configure(now.Size, now.Opacity, now.Items); // also pre-renders, so the menu appears instantly
+            shown = now;
         }
-        service.Changed += () => ui.Post(_ => UpdateTray(), null);
-        UpdateTray();
+        service.Changed += () =>
+        {
+            if (Interlocked.Exchange(ref uiPending, 1) == 0) ui.Post(_ => UpdateUi(), null);
+        };
+        UpdateUi();
         log.Log("Tray-Symbol bereit");
-
-        // Closes a forgotten tap-menu.
-        using var timer = new System.Windows.Forms.Timer { Interval = 250 };
-        timer.Tick += (_, _) => service.Radial.OnTimer();
-        timer.Start();
 
         if (!atLogin && Environment.GetEnvironmentVariable("STRATAGEM_NO_BROWSER") != "1") OpenBrowser(url);
         if (!settings.List.Manual.Any() && settings.List.Source == ListSource.Manual) tray.Notify("Liste ist leer – in der App Stratagems hinzufügen.");
@@ -124,11 +140,14 @@ internal static class Program
         Application.Run();
 
         log.Log("Stratagem wird beendet");
+        hooks.Update(false, false);
         service.Radial.Enabled = false;
         service.Runner.Cancel();
         server.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(3));
         return 0;
     }
+
+    private sealed record UiState(bool Paused, bool Focused, int Size, double Opacity, IReadOnlyList<Stratagem.Core.Model.StratagemItem> Items);
 
     internal static void OpenBrowser(string url)
     {

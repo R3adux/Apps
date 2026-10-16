@@ -28,7 +28,7 @@ selbst vom Bildschirm, sodass nie eine Liste gepflegt werden muss.
 | `web/` | Oberfläche (HTML/CSS/JS ohne Build-Schritt, wie bei Licht) | Browser |
 
 **Warum so geschnitten:** Alles, was schiefgehen kann, ist Logik – und die liegt im Kern, ohne Windows,
-mit Tests (98 Stück): Welche Taste wird geschluckt, wann wird ausgelöst, was passiert bei Abbruch,
+mit Tests (108 Stück): Welche Taste wird geschluckt, wann wird ausgelöst, was passiert bei Abbruch,
 Fokusverlust, Tastenkombinationen, gehaltenen Lauftasten. Der Windows-Teil übersetzt nur Ereignisse.
 
 **Erweiterungspunkte** (Schnittstellen im Kern):
@@ -52,6 +52,19 @@ nur Namen und kann veralten, ohne etwas kaputtzumachen.
 - Overlay (Fenster mit Alpha pro Pixel), Tray, Registry, SendInput: alles direkt verfügbar.
 - Eine einzige `Stratagem.exe` (self-contained, ~64 MB), nichts zu installieren – wie `Licht.exe`.
   Kleiner ginge es mit installierter .NET-Runtime (~5 MB), das wäre aber eine Hürde für Spieler.
+
+### Leistung: kein merkbarer Einfluss aufs Spiel
+
+| Was | Wie |
+|---|---|
+| Außerhalb des Spiels / pausiert | **Keine Hooks installiert** – kein einziger Tastendruck, keine Mausbewegung läuft durch das Tool. |
+| Im Spiel, Menü zu | Nur der Tastatur-Hook. Pro Taste ein paar Speicherzugriffe, keine Systemaufrufe, kein Datei-Zugriff. **Kein Maus-Hook**: Mausbewegungen (bei Gaming-Mäusen bis 8000/s) gehen direkt ans Spiel. |
+| Menü offen | Maus-Hook wird in Mikrosekunden eingehängt und beim Schließen wieder entfernt. Nur mit einer Maustaste als Auslöser/Taste bleibt er im Spiel dauerhaft (dann pro Bewegung nur eine Abfrage eines Flags). |
+| Overlay | Jede Ansicht (ohne/mit Markierung) wird einmal gezeichnet und gespeichert; die Grundansicht vorab, sobald sich die Liste ändert. Mausbewegung = nur Bild tauschen (< 1 ms). Ausblenden = nur Fenster-Transparenz, nichts wird neu gezeichnet. Versteckt: keine Timer. |
+| Makros | Eigener Thread, schläft ohne Arbeit. Feine Timer-Auflösung (1 ms) nur während eines Makros. |
+| Spielfenster-Erkennung | Windows meldet Fensterwechsel; die Prozessliste wird nur beim Wechsel befragt und alle 6 s, solange das Spiel nicht vorne ist. |
+| Start / erster Tastendruck | Vorkompiliert (ReadyToRun) und beim Start einmal „aufgewärmt“ – kein Ruckler beim ersten Strg im Spiel. Garbage Collector im Modus „geringe Latenz“. |
+| Weboberfläche | Nur aktiv, wenn geöffnet; Live-Updates gebündelt (max. 20/s), nur geänderte Teile werden neu gezeichnet. |
 
 ## 2. Recherche-Ergebnisse
 
@@ -104,7 +117,9 @@ nur Namen und kann veralten, ohne etwas kaputtzumachen.
 | 4 | Strg ist die Stratagem-Taste des Spiels | gelöst | Echtes Strg wird geschluckt, das Tool schickt markiertes Strg. Strg + andere Taste (z. B. Strg+V im Chat) = „Akkord“: Menü zu, Strg geht ans Spiel **vor** der anderen Taste. Getestet. |
 | 5 | Hängende Tasten | gelöst | Makro-Läufer gibt in jedem Fall (Abbruch, Fehler, Fokusverlust) alle gedrückten Tasten frei. Radialmenü schluckt das „Loslassen“ genau dann, wenn es das „Drücken“ geschluckt hat – sonst würde z. B. Dauerfeuer entstehen. Getestet. |
 | 6 | Laufen während des Makros (W gehalten, Code nutzt W) | gelöst | W wird vorher losgelassen, nach dem Code wieder gedrückt, falls noch gehalten. Spieler-Drücke der Makro-Tasten werden währenddessen zurückgehalten, damit sie sich nicht in den Code mischen. Besser: im Spiel Pfeiltasten für Stratagems (das Tool bevorzugt sie automatisch). |
-| 7 | Hooks werden von Windows entfernt (Timeout ~1 s) | mittel | Hook-Callbacks arbeiten nur im Speicher, Log schreibt im Hintergrund, Hooks werden bei jedem Fokuswechsel ins Spiel neu gesetzt. |
+| 7 | Hooks werden von Windows entfernt (Timeout ~1 s) | mittel | Hook-Callbacks arbeiten nur im Speicher, Log schreibt im Hintergrund, Hooks werden bei jedem Wechsel ins Spiel neu gesetzt (außerhalb gibt es sie gar nicht). |
+| 14 | Markierung flackert an Segmentgrenzen / am Rand der Mitte | gelöst | Hysterese: Die Markierung wechselt erst 7° hinter der Grenze und fällt erst bei 75 % des Abbrechen-Bereichs zurück. Getestet. |
+| 15 | Kurzes Antippen lässt das Menü aufblitzen | gelöst | Im Halten-Modus erscheint der Kreis erst nach 90 ms – oder sofort, sobald ein Segment gewählt wird. Schnelle „Flicks“ funktionieren ohne Wartezeit, die Auswahl wird mit kurzem Ausblenden bestätigt. |
 | 8 | Falsches Fenster bekommt Tasten | gelöst | Aktiv nur, wenn das Vordergrundfenster zum Prozess `helldivers2` gehört (oder exakt den Spieltitel trägt). Ein Browser-Tab „Helldivers 2 – Reddit“ zählt nicht. Fokusverlust bricht Makros ab. |
 | 9 | AltGr auf deutschen Tastaturen erzeugt ein falsches Strg | gelöst | Das falsche Strg hat Scancode 0x21D, das echte 0x1D → löst nie das Menü aus. |
 | 10 | Andere Webseiten im Browser drücken Tasten über den lokalen Server | gelöst | Änderungen nur mit Header `X-Stratagem: 1` (erzwingt CORS-Preflight, das nie erlaubt wird), Host-Prüfung gegen DNS-Rebinding, fremde `Origin` abgelehnt, Heimnetz nur mit Token. Getestet. |

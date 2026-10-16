@@ -8,10 +8,15 @@ namespace Stratagem.Windows;
 /// Global low-level keyboard and mouse hooks on a dedicated thread with its own message loop.
 /// Every player event goes to <see cref="InputRouter"/>, which decides whether it is swallowed.
 ///
+/// Performance: a low-level hook sits in front of every input event of the whole PC. So the hooks exist only
+/// when needed (<see cref="Update"/>): the keyboard hook only while the game is in the foreground and the tool
+/// is not paused, the mouse hook only while the radial menu is open (or a mouse button is bound). During normal
+/// play no mouse event passes through this tool; outside the game, nothing at all. Installing takes microseconds.
+///
 /// Pitfalls handled here:
 /// - Windows silently removes a low-level hook whose callback takes too long (LowLevelHooksTimeout, ~1 s).
-///   The callback therefore only does in-memory work, and <see cref="Reinstall"/> re-creates the hooks
-///   (called when the game gets the focus).
+///   The callbacks only do in-memory work (no I/O, no allocations on the hot path), and the hooks are
+///   re-created on every switch into the game.
 /// - Our own SendInput events carry <see cref="Native.OurMarker"/> and are never routed (no feedback loops).
 /// - AltGr on German keyboards sends a fake left Ctrl with scancode 0x21D: it never matches the real Ctrl (0x1D).
 /// - The mouse is "captured" by the game: deltas are computed against the current cursor position,
@@ -27,7 +32,8 @@ public sealed unsafe class InputHooks : IDisposable
     private readonly ManualResetEventSlim _ready = new();
     private uint _threadId;
     private nint _keyboardHook, _mouseHook;
-    private const uint WM_REINSTALL = WM_APP + 1;
+    private volatile bool _wantKeyboard, _wantMouse;
+    private const uint WM_SYNC = WM_APP + 1;
 
     public InputHooks(InputRouter router, Action<string> log)
     {
@@ -36,7 +42,8 @@ public sealed unsafe class InputHooks : IDisposable
         _thread = new Thread(Run) { IsBackground = true, Name = "Stratagem hooks", Priority = ThreadPriority.Highest };
     }
 
-    public bool Installed => _keyboardHook != 0 && _mouseHook != 0;
+    public bool KeyboardActive => _keyboardHook != 0;
+    public bool MouseActive => _mouseHook != 0;
 
     public void Start()
     {
@@ -46,42 +53,56 @@ public sealed unsafe class InputHooks : IDisposable
         _ready.Wait(TimeSpan.FromSeconds(5));
     }
 
-    /// <summary>Re-creates the hooks (Windows may have removed them after a timeout).</summary>
-    public void Reinstall()
+    /// <summary>
+    /// Which hooks should exist. Thread-safe and non-blocking (also called from inside a hook callback):
+    /// the hook thread applies it right after the current event.
+    /// </summary>
+    public void Update(bool keyboard, bool mouse)
     {
-        if (_threadId != 0) PostThreadMessageW(_threadId, WM_REINSTALL, 0, 0);
+        _wantKeyboard = keyboard;
+        _wantMouse = mouse;
+        if (_threadId != 0) PostThreadMessageW(_threadId, WM_SYNC, 0, 0);
     }
 
     private void Run()
     {
         _threadId = GetCurrentThreadId();
-        Install();
+        Sync();
         _ready.Set();
         while (GetMessageW(out var msg, 0, 0, 0) > 0)
         {
-            if (msg.message == WM_REINSTALL)
-            {
-                Uninstall();
-                Install();
-            }
+            if (msg.message == WM_SYNC) Sync();
         }
-        Uninstall();
-    }
-
-    private void Install()
-    {
-        var module = GetModuleHandleW(null);
-        _keyboardHook = SetWindowsHookExW(WH_KEYBOARD_LL, &KeyboardProc, module, 0);
-        if (_keyboardHook == 0) _log($"Tastatur-Hook fehlgeschlagen (Fehler {Marshal.GetLastPInvokeError()})");
-        _mouseHook = SetWindowsHookExW(WH_MOUSE_LL, &MouseProc, module, 0);
-        if (_mouseHook == 0) _log($"Maus-Hook fehlgeschlagen (Fehler {Marshal.GetLastPInvokeError()})");
-    }
-
-    private void Uninstall()
-    {
         if (_keyboardHook != 0) UnhookWindowsHookEx(_keyboardHook);
         if (_mouseHook != 0) UnhookWindowsHookEx(_mouseHook);
         _keyboardHook = _mouseHook = 0;
+    }
+
+    private void Sync()
+    {
+        var module = GetModuleHandleW(null);
+        if (_wantKeyboard && _keyboardHook == 0)
+        {
+            _keyboardHook = SetWindowsHookExW(WH_KEYBOARD_LL, &KeyboardProc, module, 0);
+            if (_keyboardHook == 0) _log($"Tastatur-Hook fehlgeschlagen (Fehler {Marshal.GetLastPInvokeError()})");
+        }
+        else if (!_wantKeyboard && _keyboardHook != 0)
+        {
+            UnhookWindowsHookEx(_keyboardHook);
+            _keyboardHook = 0;
+            _router.ResetHeldKeys();
+        }
+
+        if (_wantMouse && _mouseHook == 0)
+        {
+            _mouseHook = SetWindowsHookExW(WH_MOUSE_LL, &MouseProc, module, 0);
+            if (_mouseHook == 0) _log($"Maus-Hook fehlgeschlagen (Fehler {Marshal.GetLastPInvokeError()})");
+        }
+        else if (!_wantMouse && _mouseHook != 0)
+        {
+            UnhookWindowsHookEx(_mouseHook);
+            _mouseHook = 0;
+        }
     }
 
     [UnmanagedCallersOnly]
@@ -145,7 +166,8 @@ public sealed unsafe class InputHooks : IDisposable
         switch (msg)
         {
             case WM_MOUSEMOVE:
-                if (!GetCursorPos(out var cursor)) return false;
+                // Hot path (up to 8000 events/s on gaming mice): no system call unless the menu is open.
+                if (!_router.WantsMouseMoves || !GetCursorPos(out var cursor)) return false;
                 return _router.OnMouseMove(data->pt.X - cursor.X, data->pt.Y - cursor.Y);
             case WM_LBUTTONDOWN: return _router.OnMouseButton(MouseButton.Left, true);
             case WM_LBUTTONUP: return _router.OnMouseButton(MouseButton.Left, false);

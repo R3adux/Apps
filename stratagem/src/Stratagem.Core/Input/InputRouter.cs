@@ -33,12 +33,41 @@ public sealed class InputRouter
         _physical = physical;
         _active = active;
         _fire = fire;
+        radial.MouseCaptureChanged += _ => MouseNeedChanged?.Invoke();
     }
 
     public void SetHotkeys(IReadOnlyDictionary<InputRef, HotkeyAction> hotkeys)
     {
         lock (_gate) _hotkeys = new Dictionary<InputRef, HotkeyAction>(hotkeys);
+        UpdateMouseNeeds();
     }
+
+    /// <summary>
+    /// Mouse events are needed at all times only if a mouse button is a trigger or hotkey; otherwise only while
+    /// the radial menu is open. Call after changing the radial options.
+    /// </summary>
+    public void UpdateMouseNeeds()
+    {
+        bool permanent;
+        lock (_gate) permanent = _radial.Options.Trigger.Mouse is not null || _hotkeys.Keys.Any(k => k.Mouse is not null);
+        if (permanent == _mousePermanent) return;
+        _mousePermanent = permanent;
+        MouseNeedChanged?.Invoke();
+    }
+
+    private volatile bool _mousePermanent;
+
+    /// <summary>Whether the mouse hook must be installed right now.</summary>
+    public bool NeedsMouse => _mousePermanent || _radial.CapturesMouse;
+
+    /// <summary>Whether mouse movement is wanted right now (cheap check for every mouse move).</summary>
+    public bool WantsMouseMoves => _radial.CapturesMouse;
+
+    /// <summary><see cref="NeedsMouse"/> may have changed. Raised on the hook thread too: must not block.</summary>
+    public event Action? MouseNeedChanged;
+
+    /// <summary>The keyboard hook was off: what the player holds is unknown now.</summary>
+    public void ResetHeldKeys() => _physical.Clear();
 
     /// <summary>Player key event (never one of our own injected events). True = swallow.</summary>
     public bool OnKey(Key key, bool down)
@@ -56,7 +85,7 @@ public sealed class InputRouter
     public bool OnMouseButton(MouseButton button, bool down) =>
         _radial.OnMouseButton(button, down) || OnHotkey(InputRef.Of(button), down);
 
-    public bool OnMouseMove(int dx, int dy) => _radial.OnMouseMove(dx, dy);
+    public bool OnMouseMove(int dx, int dy) => _radial.CapturesMouse && _radial.OnMouseMove(dx, dy);
 
     private bool OnHotkey(InputRef input, bool down)
     {

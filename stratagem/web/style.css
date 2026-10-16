@@ -89,6 +89,9 @@ a { color: var(--accent); }
 .pill.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
 .pill.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
 
+.saved { color: var(--ok); font-size: 0.85rem; transition: opacity 0.6s; }
+.saved.fade { opacity: 0; }
+
 .menu {
   position: absolute; right: 0; top: 44px; z-index: 10; min-width: 220px;
   background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 6px;
@@ -153,7 +156,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .icon { width: 32px; height: 32px; flex: none; }
 .item-text { display: grid; min-width: 0; flex: 1; }
 .item-text strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.code { color: var(--accent); letter-spacing: 0.1em; font-size: 0.95rem; }
+.code { color: var(--accent); letter-spacing: 0.1em; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item-actions { display: flex; }
 .add { display: grid; gap: 8px; }
 .code-input { display: flex; gap: 4px; align-items: center; min-width: 0; }

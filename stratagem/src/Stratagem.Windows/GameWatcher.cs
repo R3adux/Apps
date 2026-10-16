@@ -20,15 +20,20 @@ public sealed unsafe class GameWatcher : IGameWatcher, IDisposable
     private readonly nint _hook;
     private readonly System.Windows.Forms.Timer _timer;
     private int _tick;
+    // The last foreground window and its verdict: the process list is only consulted when the window changes.
+    private nint _checkedWindow;
+    private bool _checkedIsGame;
+    private (string Title, string Process) _checkedTarget;
 
     public GameWatcher(Func<(string Title, string Process)> target)
     {
         _target = target;
         s_current = this;
         _hook = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, 0, &OnForeground, 0, 0, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
-        // Titles can change without a foreground switch, and the process list has no event: poll as well.
-        _timer = new System.Windows.Forms.Timer { Interval = 1000 };
-        _timer.Tick += (_, _) => Update(checkProcess: _tick++ % 3 == 0);
+        // Safety net for missed events and for "game started/closed" (the process list has no event).
+        // Cheap: same foreground window = no work; the process list only every 6 s while the game is not in front.
+        _timer = new System.Windows.Forms.Timer { Interval = 2000 };
+        _timer.Tick += (_, _) => Update(checkProcess: !IsFocused && _tick++ % 3 == 0);
         _timer.Start();
         Update(checkProcess: true);
     }
@@ -52,7 +57,13 @@ public sealed unsafe class GameWatcher : IGameWatcher, IDisposable
     {
         var (title, process) = _target();
         var hwnd = GetForegroundWindow();
-        var focused = hwnd != 0 && (OwnerIs(hwnd, process) || Matches(WindowTitle(hwnd), title));
+        if (hwnd != _checkedWindow || (title, process) != _checkedTarget)
+        {
+            _checkedWindow = hwnd;
+            _checkedTarget = (title, process);
+            _checkedIsGame = hwnd != 0 && (OwnerIs(hwnd, process) || Matches(WindowTitle(hwnd), title));
+        }
+        var focused = _checkedIsGame;
         var running = focused || (checkProcess ? ProcessRunning(process) : IsRunning);
         if (focused == IsFocused && running == IsRunning && (!focused || hwnd == Window)) return;
         IsFocused = focused;

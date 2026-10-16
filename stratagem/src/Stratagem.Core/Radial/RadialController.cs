@@ -27,7 +27,8 @@ public interface IRadialView
 {
     void Show(IReadOnlyList<StratagemItem> items, RadialMode mode);
     void Highlight(int? index);
-    void Hide();
+    /// <param name="selected">True when closed by a selection (the view may confirm it briefly), false on cancel.</param>
+    void Hide(bool selected);
 }
 
 public enum RadialState { Idle, Held, TapPressed, Open, Dragging, Chord }
@@ -44,6 +45,8 @@ public enum RadialState { Idle, Held, TapPressed, Open, Dragging, Chord }
 /// </summary>
 public sealed class RadialController
 {
+    /// <summary>Movement past a segment border before the highlight switches (no flicker at the border).</summary>
+    public const double BorderHysteresisDegrees = 7;
     private readonly IRadialView _view;
     private readonly Func<IReadOnlyList<StratagemItem>> _items;
     private readonly Action<int, StratagemItem> _activate;
@@ -77,6 +80,17 @@ public sealed class RadialController
     }
 
     public RadialState State { get { lock (_gate) return _state; } }
+
+    /// <summary>
+    /// True while the menu needs mouse movement and buttons (open). The Windows side installs the mouse hook
+    /// only then: during normal play no mouse event passes through this tool.
+    /// </summary>
+    public bool CapturesMouse => Volatile.Read(ref _capturesMouse);
+
+    /// <summary>Raised when <see cref="CapturesMouse"/> changes, from the hook thread inside the lock: must not block.</summary>
+    public event Action<bool>? MouseCaptureChanged;
+
+    private bool _capturesMouse;
     public int? Highlighted { get { lock (_gate) return _highlight; } }
 
     public RadialOptions Options
@@ -89,7 +103,16 @@ public sealed class RadialController
     public bool Enabled
     {
         get { lock (_gate) return _enabled; }
-        set { lock (_gate) { if (!value) CancelLocked(); _enabled = value; } }
+        set
+        {
+            lock (_gate)
+            {
+                if (!value) CancelLocked();
+                // Re-enabled: the hooks were off meanwhile, so remembered downs are stale (their ups were never seen).
+                else if (!_enabled) _swallowedDowns.Clear();
+                _enabled = value;
+            }
+        }
     }
 
     public bool OnKey(Key key, bool down) => OnInput(InputRef.Of(key), down);
@@ -105,7 +128,7 @@ public sealed class RadialController
             {
                 case RadialState.Held or RadialState.Dragging:
                     (_x, _y) = RadialLayout.Clamp(_x + dx, _y + dy, _options.ClampCounts);
-                    var hit = RadialLayout.Hit(_x, _y, _shown.Count, _options.DeadzoneCounts);
+                    var hit = RadialLayout.Hit(_x, _y, _shown.Count, _options.DeadzoneCounts, _highlight, BorderHysteresisDegrees);
                     if (hit != _highlight)
                     {
                         _highlight = hit;
@@ -161,7 +184,7 @@ public sealed class RadialController
         if (!isTrigger || !down) return false;
         Swallow(input);
         if (_options.Mode == RadialMode.HoldRelease) OpenView(RadialState.Held);
-        else _state = RadialState.TapPressed;
+        else SetState(RadialState.TapPressed);
         return true;
     }
 
@@ -219,7 +242,7 @@ public sealed class RadialController
                 if (down && _state == RadialState.Open)
                 {
                     Swallow(input);
-                    _state = RadialState.Dragging;
+                    SetState(RadialState.Dragging);
                     _x = _y = 0;
                     return true;
                 }
@@ -246,14 +269,14 @@ public sealed class RadialController
 
     private bool OnChord(bool down, bool isTrigger)
     {
-        if (isTrigger && !down) _state = RadialState.Idle;
+        if (isTrigger && !down) SetState(RadialState.Idle);
         return false; // the game owns the trigger now; its up must arrive there
     }
 
     private bool StartChord(InputRef other)
     {
         CloseView();
-        _state = RadialState.Chord;
+        SetState(RadialState.Chord);
         _swallowedDowns.Remove(_options.Trigger);
         // The current key arrives before anything we inject, so it is swallowed and re-sent after the trigger.
         _inject(_options.Trigger, true);
@@ -273,7 +296,7 @@ public sealed class RadialController
         _x = _y = 0;
         _highlight = null;
         _openedAt = _clockMs();
-        _state = state;
+        SetState(state);
         _view.Show(_shown, _options.Mode);
     }
 
@@ -281,16 +304,29 @@ public sealed class RadialController
     {
         var index = _highlight;
         var items = _shown;
-        CloseView();
-        if (index is { } i && i < items.Count && items[i].Available) _activate(i, items[i]);
+        var valid = index is { } i && i < items.Count && items[i].Available;
+        CloseView(selected: valid);
+        if (valid) _activate(index!.Value, items[index.Value]);
     }
 
-    private void CloseView()
+    private void CloseView(bool selected = false)
     {
         var wasOpen = _state is RadialState.Held or RadialState.Open or RadialState.Dragging;
-        _state = RadialState.Idle;
+        SetState(RadialState.Idle);
         _highlight = null;
-        if (wasOpen) _view.Hide();
+        if (wasOpen) _view.Hide(selected);
+    }
+
+    private void SetState(RadialState state)
+    {
+        _state = state;
+        var capture = state is RadialState.Held or RadialState.Open or RadialState.Dragging;
+        if (capture == _capturesMouse) return;
+        // The mouse hook may go away now, so ups of swallowed buttons might never arrive. A stray up in the
+        // game is harmless; a fresh press swallowed as "repeat" would cost a shot.
+        if (!capture) _swallowedDowns.RemoveWhere(i => i.Mouse is not null && i != _options.Trigger);
+        Volatile.Write(ref _capturesMouse, capture);
+        MouseCaptureChanged?.Invoke(capture);
     }
 
     private void CancelLocked()

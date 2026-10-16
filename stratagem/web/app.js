@@ -22,10 +22,20 @@ function changed() {
   saveTimer = setTimeout(async () => {
     try {
       settings = await api.saveSettings(settings);
+      saved();
     } catch (e) {
       alert(`Speichern fehlgeschlagen: ${e.message}`);
     }
   }, 300);
+}
+
+let savedTimer = 0;
+function saved() {
+  const badge = $('#saved');
+  badge.hidden = false;
+  badge.classList.remove('fade');
+  clearTimeout(savedTimer);
+  savedTimer = setTimeout(() => badge.classList.add('fade'), 1200);
 }
 
 const get = (path) => path.split('.').reduce((o, k) => o?.[k], settings);
@@ -79,13 +89,30 @@ document.addEventListener('click', async (e) => {
 
 // --- list ---------------------------------------------------------------------------------------
 
+// Our own list is shown from the local settings right away (no waiting for the save round trip);
+// a list read from the game comes from the live state.
+function currentItems() {
+  return settings.list.source === 'Manual' || !state ? manualItems() : state.list.items;
+}
+
+function manualItems() {
+  return settings.list.manual.map((e, index) => ({
+    index,
+    name: e.name || catalog.find((c) => c.code === e.code)?.name || null,
+    code: e.code,
+    arrows: arrows(e.code),
+    available: true,
+    hasIcon: false,
+  }));
+}
+
 function renderList() {
   const list = $('#items');
   const manual = settings.list.source === 'Manual';
-  const items = state?.list.items ?? [];
+  const items = currentItems();
   list.replaceChildren(...items.map((item, i) => {
     const actions = el('div', { className: 'item-actions' },
-      el('button', { type: 'button', className: 'icon-btn', title: 'In 3 Sekunden senden (zum Testen ins Spiel wechseln)', textContent: '▶', onclick: () => test(i, item) }));
+      el('button', { type: 'button', className: 'icon-btn test', title: 'In 3 Sekunden senden (zum Testen ins Spiel wechseln)', textContent: '▶', onclick: () => test(i, item) }));
     if (manual) {
       actions.append(
         el('button', { type: 'button', className: 'icon-btn', title: 'Nach oben', textContent: '▲', disabled: i === 0, onclick: () => move(i, -1) }),
@@ -105,16 +132,21 @@ function renderList() {
   $('#list-problem').textContent = problem ?? '';
 }
 
+// Sends after a countdown, so there is time to switch to the game (Alt+Tab).
 async function test(index, item) {
-  const li = $('#items').children[index];
-  li?.classList.add('pending');
-  setTimeout(async () => {
-    li?.classList.remove('pending');
-    try {
-      const r = await api.activate({ slot: index }, 'Test');
-      if (!r.ok) flash(`${item.name ?? item.arrows}: nicht gesendet – siehe Protokoll`);
-    } catch (e) { flash(e.message); }
-  }, 3000);
+  const button = $('#items').children[index]?.querySelector('.test');
+  if (!button || button.disabled) return;
+  button.disabled = true;
+  for (let n = 3; n > 0; n--) {
+    button.textContent = n;
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  button.textContent = '▶';
+  button.disabled = false;
+  try {
+    const r = await api.activate({ slot: index }, 'Test');
+    if (!r.ok) flash(`${item.name ?? item.arrows}: nicht gesendet – siehe Protokoll`);
+  } catch (e) { flash(e.message); }
 }
 
 function move(i, delta) {
@@ -169,7 +201,7 @@ $('#source').addEventListener('change', (e) => { settings.list.source = e.target
 
 function renderPreview() {
   const svg = $('#preview');
-  const items = state?.list.items ?? [];
+  const items = currentItems();
   const n = items.length;
   const ns = 'http://www.w3.org/2000/svg';
   const make = (tag, attrs, text) => {
@@ -212,7 +244,7 @@ const dragLabel = (b) => ({ Left: 'linker', Right: 'rechter', Middle: 'mittlerer
 // --- hotkeys ------------------------------------------------------------------------------------
 
 function renderHotkeys() {
-  const items = state?.list.items ?? [];
+  const items = currentItems();
   $('#hotkeys').replaceChildren(...settings.hotkeys.map((h, i) => {
     const select = el('select', { 'aria-label': 'Aktion' });
     const max = Math.max(items.length, 8);
@@ -340,14 +372,26 @@ function renderState() {
   hint.textContent = state.paused
     ? 'Pausiert: Radialmenü und Tasten sind aus.'
     : 'Achtung: Stratagems werden auch gesendet, wenn das Spiel nicht im Vordergrund ist.';
-  $('#events').replaceChildren(...state.events.map((e) =>
-    el('li', {}, el('time', { textContent: new Date(e.time).toLocaleTimeString('de-DE') }), ' ', e.text)));
-  if (settings) {
-    renderList();
-    renderPreview();
-    renderHotkeys();
-    renderBindings();
-  }
+  changedOnly('events', state.events, () => $('#events').replaceChildren(...state.events.map((e) =>
+    el('li', {}, el('time', { textContent: new Date(e.time).toLocaleTimeString('de-DE') }), ' ', e.text))));
+  if (!settings) return;
+  changedOnly('bindings', state.bindings, renderBindings);
+  if (settings.list.source !== 'Manual') {
+    changedOnly('list', state.list, () => {
+      renderList();
+      renderPreview();
+      // A dropdown the user is working with is not replaced under their hands.
+      if (!$('#hotkeys').contains(document.activeElement)) renderHotkeys();
+    });
+  } else changedOnly('problem', state.list.problem, renderList);
+}
+
+const lastRendered = new Map();
+function changedOnly(key, data, render) {
+  const json = JSON.stringify(data);
+  if (lastRendered.get(key) === json) return;
+  lastRendered.set(key, json);
+  render();
 }
 
 let flashTimer = 0;

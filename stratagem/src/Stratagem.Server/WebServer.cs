@@ -93,13 +93,13 @@ public sealed class WebServer : IAsyncDisposable
         app.Use(Guard);
 
         app.MapGet("/api/state", () => Results.Json(_service.GetState(), JsonOptions));
-        app.MapGet("/api/settings", () => Results.Json(_service.Settings, JsonOptions));
+        app.MapGet("/api/settings", () => Results.Json(_service.Current, JsonOptions));
         app.MapPut("/api/settings", async (HttpRequest req) =>
         {
             var settings = await JsonSerializer.DeserializeAsync<AppSettings>(req.Body, SettingsStore.Json);
             if (settings is null) return Results.BadRequest(new { error = "Keine Einstellungen" });
             _service.UpdateSettings(settings);
-            return Results.Json(_service.Settings, JsonOptions);
+            return Results.Json(_service.Current, JsonOptions);
         });
         app.MapPost("/api/activate", (ActivateRequest body) =>
         {

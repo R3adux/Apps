@@ -21,7 +21,8 @@ public sealed class FakeView : IRadialView
     public int ShowCount { get; private set; }
     public void Show(IReadOnlyList<StratagemItem> items, RadialMode mode) { Visible = true; Items = items; ShowCount++; }
     public void Highlight(int? index) => Highlighted = index;
-    public void Hide() { Visible = false; Highlighted = null; }
+    public bool? LastHideSelected { get; private set; }
+    public void Hide(bool selected) { Visible = false; Highlighted = null; LastHideSelected = selected; }
 }
 
 public static class Items

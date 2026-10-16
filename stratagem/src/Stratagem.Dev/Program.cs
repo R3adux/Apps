@@ -52,5 +52,5 @@ sealed class ConsoleView : IRadialView
 {
     public void Show(IReadOnlyList<StratagemItem> items, RadialMode mode) => Console.WriteLine($"[Radial auf: {items.Count} Einträge]");
     public void Highlight(int? index) => Console.WriteLine($"[Radial: {index?.ToString() ?? "Mitte"}]");
-    public void Hide() => Console.WriteLine("[Radial zu]");
+    public void Hide(bool selected) => Console.WriteLine(selected ? "[Radial zu: ausgewählt]" : "[Radial zu]");
 }

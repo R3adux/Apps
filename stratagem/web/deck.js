@@ -4,11 +4,16 @@ import { api, liveState } from './api.js';
 const tiles = document.querySelector('#tiles');
 const pill = document.querySelector('#game-pill');
 let state = null;
+let lastItems = '';
 
 function render() {
   const g = state.game;
   pill.textContent = state.paused ? 'Pausiert' : g.focused ? 'Spiel aktiv' : g.running ? 'Spiel im Hintergrund' : 'Spiel aus';
   pill.className = `pill ${state.active ? 'ok' : 'warn'}`;
+  // Tiles only change with the list (a tap's feedback must not be wiped by an unrelated update).
+  const key = JSON.stringify(state.list.items);
+  if (key === lastItems) return;
+  lastItems = key;
   tiles.replaceChildren(...state.list.items.map((item, i) => {
     const b = document.createElement('button');
     b.type = 'button';

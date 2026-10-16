@@ -107,14 +107,17 @@ public class RadialControllerTests
     }
 
     [Fact]
-    public void Right_click_cancels_and_its_release_is_swallowed()
+    public void Right_click_cancels_and_never_eats_a_later_click()
     {
         var c = Create();
         c.OnKey(Ctrl, true);
         c.OnMouseMove(0, 100);
         Assert.True(c.OnMouseButton(MouseButton.Right, true));
         Assert.False(_view.Visible);
-        Assert.True(c.OnMouseButton(MouseButton.Right, false));
+        // The mouse hook goes away with the menu, so the release may never be seen: it is not waited for.
+        // A stray release in the game is harmless; the next real click must reach the game.
+        Assert.False(c.OnMouseButton(MouseButton.Right, false));
+        Assert.False(c.OnMouseButton(MouseButton.Right, true));
         Assert.True(c.OnKey(Ctrl, false));
         Assert.Empty(_activated);
     }
@@ -288,5 +291,89 @@ public class RadialControllerRepeatTests
         Assert.False(view.Visible);
         Assert.Equal(1, view.ShowCount);
         Assert.True(c.OnKey(KeyNames.ControlLeft, false));
+    }
+}
+
+public class RadialSmoothnessTests
+{
+    [Fact]
+    public void Highlight_is_sticky_at_segment_borders()
+    {
+        // 4 segments: border between top (0) and right (1) at -45°.
+        var justPastBorder = (X: Math.Cos(-44 * Math.PI / 180) * 100, Y: Math.Sin(-44 * Math.PI / 180) * 100);
+        Assert.Equal(1, RadialLayout.Hit(justPastBorder.X, justPastBorder.Y, 4, 10));
+        Assert.Equal(0, RadialLayout.Hit(justPastBorder.X, justPastBorder.Y, 4, 10, current: 0, hysteresisDegrees: 7));
+        var farPast = (X: Math.Cos(-30 * Math.PI / 180) * 100, Y: Math.Sin(-30 * Math.PI / 180) * 100);
+        Assert.Equal(1, RadialLayout.Hit(farPast.X, farPast.Y, 4, 10, current: 0, hysteresisDegrees: 7));
+    }
+
+    [Fact]
+    public void Highlight_is_sticky_at_the_dead_zone_edge()
+    {
+        Assert.Null(RadialLayout.Hit(0, -35, 4, 40));
+        Assert.Equal(0, RadialLayout.Hit(0, -35, 4, 40, current: 0, hysteresisDegrees: 7));
+        Assert.Null(RadialLayout.Hit(0, -25, 4, 40, current: 0, hysteresisDegrees: 7));
+    }
+
+    [Fact]
+    public void Hysteresis_wraps_around_at_the_top()
+    {
+        // 8 segments, current = 7 (up-left); a direction slightly right of its border with 0 stays 7.
+        var a = -90 - 22.5 + 3; // 3° into segment 0
+        Assert.Equal(7, RadialLayout.Hit(Math.Cos(a * Math.PI / 180) * 100, Math.Sin(a * Math.PI / 180) * 100, 8, 10, 7, 7));
+    }
+
+    [Fact]
+    public void Mouse_capture_follows_the_open_menu()
+    {
+        var view = new FakeView();
+        var changes = new List<bool>();
+        var c = new RadialController(view, () => Items.Four, (_, _) => { }, (_, _) => { }) { Enabled = true };
+        c.MouseCaptureChanged += changes.Add;
+        Assert.False(c.CapturesMouse);
+        c.OnKey(KeyNames.ControlLeft, true);
+        Assert.True(c.CapturesMouse);
+        c.OnMouseMove(0, 100);
+        c.OnKey(KeyNames.ControlLeft, false);
+        Assert.False(c.CapturesMouse);
+        Assert.Equal([true, false], changes);
+        Assert.True(view.LastHideSelected);
+    }
+
+    [Fact]
+    public void Tap_mode_captures_only_once_open()
+    {
+        var changes = new List<bool>();
+        var c = new RadialController(new FakeView(), () => Items.Four, (_, _) => { }, (_, _) => { })
+        { Options = RadialOptions.Default with { Mode = RadialMode.TapDrag }, Enabled = true };
+        c.MouseCaptureChanged += changes.Add;
+        c.OnKey(KeyNames.ControlLeft, true);
+        Assert.Empty(changes);
+        c.OnKey(KeyNames.ControlLeft, false);
+        Assert.Equal([true], changes);
+        c.Enabled = false;
+        Assert.Equal([true, false], changes);
+    }
+
+    [Fact]
+    public void Cancel_reports_not_selected()
+    {
+        var view = new FakeView();
+        var c = new RadialController(view, () => Items.Four, (_, _) => { }, (_, _) => { }) { Enabled = true };
+        c.OnKey(KeyNames.ControlLeft, true);
+        c.OnKey(KeyNames.ControlLeft, false);
+        Assert.False(view.LastHideSelected);
+    }
+
+    [Fact]
+    public void Re_enabling_forgets_downs_whose_ups_were_never_seen()
+    {
+        var view = new FakeView();
+        var c = new RadialController(view, () => Items.Four, (_, _) => { }, (_, _) => { }) { Enabled = true };
+        c.OnKey(KeyNames.ControlLeft, true);  // swallowed …
+        c.Enabled = false;                    // … focus lost, hooks off, the up is never seen
+        c.Enabled = true;
+        Assert.True(c.OnKey(KeyNames.ControlLeft, true));
+        Assert.True(view.Visible);            // opens again instead of counting as a key repeat
     }
 }

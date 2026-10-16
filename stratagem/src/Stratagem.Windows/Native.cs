@@ -126,6 +126,11 @@ internal static unsafe partial class Native
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool UpdateLayeredWindow(nint hwnd, nint hdcDst, ref POINT pptDst, ref SIZE psize, nint hdcSrc, ref POINT pprSrc, uint crKey, ref BLENDFUNCTION pblend, uint flags);
 
+    /// <summary>Same function, all pointers optional: with null source only the constant alpha changes (fading).</summary>
+    [LibraryImport("user32.dll", EntryPoint = "UpdateLayeredWindow")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool UpdateLayeredWindowAlpha(nint hwnd, nint hdcDst, nint pptDst, nint psize, nint hdcSrc, nint pprSrc, uint crKey, ref BLENDFUNCTION pblend, uint flags);
+
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool ShowWindow(nint hwnd, int cmd);

@@ -7,5 +7,7 @@
     <Version>0.1.0</Version>
     <Company>R3adux</Company>
     <Product>Stratagem</Product>
+    <!-- Release: symbols inside the dlls, so the published folder holds only Stratagem.exe. -->
+    <DebugType Condition="'$(Configuration)' == 'Release'">embedded</DebugType>
   </PropertyGroup>
 </Project>

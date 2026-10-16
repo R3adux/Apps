@@ -232,3 +232,48 @@ public class WebServerTests
         return JsonDocument.Parse(ms.ToArray()).RootElement.Clone();
     }
 }
+
+public class HookDemandTests
+{
+    [Fact]
+    public void Active_changes_are_announced()
+    {
+        using var f = new ServiceFixture();
+        var seen = new List<bool>();
+        f.Service.ActiveChanged += seen.Add;
+        f.Game.IsFocused = false;
+        f.Game.Raise();
+        f.Game.IsFocused = true;
+        f.Game.Raise();
+        f.Service.SetPaused(true);
+        Assert.Equal([false, true, false], seen);
+    }
+
+    [Fact]
+    public void Mouse_is_needed_only_while_open_unless_a_button_is_bound()
+    {
+        using var f = new ServiceFixture();
+        var router = f.Service.Router;
+        var changes = 0;
+        router.MouseNeedChanged += () => changes++;
+        Assert.False(router.NeedsMouse);
+        router.OnKey(KeyNames.ControlLeft, true);
+        Assert.True(router.NeedsMouse);
+        router.OnKey(KeyNames.ControlLeft, false);
+        Assert.False(router.NeedsMouse);
+        Assert.Equal(2, changes);
+
+        var s = f.Service.Settings;
+        s.Hotkeys.Add(new HotkeySetting { Input = "MouseX2", Slot = 1 });
+        f.Service.UpdateSettings(s);
+        Assert.True(router.NeedsMouse);
+
+        s.Hotkeys.Clear();
+        s.Radial.Trigger = "MouseX1";
+        f.Service.UpdateSettings(s);
+        Assert.True(router.NeedsMouse);
+    }
+
+    [Fact]
+    public void Warmup_runs_without_side_effects() => Warmup.Run();
+}
