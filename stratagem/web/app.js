@@ -2,8 +2,9 @@ import { api, liveState, keyLabel, arrows } from './api.js';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
-const el = (tag, props = {}, ...children) => {
+const el = (tag, { dataset, ...props } = {}, ...children) => {
   const node = Object.assign(document.createElement(tag), props);
+  if (dataset) Object.assign(node.dataset, dataset);
   node.append(...children.filter((c) => c !== null && c !== undefined));
   return node;
 };
@@ -110,17 +111,21 @@ function renderList() {
   const list = $('#items');
   const manual = settings.list.source === 'Manual';
   const items = currentItems();
-  list.replaceChildren(...items.map((item, i) => {
+  // Free places (list read from the game) are not listed; the numbers stay the places' numbers.
+  list.replaceChildren(...items.filter((item) => !item.empty).map((item) => {
+    const i = item.index;
     const actions = el('div', { className: 'item-actions' },
       el('button', { type: 'button', className: 'icon-btn test', title: 'In 3 Sekunden senden (zum Testen ins Spiel wechseln)', textContent: '▶', onclick: () => test(i, item) }));
-    if (manual) {
+    if (!manual) {
+      actions.append(el('button', { type: 'button', className: 'icon-btn', title: 'Umbenennen', textContent: '✎', onclick: () => rename(item) }));
+    } else {
       actions.append(
         el('button', { type: 'button', className: 'icon-btn', title: 'Nach oben', textContent: '▲', disabled: i === 0, onclick: () => move(i, -1) }),
         el('button', { type: 'button', className: 'icon-btn', title: 'Nach unten', textContent: '▼', disabled: i === items.length - 1, onclick: () => move(i, 1) }),
         el('button', { type: 'button', className: 'icon-btn danger', title: 'Entfernen', textContent: '✕', onclick: () => remove(i) }));
     }
-    return el('li', { className: item.available ? '' : 'unavailable' },
-      item.hasIcon ? el('img', { src: `/api/icon/${i}`, alt: '', className: 'icon' }) : el('span', { className: 'slot', textContent: i + 1 }),
+    return el('li', { className: item.available ? '' : 'unavailable', dataset: { index: i } },
+      item.hasIcon ? el('img', { src: `/api/icon/${i}?v=${item.code}`, alt: '', className: 'icon', title: `Platz ${i + 1}` }) : el('span', { className: 'slot', textContent: i + 1 }),
       el('div', { className: 'item-text' },
         el('strong', { textContent: item.name ?? 'Unbekannt' }),
         el('span', { className: 'code', textContent: item.arrows })),
@@ -136,7 +141,7 @@ function renderList() {
 
 // Sends after a countdown, so there is time to switch to the game (Alt+Tab).
 async function test(index, item) {
-  const button = $('#items').children[index]?.querySelector('.test');
+  const button = $(`#items li[data-index="${index}"] .test`);
   if (!button || button.disabled) return;
   button.disabled = true;
   for (let n = 3; n > 0; n--) {
@@ -149,6 +154,16 @@ async function test(index, item) {
     const r = await api.activate({ slot: index }, 'Test');
     if (!r.ok) flash(`${item.name ?? item.arrows}: nicht gesendet – siehe Protokoll`);
   } catch (e) { flash(e.message); }
+}
+
+// Own name for a stratagem read from the game (stored per code; empty = back to the built-in name).
+function rename(item) {
+  const name = prompt(`Name für ${item.arrows}:`, item.name ?? '');
+  if (name === null) return;
+  settings.list.names ??= {};
+  if (name.trim()) settings.list.names[item.code] = name.trim();
+  else delete settings.list.names[item.code];
+  changed();
 }
 
 function move(i, delta) {
@@ -222,6 +237,7 @@ function renderPreview() {
       const a = center - half;
       nodes.push(make('line', { x1: Math.cos(a) * r0, y1: Math.sin(a) * r0, x2: Math.cos(a) * R, y2: Math.sin(a) * R, class: 'pv-sep' }));
     }
+    if (item.empty) return; // free place
     const tr = (R + r0) / 2;
     const x = Math.cos(center) * tr;
     const y = Math.sin(center) * tr;
@@ -252,7 +268,8 @@ function renderHotkeys() {
     const max = Math.max(items.length, 8);
     for (let s = 1; s <= max; s++) {
       const item = items[s - 1];
-      select.append(el('option', { value: `slot:${s}`, textContent: `Platz ${s}${item ? ` – ${item.name ?? item.arrows}` : ''}` }));
+      const what = !item ? '' : item.empty ? ' – (frei)' : ` – ${item.name ?? item.arrows}`;
+      select.append(el('option', { value: `slot:${s}`, textContent: `Platz ${s}${what}` }));
     }
     for (const c of catalog) select.append(el('option', { value: `code:${c.code}`, textContent: `Immer: ${c.name}` }));
     select.value = h.code ? `code:${h.code}` : `slot:${h.slot ?? 1}`;

@@ -165,6 +165,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .arrow { font: inherit; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; }
 .arrow:hover { border-color: var(--accent); }
 
+#screen-settings { display: grid; gap: 12px; }
 .readtest summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; }
 .readtest[open] { display: grid; gap: 8px; }
 
@@ -206,6 +207,7 @@ body.deck { padding-left: 10px; padding-right: 10px; }
 .tile img { width: 48px; height: 48px; }
 .tile:active { transform: scale(0.97); }
 .tile.unavailable { opacity: 0.4; }
+.tile.empty { visibility: hidden; }
 .tile.pending { border-color: var(--accent); }
 .tile.sent { background: color-mix(in srgb, var(--ok) 25%, var(--surface)); }
 .tile.failed { background: color-mix(in srgb, var(--danger) 25%, var(--surface)); }

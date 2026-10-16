@@ -60,10 +60,14 @@ public sealed class AppSettings
     public IReadOnlyList<StratagemItem> ToManualItems(StratagemCatalog catalog) =>
         List.Manual
             .Select(e => StratagemCode.TryParse(e.Code, out var code)
-                ? new StratagemItem(code, string.IsNullOrWhiteSpace(e.Name) ? catalog.NameOf(code) : e.Name.Trim())
+                ? new StratagemItem(code, string.IsNullOrWhiteSpace(e.Name) ? NameOf(code, catalog) : e.Name.Trim())
                 : null)
             .OfType<StratagemItem>()
             .ToList();
+
+    /// <summary>Own name for the code, else the built-in one (German where known).</summary>
+    public string? NameOf(StratagemCode code, StratagemCatalog catalog) =>
+        List.Names.TryGetValue(code.Letters, out var own) && !string.IsNullOrWhiteSpace(own) ? own : catalog.NameOf(code);
 
     /// <summary>Repairs out-of-range values (hand-edited file, older version). Returns what was changed.</summary>
     public IReadOnlyList<string> Normalize()
@@ -74,6 +78,7 @@ public sealed class AppSettings
         Timing ??= new();
         List ??= new();
         List.Manual ??= [];
+        List.Names ??= [];
         Hotkeys ??= [];
         Web ??= new();
 
@@ -159,14 +164,17 @@ public sealed class ListSettings
     public ListSource Source { get; set; } = ListSource.Manual;
     /// <summary>Size of the game's HUD relative to 100 % (if the list is not found with a changed HUD size).</summary>
     public double ScreenScale { get; set; } = 1.0;
+    /// <summary>Own names per code ("URDDD" → "Bombe"), they win over the built-in names.</summary>
+    public Dictionary<string, string> Names { get; set; } = [];
+    /// <summary>Without a name the built-in one is shown (German where known).</summary>
     public List<ManualEntry> Manual { get; set; } =
     [
-        new() { Name = "Reinforce", Code = "UDRLU" },
-        new() { Name = "Resupply", Code = "DDUR" },
-        new() { Name = "Eagle 500kg Bomb", Code = "URDDD" },
-        new() { Name = "Orbital Precision Strike", Code = "RRU" },
-        new() { Name = "Eagle Airstrike", Code = "URDR" },
-        new() { Name = "SOS Beacon", Code = "UDRU" },
+        new() { Code = "UDRLU" },  // Reinforce / Verstärkung
+        new() { Code = "DDUR" },   // Resupply / Nachschub
+        new() { Code = "URDDD" },  // Eagle 500kg Bomb
+        new() { Code = "RRU" },    // Orbital Precision Strike
+        new() { Code = "URDR" },   // Eagle Airstrike
+        new() { Code = "UDRU" },   // SOS Beacon
     ];
 }
 

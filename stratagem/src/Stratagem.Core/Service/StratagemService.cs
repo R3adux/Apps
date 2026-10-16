@@ -57,7 +57,9 @@ public sealed class StratagemService : IDisposable
         if (platform.Capture is not null)
         {
             _screen = new ScreenStratagemSource(
-                new IconMemory(platform.DataDir is { } dir ? Path.Combine(dir, "icons.json") : null, _log), _catalog);
+                new IconMemory(platform.DataDir is { } dir ? Path.Combine(dir, "icons.json") : null, _log),
+                code => Current.NameOf(code, _catalog),
+                platform.DataDir is { } data ? Path.Combine(data, "lastlist.json") : null);
             _screen.Changed += OnListChanged;
         }
 
@@ -99,12 +101,16 @@ public sealed class StratagemService : IDisposable
 
     private volatile bool _active;
 
-    /// <summary>The list in the game's order (web UI, phone deck, "place n" hotkeys).</summary>
+    /// <summary>
+    /// The places in a stable order (web UI, phone deck, "place n" hotkeys). For the list read from the game these
+    /// are the radial menu's places, empty ones included: "place 3" stays the same stratagem during a mission,
+    /// although the game inserts "Eagle Rearm" mid-list after the first eagle.
+    /// </summary>
     public IReadOnlyList<StratagemItem> Items
     {
         get
         {
-            lock (_gate) return UseScreen ? _screen!.Current : _manual;
+            lock (_gate) return UseScreen ? _radialItems : _manual;
         }
     }
 
@@ -162,7 +168,7 @@ public sealed class StratagemService : IDisposable
     public bool Activate(int slot, string origin)
     {
         var items = Items;
-        if (slot < 0 || slot >= items.Count)
+        if (slot < 0 || slot >= items.Count || items[slot].IsEmpty)
         {
             Log($"{origin}: Platz {slot + 1} ist leer");
             return false;
@@ -318,7 +324,7 @@ public sealed class StratagemService : IDisposable
         lock (_gate)
         {
             var b = _bindings.Bindings;
-            var items = UseScreen ? _screen!.Current : _manual;
+            var items = UseScreen ? _radialItems : _manual;
             string? problem = UseScreen ? _screen!.Problem : null;
             if (_settings.List.Source == ListSource.Screen && _screen is null)
                 problem = "Bildschirm lesen geht hier nicht – die eigene Liste wird verwendet.";
@@ -332,7 +338,7 @@ public sealed class StratagemService : IDisposable
                 new BindingsInfo(b.Menu.Name, b.MenuMode.ToString(), b.Up.Name, b.Down.Name, b.Left.Name, b.Right.Name, _bindings.SourceFile, _bindings.Notes,
                     Conflicts(_settings, _bindings)),
                 new ListInfo(_settings.List.Source.ToString(), problem,
-                    items.Select((it, i) => new ItemInfo(i, it.Label, it.Name, it.Code.Letters, it.Code.Arrows, it.Available, it.Icon is not null)).ToList()),
+                    items.Select((it, i) => new ItemInfo(i, it.IsEmpty ? "" : it.Label, it.Name, it.Code.Letters, it.Code.Arrows, it.Available, it.Icon is not null, it.IsEmpty)).ToList()),
                 _events.ToList());
         }
     }
@@ -390,6 +396,7 @@ public sealed class StratagemService : IDisposable
             _manual = settings.ToManualItems(_catalog);
             _bindings = ResolveBindings(settings);
         }
+        _screen?.RefreshNames();
         UpdateRadialItems();
         var options = settings.ToRadialOptions();
         if (Radial.Options != options) Radial.Options = options; // setting it closes an open menu

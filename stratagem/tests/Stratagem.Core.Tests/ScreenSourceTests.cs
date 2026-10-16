@@ -77,7 +77,7 @@ public class ScreenStratagemSourceTests
         Assert.Equal(["UULUR", "DURRU"], source.Current.Select(i => i.Code.Letters));
         Assert.All(source.Current, i => Assert.True(i.Available));
         Assert.All(source.Current, i => Assert.NotNull(i.Icon));
-        Assert.Equal("Machine Gun Sentry", source.Current[1].Name);
+        Assert.Equal("MG-Geschütz", source.Current[1].Name);
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public class ScreenStratagemSourceTests
         source.Update(rows);
         var resupply = Assert.Single(source.Current, i => i.Code.Letters == "DDUR");
         Assert.False(resupply.Available);
-        Assert.Equal("Resupply", resupply.Name);
+        Assert.Equal("Nachschub", resupply.Name);
     }
 
     [Fact]
@@ -201,6 +201,74 @@ public class ScreenFlowTests
             service.Router.OnKey(KeyNames.ControlLeft, false); // released in the centre = cancel
             await MacroRunnerTests.WaitUntil(() => !service.Runner.IsRunning && output.Events.Count == 2);
             Assert.Equal(["+ControlLeft", "-ControlLeft"], output.Events);
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+}
+
+public class NamesAndPlacesTests
+{
+    [Fact]
+    public void Own_names_win_and_show_at_once()
+    {
+        var dir = Directory.CreateTempSubdirectory().FullName;
+        try
+        {
+            var store = new SettingsStore(Path.Combine(dir, "settings.json"));
+            var settings = store.Load();
+            settings.List.Source = ListSource.Screen;
+            using var service = new StratagemService(store, settings, new ServicePlatform(new FakeOutput(), new FakeView(),
+                new GameWatcherStub { IsRunning = true, IsFocused = true }, Capture: new FixtureCapture("menu-1080p-a.png")));
+            service.ReadPicture(Png.Decode(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "data", "menu-1080p-a.png"))), 1.0);
+            Assert.Contains(service.Items, i => i.Name == "MG-Geschütz");
+
+            var s = service.Settings;
+            s.List.Names["DURRU"] = "MG";
+            service.UpdateSettings(s);
+            Assert.Contains(service.Items, i => i.Name == "MG");
+            Assert.Contains(service.RadialItems, i => i.Name == "MG");
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void Places_are_stable_and_free_places_are_reported()
+    {
+        var dir = Directory.CreateTempSubdirectory().FullName;
+        try
+        {
+            var store = new SettingsStore(Path.Combine(dir, "settings.json"));
+            var settings = store.Load();
+            settings.List.Source = ListSource.Screen;
+            using var service = new StratagemService(store, settings, new ServicePlatform(new FakeOutput(), new FakeView(),
+                new GameWatcherStub { IsRunning = true, IsFocused = true }, Capture: new FixtureCapture("menu-1080p-a.png")));
+            service.ReadPicture(Png.Decode(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "data", "menu-1080p-a.png"))), 1.0);
+            var state = service.GetState().List.Items;
+            Assert.Equal(8, state.Count);
+            Assert.Equal(["UULUR", "DURRU"], state.Where(i => !i.Empty).Select(i => i.Code));
+            Assert.False(service.Activate(7, "Test")); // free place
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+}
+
+public class LastListTests
+{
+    [Fact]
+    public void Last_reading_is_shown_after_a_restart()
+    {
+        var dir = Directory.CreateTempSubdirectory().FullName;
+        try
+        {
+            var path = Path.Combine(dir, "lastlist.json");
+            var first = new ScreenStratagemSource(new IconMemory(), lastPath: path);
+            first.Update(MenuReader.Read(Png.Decode(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "data", "menu-1080p-a.png"))), 1.0));
+            Assert.True(File.Exists(path));
+
+            var again = new ScreenStratagemSource(new IconMemory(), lastPath: path);
+            Assert.Equal(["UULUR", "DURRU"], again.Current.Select(i => i.Code.Letters));
+            Assert.All(again.Current, i => Assert.NotNull(i.Icon));
+            Assert.Contains("letzten Lesen", again.Problem);
         }
         finally { Directory.Delete(dir, true); }
     }

@@ -28,7 +28,7 @@ selbst vom Bildschirm, sodass nie eine Liste gepflegt werden muss.
 | `web/` | Oberfläche (HTML/CSS/JS ohne Build-Schritt, wie bei Licht) | Browser |
 
 **Warum so geschnitten:** Alles, was schiefgehen kann, ist Logik – und die liegt im Kern, ohne Windows,
-mit Tests (129 Stück): Welche Taste wird geschluckt, wann wird ausgelöst, was passiert bei Abbruch,
+mit Tests (132 Stück): Welche Taste wird geschluckt, wann wird ausgelöst, was passiert bei Abbruch,
 Fokusverlust, Tastenkombinationen, gehaltenen Lauftasten. Der Windows-Teil übersetzt nur Ereignisse.
 
 **Erweiterungspunkte** (Schnittstellen im Kern):
@@ -180,8 +180,17 @@ Testfälle unter `tests/Stratagem.Core.Tests/data/`.
 auch während der Abklingzeit und in späteren Sitzungen. Zuordnung streng (ähnliche Icons wie die zwei Adler liegen
 nah beieinander) und eindeutig (ein Code nur einmal pro Lesung): lieber kurz unbekannt als falsch.
 
+**Letzte Lesung** (`lastlist.json`, nur bei Änderung geschrieben): Nach einem Neustart zeigen Radialmenü und
+Handy-Deck sofort die zuletzt gelesene Liste, bis das Spiel wieder gelesen wurde.
+
+**Namen:** Deutsch, wo aus den Bildern bekannt (Verstärkung, Nachschub, Adler – Auffüllen, Adler – 500-kg-Bombe,
+Orbital-Laser, Warp-Paket, MG-Geschütz, Granatwerfer), sonst Englisch aus dem Katalog. Jedes Stratagem lässt sich in
+der Weboberfläche umbenennen (✎, gespeichert pro Code, wirkt sofort).
+
 **Feste Plätze im Radialmenü:** Jedes Stratagem behält seine Richtung (Standard 8 Plätze; neue nehmen einen freien
-Platz, verschwundene lassen ihren frei). Einstellbar, 0 = so viele wie Stratagems.
+Platz, verschwundene lassen ihren frei). Einstellbar, 0 = so viele wie Stratagems. Dieselben Plätze gelten für die
+Liste in der Weboberfläche, das Handy-Deck (leere Plätze bleiben als Lücke) und „Platz n“-Tasten – „Platz 3“ bleibt
+während der Mission dasselbe Stratagem.
 
 **Ablauf im Spiel:** Radialmenü öffnen → Stratagem öffnet die Spielliste (Halten: Taste bleibt gedrückt; Drücken:
 einmal tippen), wartet bis sie gezeichnet ist (150 ms), liest sie, aktualisiert den offenen Kreis. Auswahl → nur
@@ -190,8 +199,7 @@ Aufnahme per GDI nur vom Listenbereich (ein paar Millisekunden), schwarze Aufnah
 
 **Ohne Spiel testen:** Weboberfläche → „Erkennung mit einem Bildschirmfoto testen“ (PNG hochladen).
 
-**Offen / Risiken:** Namen kommen aus dem englischen Katalog (das Spiel ist deutsch – Texterkennung wäre möglich,
-kostet aber Größe), andere HUD-Größen (Einstellung „HUD-Größe“), HDR, Farbfilter, Ultrawide (Liste vermutlich
+**Offen / Risiken:** Namen für noch unbekannte Stratagems (Texterkennung wäre möglich, kostet aber Größe), andere HUD-Größen (Einstellung „HUD-Größe“), HDR, Farbfilter, Ultrawide (Liste vermutlich
 weiterhin am linken Rand), Missions-Stratagems (noch kein Bild).
 
 ## 6. Fahrplan

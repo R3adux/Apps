@@ -8,7 +8,11 @@ namespace Stratagem.Core.Model;
 /// </summary>
 public sealed class StratagemCatalog
 {
-    public sealed record Entry(string Name, StratagemCode Code);
+    /// <param name="German">The name in the German game, where known (from screenshots); shown instead of Name.</param>
+    public sealed record Entry(string Name, StratagemCode Code, string? German = null)
+    {
+        public string Display => German ?? Name;
+    }
 
     private readonly List<Entry> _entries;
 
@@ -16,17 +20,19 @@ public sealed class StratagemCatalog
 
     public IReadOnlyList<Entry> Entries => _entries;
 
-    public string? NameOf(StratagemCode code) => _entries.FirstOrDefault(e => e.Code.Equals(code))?.Name;
+    /// <summary>Display name (German where known, else English).</summary>
+    public string? NameOf(StratagemCode code) => _entries.FirstOrDefault(e => e.Code.Equals(code))?.Display;
 
     public Entry? Find(string name) =>
-        _entries.FirstOrDefault(e => string.Equals(e.Name, name, StringComparison.OrdinalIgnoreCase));
+        _entries.FirstOrDefault(e => string.Equals(e.Name, name, StringComparison.OrdinalIgnoreCase)
+                                     || string.Equals(e.German, name, StringComparison.OrdinalIgnoreCase));
 
-    private sealed record JsonEntry(string Name, string Code);
+    private sealed record JsonEntry(string Name, string Code, string? De);
 
     public static StratagemCatalog FromJson(string json)
     {
         var raw = JsonSerializer.Deserialize<List<JsonEntry>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
-        return new StratagemCatalog(raw.Select(e => new Entry(e.Name, StratagemCode.Parse(e.Code))));
+        return new StratagemCatalog(raw.Select(e => new Entry(e.Name, StratagemCode.Parse(e.Code), e.De)));
     }
 
     private static readonly Lazy<StratagemCatalog> BuiltIn = new(() =>

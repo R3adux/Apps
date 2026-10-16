@@ -214,7 +214,7 @@ public class SettingsTests
         s.List.Manual.Add(new ManualEntry { Code = "invalid!" });
         var items = s.ToManualItems(Model.StratagemCatalog.Default);
         Assert.Equal(7, items.Count);
-        Assert.Equal("Reinforce", items[0].Name);
+        Assert.Equal("Verstärkung", items[0].Name);
 
         s.Game.Up = "ArrowUp";
         Assert.Equal(KeyNames.ArrowUp, s.ToManualBindings().Up);

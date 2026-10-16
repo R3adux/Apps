@@ -1,7 +1,8 @@
 [
  {
   "name": "Resupply",
-  "code": "DDUR"
+  "code": "DDUR",
+  "de": "Nachschub"
  },
  {
   "name": "Orbital Illumination Flare",
@@ -13,7 +14,8 @@
  },
  {
   "name": "Reinforce",
-  "code": "UDRLU"
+  "code": "UDRLU",
+  "de": "Verstärkung"
  },
  {
   "name": "SOS Beacon",
@@ -89,7 +91,8 @@
  },
  {
   "name": "Eagle 500kg Bomb",
-  "code": "URDDD"
+  "code": "URDDD",
+  "de": "Adler – 500-kg-Bombe"
  },
  {
   "name": "Orbital Gatling Barrage",
@@ -113,7 +116,8 @@
  },
  {
   "name": "Orbital Lasers",
-  "code": "RDURD"
+  "code": "RDURD",
+  "de": "Orbital-Laser"
  },
  {
   "name": "Orbital Railcannon Strike",
@@ -153,7 +157,8 @@
  },
  {
   "name": "Machine Gun Sentry",
-  "code": "DURRU"
+  "code": "DURRU",
+  "de": "MG-Geschütz"
  },
  {
   "name": "Gatling Sentry",
@@ -189,7 +194,8 @@
  },
  {
   "name": "Grenade Launcher",
-  "code": "DLULD"
+  "code": "DLULD",
+  "de": "Granatwerfer"
  },
  {
   "name": "Quasar Cannon",
@@ -233,10 +239,12 @@
  },
  {
   "name": "Eagle Rearm",
-  "code": "UULUR"
+  "code": "UULUR",
+  "de": "Adler – Auffüllen"
  },
  {
   "name": "Warp Pack",
-  "code": "DLRDLR"
+  "code": "DLRDLR",
+  "de": "Warp-Paket"
  }
 ]

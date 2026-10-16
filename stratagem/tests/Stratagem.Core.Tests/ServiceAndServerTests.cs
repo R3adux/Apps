@@ -52,7 +52,7 @@ public class ServiceTests
         await MacroRunnerTests.WaitUntil(() => !f.Service.Runner.IsRunning && f.Output.Events.Count > 0);
         Assert.Equal("+ControlLeft", f.Output.Events[0]);
         Assert.Equal("-ControlLeft", f.Output.Events[^1]);
-        Assert.Contains(f.Service.GetState().Events, e => e.Text.Contains("Reinforce"));
+        Assert.Contains(f.Service.GetState().Events, e => e.Text.Contains("Verstärkung"));
     }
 
     [Fact]

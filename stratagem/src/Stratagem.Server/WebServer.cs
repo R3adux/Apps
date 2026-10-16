@@ -153,7 +153,7 @@ public sealed class WebServer : IAsyncDisposable
             }, JsonOptions);
         });
         app.MapGet("/api/catalog", () => Results.Json(
-            _service.Catalog.Entries.Select(e => new { e.Name, Code = e.Code.Letters, e.Code.Arrows }), JsonOptions));
+            _service.Catalog.Entries.Select(e => new { Name = e.Display, English = e.Name, Code = e.Code.Letters, e.Code.Arrows }), JsonOptions));
         app.MapGet("/api/keys", () => Results.Json(KeyNames.All, JsonOptions));
         app.MapGet("/api/icon/{index:int}", (int index) =>
             _service.IconOf(index) is { } png ? Results.File(png, "image/png") : Results.NotFound());

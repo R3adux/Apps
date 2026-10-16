@@ -22,6 +22,7 @@ public sealed record ConflictInfo(string Input, string By, string Section, strin
 
 public sealed record ListInfo(string Source, string? Problem, IReadOnlyList<ItemInfo> Items);
 
-public sealed record ItemInfo(int Index, string Label, string? Name, string Code, string Arrows, bool Available, bool HasIcon);
+/// <param name="Empty">A free place (list read from the game): keeps the other places where they are.</param>
+public sealed record ItemInfo(int Index, string Label, string? Name, string Code, string Arrows, bool Available, bool HasIcon, bool Empty);
 
 public sealed record EventInfo(DateTimeOffset Time, string Text);

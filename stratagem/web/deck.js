@@ -17,11 +17,11 @@ function render() {
   tiles.replaceChildren(...state.list.items.map((item, i) => {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = `tile${item.available ? '' : ' unavailable'}`;
+    b.className = `tile${item.available ? '' : ' unavailable'}${item.empty ? ' empty' : ''}`; // free places keep the grid stable
     b.disabled = !item.available;
     if (item.hasIcon) {
       const img = document.createElement('img');
-      img.src = `/api/icon/${i}`;
+      img.src = `/api/icon/${i}?v=${item.code}`;
       img.alt = '';
       b.append(img);
     }

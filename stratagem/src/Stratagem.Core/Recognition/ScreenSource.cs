@@ -106,16 +106,58 @@ public sealed class IconMemory
 public sealed class ScreenStratagemSource : IStratagemSource
 {
     private readonly IconMemory _memory;
-    private readonly StratagemCatalog _catalog;
+    private readonly Func<StratagemCode, string?> _nameOf;
+    private readonly string? _lastPath;
     private readonly object _gate = new();
     private IReadOnlyList<StratagemItem> _current = [];
     private string? _problem = "Noch nicht gelesen – das Radialmenü einmal im Spiel öffnen.";
     private string _signature = "";
 
-    public ScreenStratagemSource(IconMemory memory, StratagemCatalog? catalog = null)
+    /// <param name="nameOf">Display name for a code (own names, catalog); default: the built-in catalog.</param>
+    /// <param name="lastPath">Where the last reading is kept (lastlist.json): after a restart the deck and the radial
+    /// menu show it until the game's list is read again.</param>
+    public ScreenStratagemSource(IconMemory memory, Func<StratagemCode, string?>? nameOf = null, string? lastPath = null)
     {
         _memory = memory;
-        _catalog = catalog ?? StratagemCatalog.Default;
+        _nameOf = nameOf ?? StratagemCatalog.Default.NameOf;
+        _lastPath = lastPath;
+        LoadLast();
+    }
+
+    private sealed record StoredItem(string Code, bool Available, string? Icon);
+
+    private void LoadLast()
+    {
+        if (_lastPath is null || !File.Exists(_lastPath)) return;
+        try
+        {
+            var stored = JsonSerializer.Deserialize<List<StoredItem>>(File.ReadAllText(_lastPath)) ?? [];
+            var items = stored
+                .Where(i => StratagemCode.TryParse(i.Code, out _))
+                .Select(i =>
+                {
+                    var code = StratagemCode.Parse(i.Code);
+                    return new StratagemItem(code, _nameOf(code), i.Available, i.Icon is null ? null : Convert.FromBase64String(i.Icon));
+                })
+                .ToList();
+            if (items.Count == 0) return;
+            _current = items;
+            _problem = "Stand vom letzten Lesen – wird beim nächsten Öffnen des Radialmenüs im Spiel aktualisiert.";
+        }
+        catch (Exception) { /* a broken file is simply ignored and overwritten */ }
+    }
+
+    private void SaveLast(IReadOnlyList<StratagemItem> items)
+    {
+        if (_lastPath is null) return;
+        try
+        {
+            var stored = items.Select(i => new StoredItem(i.Code.Letters, i.Available, i.Icon is null ? null : Convert.ToBase64String(i.Icon)));
+            Directory.CreateDirectory(Path.GetDirectoryName(_lastPath)!);
+            File.WriteAllText(_lastPath + ".tmp", JsonSerializer.Serialize(stored));
+            File.Move(_lastPath + ".tmp", _lastPath, overwrite: true);
+        }
+        catch (Exception) { /* only a convenience */ }
     }
 
     public string Name => "Bildschirm";
@@ -142,7 +184,7 @@ public sealed class ScreenStratagemSource : IStratagemSource
             var code = row.Code ?? _memory.Find(row.IconHash, exclude: used);
             if (code is null) continue;
             used.Add(code);
-            items.Add(new StratagemItem(code, _catalog.NameOf(code), row.State == RowState.Callable, row.Icon));
+            items.Add(new StratagemItem(code, _nameOf(code), row.State == RowState.Callable, row.Icon));
         }
         // Icons change pixel by pixel all the time (cooldown fill): compare what matters.
         var signature = string.Join(",", items.Select(i => $"{i.Code.Letters}:{i.Available}"));
@@ -154,8 +196,23 @@ public sealed class ScreenStratagemSource : IStratagemSource
             _current = items; // always: the icons are fresher
             _problem = null;
         }
-        if (changed) Changed?.Invoke();
+        if (changed)
+        {
+            SaveLast(items); // only when the list changed, not on every reading
+            Changed?.Invoke();
+        }
         return changed;
+    }
+
+    /// <summary>Names changed (own names): show them now, not only after the next reading.</summary>
+    public void RefreshNames()
+    {
+        lock (_gate)
+        {
+            if (_current.Count == 0) return;
+            _current = _current.Select(i => i with { Name = _nameOf(i.Code) }).ToList();
+        }
+        Changed?.Invoke();
     }
 
     private void SetProblem(string problem)

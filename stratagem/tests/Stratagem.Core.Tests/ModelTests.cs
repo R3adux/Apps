@@ -39,8 +39,11 @@ public class StratagemCodeTests
     {
         var catalog = StratagemCatalog.Default;
         Assert.True(catalog.Entries.Count > 40);
-        Assert.Equal("Reinforce", catalog.NameOf(StratagemCode.Parse("UDRLU")));
-        Assert.Equal("Eagle 500kg Bomb", catalog.NameOf(StratagemCode.Parse("URDDD")));
+        Assert.Equal("Verstärkung", catalog.NameOf(StratagemCode.Parse("UDRLU")));   // German where known
+        Assert.Equal("Adler – 500-kg-Bombe", catalog.NameOf(StratagemCode.Parse("URDDD")));
+        Assert.Equal("Eagle Airstrike", catalog.NameOf(StratagemCode.Parse("URDR")));    // else English
+        Assert.Equal("URDDD", catalog.Find("Eagle 500kg Bomb")?.Code.Letters);
+        Assert.Equal("URDDD", catalog.Find("adler – 500-kg-bombe")?.Code.Letters);
         Assert.Null(catalog.NameOf(StratagemCode.Parse("UUUUUUUUU")));
     }
 }
