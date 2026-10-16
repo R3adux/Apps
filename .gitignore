@@ -1,0 +1,7 @@
+# For the whole repo. Build outputs of an app go into its own apps/<name>/.gitignore.
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp

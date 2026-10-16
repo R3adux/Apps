@@ -1,15 +1,15 @@
-name: Licht für Android bauen
+name: Licht · Android (Licht.apk)
 
 on:
   push:
     branches: [main]
     paths:
-      - 'licht/core/**'
-      - 'licht/web/**'
-      - 'licht/android-app/**'
-      - 'licht/test/support/**'
+      - 'apps/licht/core/**'
+      - 'apps/licht/web/**'
+      - 'apps/licht/android-app/**'
+      - 'apps/licht/test/support/**'
       - '.github/workflows/licht-android.yml'
-      - '.github/scripts/android-selftest.sh'
+      - '.github/scripts/licht-android-selftest.sh'
   workflow_dispatch:
 
 permissions:
@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: licht/android-app
+        working-directory: apps/licht/android-app
     steps:
       - uses: actions/checkout@v4
 
@@ -54,7 +54,7 @@ jobs:
           npm run probe
 
       - name: APK bauen
-        working-directory: licht/android-app/android
+        working-directory: apps/licht/android-app/android
         run: ./gradlew assembleRelease --no-daemon
 
       - name: APK umbenennen
@@ -63,7 +63,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: Licht-Android
-          path: licht/android-app/Licht.apk
+          path: apps/licht/android-app/Licht.apk
 
   emulator-test:
     needs: build
@@ -80,7 +80,7 @@ jobs:
           name: Licht-Android
 
       - name: Simulierte Matter-Lampe starten
-        working-directory: licht
+        working-directory: apps/licht
         run: |
           npm ci
           STORE="$RUNNER_TEMP/lamp" PORT=5540 nohup node test/support/virtual-light.mjs > "$RUNNER_TEMP/lamp.log" 2>&1 &
@@ -103,7 +103,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
-          script: bash .github/scripts/android-selftest.sh Licht.apk
+          script: bash .github/scripts/licht-android-selftest.sh Licht.apk
 
   release:
     # The emulator test cannot reach the simulated lamp via mDNS (emulator NAT), so it does not

@@ -1,11 +1,11 @@
-name: Licht.exe bauen
+name: Licht · Windows (Licht.exe)
 
 on:
   push:
     branches: [main]
-    paths: ['licht/**', '.github/workflows/licht-windows.yml']
+    paths: ['apps/licht/**', '.github/workflows/licht-windows.yml']
   pull_request:
-    paths: ['licht/**', '.github/workflows/licht-windows.yml']
+    paths: ['apps/licht/**', '.github/workflows/licht-windows.yml']
   workflow_dispatch:
 
 permissions:
@@ -21,7 +21,7 @@ jobs:
     runs-on: windows-latest
     defaults:
       run:
-        working-directory: licht
+        working-directory: apps/licht
     steps:
       - uses: actions/checkout@v4
 
@@ -84,7 +84,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: Licht-Windows
-          path: licht/dist/Licht.exe
+          path: apps/licht/dist/Licht.exe
 
       - name: Download-Seite (Release) aktualisieren
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
