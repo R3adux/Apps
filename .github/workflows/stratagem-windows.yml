@@ -95,7 +95,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # Replace the file in the existing release, so the download link never breaks.
-          notes="Stratagem.exe herunterladen und doppelklicken – die Einstellungen öffnen sich im Browser, Stratagem läuft dann im Hintergrund (Symbol unten rechts in der Taskleiste). Beim ersten Start: Windows-SmartScreen → „Weitere Informationen“ → „Trotzdem ausführen“. Experimentell, siehe stratagem/README.md. Gebaut aus ${GITHUB_SHA:0:7}."
+          notes="Stratagem.exe herunterladen und doppelklicken – die Einstellungen öffnen sich im Browser, Stratagem läuft dann im Hintergrund (Symbol unten rechts in der Taskleiste). Beim ersten Start: Windows-SmartScreen → „Weitere Informationen“ → „Trotzdem ausführen“. Experimentell, siehe apps/stratagem/README.md. Gebaut aus ${GITHUB_SHA:0:7}."
           if gh release view stratagem-latest >/dev/null 2>&1; then
             gh release upload stratagem-latest dist/Stratagem.exe --clobber
             gh release edit stratagem-latest --title "Stratagem für Windows (experimentell)" --notes "$notes" --prerelease
