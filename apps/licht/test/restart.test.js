@@ -171,3 +171,49 @@ test('notices by itself when a lamp goes away and comes back', { timeout: 300_00
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// The phone app calls refresh() when it comes back from the background.
+test('refresh: answering lamps stay connected, a silent one is reconnected', { timeout: 180_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'licht-refresh-'));
+  const port = 5800 + Math.floor(Math.random() * 90);
+  const lamp = startVirtualLight(dir, port);
+  let hub;
+  try {
+    const code = await lamp.ready;
+    Environment.default.vars.set('storage.path', join(dir, 'hub'));
+    hub = new LightHub({ id: 'refresh' });
+    await hub.start();
+    const id = await hub.commission({ code, ip: `127.0.0.1:${port}` });
+    await waitFor(() => hub.light(id)?.status === 'online', 'connected');
+
+    // Lamp answers: no reconnect (the status never leaves 'online'), commands stay fast.
+    const statuses = [];
+    const unsubscribe = hub.subscribe(() => statuses.push(hub.light(id).status));
+    hub.refresh();
+    let t = Date.now();
+    await hub.update(id, { on: true });
+    const commandMs = Date.now() - t;
+    await new Promise((r) => setTimeout(r, 2000));
+    unsubscribe();
+    assert.deepEqual(statuses.filter((s) => s !== 'online'), []);
+    assert.ok(commandMs < 1000, `command after refresh took ${commandMs} ms`);
+
+    // Lamp silent (phone was away, lamp frozen): refresh notices it within the probe time.
+    lamp.child.kill('SIGSTOP');
+    t = Date.now();
+    hub.refresh();
+    await waitFor(() => hub.light(id).status !== 'online', 'silent lamp noticed', 15_000);
+    const noticedMs = Date.now() - t;
+    lamp.child.kill('SIGCONT');
+    t = Date.now();
+    await waitFor(() => hub.light(id).status === 'online', 'lamp back', 30_000);
+    const backMs = Date.now() - t;
+    console.log(`TIMING refresh: command ${commandMs} ms, silent noticed ${noticedMs} ms, back ${backMs} ms`);
+    assert.ok(noticedMs < 8000, `noticed after ${noticedMs} ms`);
+  } finally {
+    lamp.child.kill('SIGCONT');
+    await hub?.close().catch(() => {});
+    await stopVirtualLight(lamp);
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

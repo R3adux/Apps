@@ -84,10 +84,10 @@ function change(light, patch) {
   touched.set(light.id, Date.now());
   render();
 
+  // Only what changed: dimming is one command to the lamp, not dimming plus re-sending the colour.
   const payload = { ...next };
-  if (['brightness', 'temperature', 'color', 'mode'].some((k) => k in patch)) {
+  if (['temperature', 'color', 'mode'].some((k) => k in patch)) {
     payload.mode = light.mode;
-    payload.brightness = light.brightness;
     if (light.mode === 'colour') payload.color = light.color;
     else if (light.supports.temperature) payload.temperature = light.temperature;
   }
@@ -212,12 +212,14 @@ function render() {
     }
   } else {
     $('.empty', container)?.remove();
-    for (const light of lights) {
+    lights.forEach((light, index) => {
       if (!cards.has(light.id)) cards.set(light.id, buildCard(light));
       const card = cards.get(light.id);
       updateCard(card, light);
-      container.append(card.el); // keeps the hub's order
-    }
+      // Keep the hub's order, but only move a card when it is out of place: moving the card whose
+      // slider is being dragged would interrupt the drag (and costs a relayout on every step).
+      if (container.children[index] !== card.el) container.insertBefore(card.el, container.children[index] ?? null);
+    });
   }
   const anyOn = lights.some((l) => l.on && usable(l));
   const allToggle = $('#all-toggle');

@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using Microsoft.Win32;
 
 namespace Licht.Desktop
 {
@@ -30,6 +31,8 @@ namespace Licht.Desktop
             _bigIcon = LoadIcon(new Size(256, 256));
             _window = new AppWindow(options.Url, options.DataDir, _bigIcon, _channel);
             _window.Unavailable += () => _channel.Send("open-browser");
+            // Windows shuts down or the user logs off: let Licht close its lamp data properly.
+            SystemEvents.SessionEnding += OnSessionEnding;
 
             var menu = new ContextMenuStrip();
             var open = new ToolStripMenuItem("Licht öffnen", null, (s, e) => _window.Show());
@@ -102,6 +105,8 @@ namespace Licht.Desktop
             else _window.Show();
         }
 
+        private void OnSessionEnding(object sender, SessionEndingEventArgs e) => _channel.Send("quit");
+
         private void Quit()
         {
             _tray.Visible = false;
@@ -165,6 +170,7 @@ namespace Licht.Desktop
         {
             if (disposing)
             {
+                SystemEvents.SessionEnding -= OnSessionEnding;
                 _tray.Visible = false;
                 _tray.Dispose();
                 _window.Dispose();

@@ -16,7 +16,7 @@ const PAGE_ORIGIN = 'https://licht.invalid/'; // reserved name: can never point 
 // runs. (Injecting it separately races with the page on Android: when the page was faster, it
 // looked for Licht on a PC and reported "no connection".)
 const PAGE_HTML = webHtml.replace('</head>', () => `<script>${injectedApi}</script>\n</head>`);
-// After this long in the background, connections may be stale: renew them right away.
+// After this long in the background, connections may be stale: check them right away.
 const STALE_AFTER_MS = 15_000;
 
 // Quiet by default; the self-test turns on more detail (see selftest.js).
@@ -37,7 +37,8 @@ export default function App() {
     send(eventScript(event.type === 'lights' ? { type: 'lights', lights: hub.lights() } : event));
   }), []);
 
-  // Back from the background: renew connections at once instead of waiting for a timeout.
+  // Back from the background: make sure the lamps still answer (and reconnect those that do not)
+  // instead of waiting for a timeout. After a quick switch only lamps that are not connected are retried.
   useEffect(() => {
     let backgroundSince = 0;
     const subscription = AppState.addEventListener('change', (state) => {
@@ -48,7 +49,8 @@ export default function App() {
       const stale = backgroundSince && Date.now() - backgroundSince > STALE_AFTER_MS;
       backgroundSince = 0;
       hubReady.then(() => {
-        hub.wake({ force: Boolean(stale) });
+        if (stale) hub.refresh();
+        else hub.wake();
         send(eventScript({ type: 'lights', lights: hub.lights() }));
       }, () => {});
     });

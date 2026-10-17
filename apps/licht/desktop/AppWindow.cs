@@ -53,7 +53,22 @@ namespace Licht.Desktop
                 _freeTimer.Stop();
                 if (_form != null && !_form.Visible) Free();
             };
+            SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
         }
+
+        // Windows switched between light and dark mode: the page follows by itself, the frame too.
+        private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+        {
+            if (e.Category != UserPreferenceCategory.General || _form == null || _form.IsDisposed) return;
+            var dark = IsDarkMode();
+            var back = Background(dark);
+            _form.BackColor = back;
+            if (_web != null && !_web.IsDisposed) _web.DefaultBackgroundColor = back;
+            if (_form.IsHandleCreated) Native.UseDarkTitleBar(_form.Handle, dark);
+        }
+
+        private static Color Background(bool dark) =>
+            dark ? Color.FromArgb(0x10, 0x12, 0x17) : Color.FromArgb(0xf3, 0xf4, 0xf7); // as the page
 
         /// <summary>The page finished loading the first time: (success, "&lt;ms&gt; &lt;details&gt;").</summary>
         public event Action<bool, string>? Loaded;
@@ -129,7 +144,7 @@ namespace Licht.Desktop
         {
             var started = Stopwatch.StartNew();
             var dark = IsDarkMode();
-            var back = dark ? Color.FromArgb(0x10, 0x12, 0x17) : Color.FromArgb(0xf3, 0xf4, 0xf7); // as the page
+            var back = Background(dark);
             var form = new Form
             {
                 Text = "Licht",
@@ -147,7 +162,7 @@ namespace Licht.Desktop
             form.Controls.Add(web);
             _web = web;
 
-            form.HandleCreated += (s, e) => Native.UseDarkTitleBar(form.Handle, dark);
+            form.HandleCreated += (s, e) => Native.UseDarkTitleBar(form.Handle, IsDarkMode());
             form.Deactivate += (s, e) => _deactivatedAt = DateTime.UtcNow;
             form.FormClosing += (s, e) =>
             {
@@ -339,6 +354,7 @@ namespace Licht.Desktop
 
         public void Dispose()
         {
+            SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
             Close();
             _freeTimer.Dispose();
         }

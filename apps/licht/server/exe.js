@@ -70,8 +70,8 @@ async function main() {
     if (stopping) return;
     stopping = true;
     console.log('Licht wird beendet');
-    await shell?.stop();
-    await licht?.close();
+    // Both at once: also when Windows shuts down, the lamp data is closed properly in time.
+    await Promise.all([shell?.stop(), licht?.close()]);
     process.exit(0);
   };
 
