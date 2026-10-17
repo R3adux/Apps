@@ -32,6 +32,8 @@ Standard: `http://localhost:8133`. JSON in camelCase, Aufzählungen als Text.
 
 `activate` gibt `ok: false` zurück, wenn das Spiel nicht im Vordergrund ist, pausiert ist, der Eintrag
 im Cooldown ist oder gerade ein anderes Stratagem läuft (Grund steht im Protokoll, `state.events`).
+`ok: true` heißt angenommen: Beim Lesen aus dem Spiel prüft Stratagem danach die frisch gelesene Spielliste und
+tippt nichts, wenn das Stratagem dort in Abklingzeit ist, fehlt oder die Liste nicht aufgeht (steht im Protokoll).
 
 ## Zustand (`/api/state`)
 

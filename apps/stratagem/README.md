@@ -10,8 +10,9 @@ Stratagem ruft Stratagems in Helldivers 2 für dich auf:
 - **Handy als Stream Deck:** große Kacheln im Handy-Browser (gleiches WLAN), Adresse `hellwheel.local`
   statt IP-Nummer, einrichten per QR-Code.
 - **Liest deine Tastenbelegung aus dem Spiel** – auch wenn du sie später änderst.
-- **Liest die verfügbaren Stratagems aus dem Spiel** (experimentell): Pfeile, Icons und Abklingzeit direkt vom
-  Bildschirm – keine Liste mehr pflegen. Jedes Stratagem behält seine Richtung im Radialmenü.
+- **Liest deine Stratagems selbst aus dem Spiel** (Standard): Pfeile, Icons und Abklingzeit direkt vom
+  Bildschirm – nichts einstellen, keine Liste pflegen, jede Mission neu. Jedes Stratagem behält seine Richtung im
+  Radialmenü, und getippt wird nur, was in der Spielliste gerade aufrufbar ist.
 - Geplant: Stream-Deck-Plugin.
 
 Leistung: Außerhalb des Spiels fängt Stratagem nichts ab, im Spiel nur Tastendrücke – die Maus erst,
@@ -29,8 +30,11 @@ Trotzdem gilt: keine Garantie gegen Maßnahmen des Anti-Cheat-Systems.
    Pausieren / Mit Windows starten / Beenden). Das Fenster nutzt Edge WebView2, das bei Windows 10/11 dabei ist –
    fehlt es, öffnen sich die Einstellungen im Browser (`http://localhost:8133`). Solange das Fenster zu ist,
    kostet es nichts.
-3. Liste füllen (Name wählen, Code wird ergänzt), Radialmenü und Tasten einstellen – alles wird sofort gespeichert.
-4. Helldivers 2 im **Randlos-Modus** spielen (im exklusiven Vollbild ist das Radialmenü unsichtbar).
+3. Helldivers 2 im **Randlos-Modus** spielen (im exklusiven Vollbild ist das Radialmenü unsichtbar und die Liste
+   nicht lesbar).
+4. Im Spiel **Strg halten**, Maus Richtung Stratagem schieben, **loslassen**. Mehr ist nicht nötig: Stratagem liest
+   deine Stratagems beim ersten Öffnen aus der Spielliste, Auflösung und HUD-Größe erkennt es selbst.
+   Bis dahin (und wenn du es so einstellst) gilt die eigene Liste in den Einstellungen.
 
 Radialmenü und Tasten wirken nur, solange Helldivers 2 im Vordergrund ist.
 
@@ -41,7 +45,13 @@ Radialmenü und Tasten wirken nur, solange Helldivers 2 im Vordergrund ist.
 | Mitte (Abbrechen-Bereich) | Wie weit die Maus mindestens bewegt werden muss. Bei hoher Maus-DPI größer stellen. |
 | Timing | Wenn Pfeile verloren gehen: Werte erhöhen (bei niedrigen FPS nötig). |
 
-Strg + andere Taste (z. B. Strg+V im Chat) funktioniert weiter wie gewohnt.
+Strg + andere Taste funktioniert weiter wie gewohnt: Strg+V im Chat, und Codes selbst tippen (Strg halten + Pfeile) –
+die Spielliste bleibt dann offen. Steht „Stratagem-Liste öffnen“ im Spiel auf „Drücken“, öffnet kurzes Antippen von
+Strg die normale Spielliste.
+
+Was beim Radialmenü mit der Spielliste passiert: Sie geht mit Strg auf wie ohne Stratagem, nach der Auswahl tippt
+Stratagem die Pfeile und schließt sie wieder – auch beim Abbrechen. Ist ein Stratagem gerade in der Abklingzeit oder
+geht die Liste nicht auf (z. B. im Fahrzeug), wird nichts getippt, damit der Helldiver nicht losläuft.
 
 ### Handy als Stream Deck
 

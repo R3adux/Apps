@@ -118,7 +118,8 @@ nur Namen und kann veralten, ohne etwas kaputtzumachen.
 | 1 | **Mausbewegung im Spiel abfangen** (Radialmenü darf die Kamera nicht drehen) | hoch | Low-Level-Maus-Hook schluckt Bewegungen, solange das Menü offen ist, und wertet sie selbst aus. **Ungeklärt, ob Helldivers' Raw-Input das respektiert** → erster Test im Spiel. Plan B: Overlay kurz fokussieren (Spiel bekommt dann keine Maus), oder Auswahl per Mausrad/WASD. |
 | 2 | Mauszeiger ist im Spiel gefangen | mittel | Bewegung wird als Differenz zur aktuellen Zeigerposition berechnet; da Bewegungen geschluckt werden, bleibt der Zeiger stehen. Zusätzlich „virtueller Stick“: Vektor auf Radius begrenzt, Richtungswechsel brauchen keinen langen Rückweg. |
 | 3 | Overlay über dem Spiel | mittel | Click-through, nie fokussiert, immer oben, Alpha pro Pixel. **Nur im Randlos-/Fenstermodus sichtbar**, nicht im exklusiven Vollbild. |
-| 4 | Strg ist die Stratagem-Taste des Spiels | gelöst | Echtes Strg wird geschluckt, das Tool schickt markiertes Strg. Strg + andere Taste (z. B. Strg+V im Chat) = „Akkord“: Menü zu, Strg geht ans Spiel **vor** der anderen Taste. Getestet. |
+| 4 | Strg ist die Stratagem-Taste des Spiels | gelöst | Echtes Strg wird geschluckt, das Tool schickt markiertes Strg. Strg + andere Taste (z. B. Strg+V im Chat) = „Akkord“: Menü zu, Strg geht ans Spiel **vor** der anderen Taste. Hält das Tool die Spielliste schon offen (Strg + WASD = Code selbst tippen), gehört die gehaltene Taste ab dann dem Spieler – die Liste bleibt offen, bis er loslässt. Getestet. |
+| 17 | Spielliste muss nach jeder Auswahl/jedem Abbruch wieder zu sein | gelöst | Halten-Modus: Taste wird nach dem Code bzw. beim Abbrechen losgelassen. Drücken-Modus: Das Spiel schließt nach dem Code selbst; beim Abbrechen drückt das Tool nur dann erneut, wenn die Liste sichtbar (oder unbekannt) ist – sonst würde es sie öffnen. Kurzes Antippen im Drücken-Modus lässt die normale Spielliste offen. Antippen-&-Ziehen-Modus: Liste nur kurz zum Lesen offen, Laufen wird so lange zurückgehalten. Getestet (`ListFlowTests`). |
 | 5 | Hängende Tasten | gelöst | Makro-Läufer gibt in jedem Fall (Abbruch, Fehler, Fokusverlust) alle gedrückten Tasten frei. Radialmenü schluckt das „Loslassen“ genau dann, wenn es das „Drücken“ geschluckt hat – sonst würde z. B. Dauerfeuer entstehen. Getestet. |
 | 6 | Laufen während des Makros (W gehalten, Code nutzt W) | gelöst | W wird vorher losgelassen, nach dem Code wieder gedrückt, falls noch gehalten. Spieler-Drücke der Makro-Tasten werden währenddessen zurückgehalten, damit sie sich nicht in den Code mischen. Besser: im Spiel Pfeiltasten für Stratagems (das Tool bevorzugt sie automatisch). |
 | 7 | Hooks werden von Windows entfernt (Timeout ~1 s) | mittel | Hook-Callbacks arbeiten nur im Speicher, Log schreibt im Hintergrund, Hooks werden bei jedem Wechsel ins Spiel neu gesetzt (außerhalb gibt es sie gar nicht). |
@@ -128,7 +129,7 @@ nur Namen und kann veralten, ohne etwas kaputtzumachen.
 | 8 | Falsches Fenster bekommt Tasten | gelöst | Aktiv nur, wenn das Vordergrundfenster zum Prozess `helldivers2` gehört (oder exakt den Spieltitel trägt). Ein Browser-Tab „Helldivers 2 – Reddit“ zählt nicht. Fokusverlust bricht Makros ab. |
 | 9 | AltGr auf deutschen Tastaturen erzeugt ein falsches Strg | gelöst | Das falsche Strg hat Scancode 0x21D, das echte 0x1D → löst nie das Menü aus. |
 | 10 | Andere Webseiten im Browser drücken Tasten über den lokalen Server | gelöst | Änderungen nur mit Header `X-Stratagem: 1` (erzwingt CORS-Preflight, das nie erlaubt wird), Host-Prüfung gegen DNS-Rebinding, fremde `Origin` abgelehnt, Heimnetz nur mit Token. Getestet. |
-| 11 | **Bildschirmerkennung** der Stratagem-Liste | hoch | Gebaut und an echten Bildern getestet (Abschnitt 5). Im Spiel noch nicht ausprobiert. |
+| 11 | **Bildschirmerkennung** der Stratagem-Liste | hoch | Gebaut, an echten Bildern und 30 Abwandlungen (Auflösung, Helligkeit, Gamma, Verschiebung) sowie listenfreien Bildausschnitten getestet (Abschnitt 5). Im Spiel noch nicht ausprobiert. |
 | 12 | Spiel als Administrator | niedrig | Windows (UIPI) verwirft dann unsere Eingaben. Wird erkannt und im Protokoll erklärt. |
 | 13 | Virenscanner | mittel | Hooks + SendInput sehen für Heuristiken wie ein Keylogger aus. Gegenmittel: Quelloffen, reproduzierbar in GitHub Actions gebaut, keine Verschleierung. Später ggf. Code-Signatur. |
 
@@ -139,6 +140,8 @@ nur Namen und kann veralten, ohne etwas kaputtzumachen.
 | Handy findet `hellwheel.local` nicht | Ältere Android-Versionen kennen keine `.local`-Namen → Link mit IP-Adresse (eigener QR-Code). Firewall-Frage nicht mit „Abbrechen“ beantwortet? Sonst in der Windows-Firewall Stratagem für private Netzwerke erlauben. |
 | Fenster bleibt leer / öffnet Browser | WebView2 fehlt oder startet nicht (steht im Protokoll) → Einstellungen laufen im Browser genauso. |
 | Overlay erscheint nicht | Spiel im exklusiven Vollbild → in den Grafikeinstellungen „Randlos“ wählen. |
+| Liste wird nicht erkannt | Meldung unten rechts (Tray) und in der Oberfläche; meist Vollbild statt Randlos. Bis dahin gilt die eigene Liste, Codes werden dann ungeprüft getippt. |
+| Stratagem in Abklingzeit gewählt / Liste geht nicht auf (Fahrzeug, Schwimmen) | Nichts wird getippt (sonst liefe der Helldiver los); steht im Protokoll. |
 | Kamera dreht sich beim Auswählen | Siehe schwierige Stelle 1 – bitte melden, dann kommt Plan B. |
 | Stratagem kommt nicht an / falsches Stratagem | Timing erhöhen (Oberfläche → Timing). Niedrige FPS brauchen längere Werte. |
 | Taste im Spiel umgelegt | Wird aus der Spieldatei gelesen, auch live. Ohne Datei: in der Oberfläche einstellen. |
@@ -170,13 +173,23 @@ Testfälle unter `tests/Stratagem.Core.Tests/data/`.
 - **Die Liste ändert sich während einer Mission:** „Adler – Auffüllen“ erscheint erst nach dem ersten Adler-Einsatz,
   mitten in der Liste. Bei „n Segmente = n Stratagems“ würden alle Richtungen springen.
 
-**Wie gelesen wird** (`Recognition/MenuReader.cs`, ~1 ms für den Listenbereich, sprachunabhängig – kein Text):
-1. Zeilen: Die Icon-Spalte hat Struktur, das Panel nicht; ab der ersten Zeile im festen Abstand weiter.
-2. Pfeile: helle Formen (~15×15 px) in der zweiten Zeile; Richtung per Vergleich mit einer Pfeil-Vorlage
-   (aus echten Bildern gemittelt) in allen vier Drehungen. Getestet bei 75–200 % Auflösung.
-3. Zustand: Pfeile = aufrufbar; sonst über die Helligkeit des Titels (gedimmt = Abklingzeit, hell = unterwegs).
-4. Icon: ausgeschnitten (PNG, für Radialmenü/Weboberfläche) und als Fingerabdruck (Differenz-Hash, unempfindlich
-   gegen die helle Abklingzeit-Füllung).
+**Wie gelesen wird** (`Recognition/MenuReader.cs`, 1–2 ms für den Listenbereich, sprachunabhängig – kein Text):
+1. HUD-Größe: Die Icon-Spalte wiederholt sich im Zeilenabstand; der Abstand wird aus dem Bild gemessen
+   (Autokorrelation). Damit passen auch 16:10, 4:3, Ultrawide und andere HUD-Größen ohne Einstellung
+   (getestet: angenommene Größe 25 % zu klein bis 30 % zu groß).
+2. Zeilen: Icon gegen Lücke darunter (Kontrast statt fester Schwelle – Panelkanten oder ein heller Hintergrund
+   hinter der halbtransparenten Liste stören nicht).
+3. Pfeile: eine Reihe gleich großer Formen ab Zeilenanfang im Pfeilabstand auf einer Linie. Jede muss der
+   Pfeil-Vorlage des Spiels gleichen (echte Pfeile ≥ 0,83, alles andere in den Testbildern ≤ 0,35; Schwelle 0,7)
+   und eindeutig in eine Richtung zeigen. Ein Fleck daneben verdirbt die Zeile nicht mehr.
+4. Zustand: Pfeile = aufrufbar; sonst über die Helligkeit des Titels (gedimmt = Abklingzeit, hell = unterwegs) – nur
+   zur Anzeige, entscheidend ist „aufrufbar oder nicht“.
+5. Icon: ausgeschnitten (PNG nur bei Änderung, für Radialmenü/Weboberfläche) und als Fingerabdruck (Differenz-Hash,
+   unempfindlich gegen die helle Abklingzeit-Füllung).
+
+**Getestet** (`MenuReaderTests`): beide echten Bilder in 540p, 720p, 1440p, 4K, heller, dunkler, mehr/weniger Kontrast,
+Gamma 0,8/1,25 (HDR-ähnlich), Rauschen, um 8–20 px verschoben → immer die richtigen Codes. Acht listenfreie
+Ausschnitte derselben Bilder (Missionsziele mit Icons und Text, HUD, Szene) in drei Größen → nie ein Code.
 
 **Gedächtnis** (`icons.json`): Sobald ein Stratagem mit Pfeilen gesehen wurde, ist sein Code für das Icon bekannt –
 auch während der Abklingzeit und in späteren Sitzungen. Zuordnung streng (ähnliche Icons wie die zwei Adler liegen
@@ -195,14 +208,23 @@ Liste in der Weboberfläche, das Handy-Deck (leere Plätze bleiben als Lücke) u
 während der Mission dasselbe Stratagem.
 
 **Ablauf im Spiel:** Radialmenü öffnen → Stratagem öffnet die Spielliste (Halten: Taste bleibt gedrückt; Drücken:
-einmal tippen), wartet bis sie gezeichnet ist (150 ms), liest sie, aktualisiert den offenen Kreis. Auswahl → nur
-noch die Pfeile. Abbrechen → Liste wird wieder geschlossen. Alles in einer Warteschlange, nie durcheinander.
-Aufnahme per GDI nur vom Listenbereich (ein paar Millisekunden), schwarze Aufnahmen (Vollbild/HDR) werden gemeldet.
+einmal tippen), liest sie ab 150 ms so oft, bis zwei Bilder hintereinander dasselbe zeigen (die Liste kann noch
+aufgehen, hinter ihr kann es blitzen), und aktualisiert den offenen Kreis. Auswahl → **Prüfung**: Zeigt die frische
+Lesung das Stratagem in Abklingzeit, fehlt es in einer vollständig erkannten Liste, oder ist die Liste nicht
+aufgegangen (nachdem das Lesen in dieser Sitzung schon funktioniert hat), wird nichts getippt und die Liste
+geschlossen. Sonst nur noch die Pfeile. Ein unklares Bild blockiert nie. Abbrechen → Liste wieder zu (siehe
+schwierige Stelle 17). Tasten und Deck lesen genauso vor dem Tippen. Alles in einer Warteschlange, nie
+durcheinander. Aufnahme per GDI nur vom Listenbereich (ein paar Millisekunden, Puffer wird wiederverwendet).
+
+**Ohne Einstellung:** „Aus dem Spiel lesen“ ist Standard (alte Einstellungen werden einmalig umgestellt). Bis zur
+ersten Lesung gilt die eigene Liste. Wird die Liste dreimal nicht gefunden, kommt eine Meldung unten rechts.
 
 **Ohne Spiel testen:** Weboberfläche → „Erkennung mit einem Bildschirmfoto testen“ (PNG hochladen).
 
-**Offen / Risiken:** Namen für noch unbekannte Stratagems (Texterkennung wäre möglich, kostet aber Größe), andere HUD-Größen (Einstellung „HUD-Größe“), HDR, Farbfilter, Ultrawide (Liste vermutlich
-weiterhin am linken Rand), Missions-Stratagems (noch kein Bild).
+**Offen / Risiken:** Alles bisher an Bildern einer Auflösung (1080p, aus verlustbehaftet gespeicherten Screenshots)
+getestet – echte Aufnahmen anderer Auflösungen fehlen. Unbekannt: ob die Liste animiert aufgeht (die Stabilitätsprüfung
+fängt das ab), Farbfilter für Farbenblinde, Missions-Stratagems (noch kein Bild; Codes werden gelesen, Namen fehlen).
+Namen für noch unbekannte Stratagems (Texterkennung wäre möglich, kostet aber Größe).
 
 ## 6. Fahrplan
 
@@ -226,6 +248,11 @@ Spiel im **Randlos-Modus**, `Stratagem.exe` starten, Weboberfläche öffnet sich
 7. Chat öffnen, Strg+V: Funktioniert Einfügen?
 8. Direkte Taste (z. B. Num 1 → Platz 1): Kommt das Stratagem?
 9. Gehen Eingaben verloren? Dann Timing schrittweise erhöhen und die Werte notieren.
-10. Liste „Aus dem Spiel lesen“: Radialmenü öffnen – erscheinen nach kurzem Moment die Stratagems mit Icons?
-    Stimmen Richtung und Code? Bleiben die Richtungen gleich, wenn „Adler – Auffüllen“ dazukommt?
-11. Bei Problemen: `stratagem.log` (Menü ⋯ → Datenordner öffnen) schicken.
+10. Radialmenü öffnen: Erscheinen nach kurzem Moment deine Stratagems mit Icons? Stimmen Richtung und Code?
+    Bleiben die Richtungen gleich, wenn „Adler – Auffüllen“ dazukommt? Ist die Spielliste nach Auswahl und nach
+    Abbrechen wieder zu?
+11. Ein Stratagem in Abklingzeit wählen: Wird nichts getippt (Protokoll: „nicht getippt – gerade nicht verfügbar“)?
+12. Im Fahrzeug/Mech Strg halten und wählen: Läuft der Helldiver los? (Soll er nicht.)
+13. Strg halten und den Code selbst mit WASD tippen: Bleibt die Liste offen, kommt das Stratagem?
+14. Bei Problemen: `stratagem.log` (Menü ⋯ → Datenordner öffnen) schicken, gern mit Bildschirmfoto der offenen Liste
+    (Win + Alt + Druck) – damit lässt sich die Erkennung für deine Auflösung prüfen.
