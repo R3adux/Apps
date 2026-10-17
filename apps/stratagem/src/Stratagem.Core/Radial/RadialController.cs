@@ -47,7 +47,8 @@ public enum RadialCloseReason
 
 /// <param name="OpenMs">How long the menu was open.</param>
 /// <param name="EverHighlighted">Whether any place was pointed at while it was open.</param>
-public readonly record struct RadialClose(RadialCloseReason Reason, long OpenMs, bool EverHighlighted);
+/// <param name="ChordKey">For <see cref="RadialCloseReason.Chord"/>: the other key.</param>
+public readonly record struct RadialClose(RadialCloseReason Reason, long OpenMs, bool EverHighlighted, InputRef? ChordKey = null);
 
 /// <summary>
 /// The radial menu as a state machine, without any Windows code. The input hooks feed every player event
@@ -147,10 +148,11 @@ public sealed class RadialController
     public bool SelectUnavailable { get; set; }
 
     /// <summary>
-    /// Asked when a chord starts: true = do not send the trigger to the game (it already did what the trigger does,
-    /// e.g. opened the game's list in "press" mode, where a second press would close it again). Inside the lock.
+    /// Asked when a chord starts, with the other key: true = do not send the trigger to the game (it already did
+    /// what the trigger does, e.g. opened the game's list in "press" mode, where a second press would close it).
+    /// Inside the lock.
     /// </summary>
-    public Func<bool>? KeepTriggerOnChord { get; set; }
+    public Func<InputRef, bool>? KeepTriggerOnChord { get; set; }
 
     public RadialOptions Options
     {
@@ -335,8 +337,8 @@ public sealed class RadialController
 
     private bool StartChord(InputRef other)
     {
-        var keepTrigger = KeepTriggerOnChord?.Invoke() == true; // asked first: closing changes what it is based on
-        CloseView(RadialCloseReason.Chord);
+        var keepTrigger = KeepTriggerOnChord?.Invoke(other) == true; // asked first: closing changes what it is based on
+        CloseView(RadialCloseReason.Chord, other);
         SetState(RadialState.Chord);
         _swallowedDowns.Remove(_options.Trigger);
         // The current key arrives before anything we inject, so it is swallowed and re-sent after the trigger.
@@ -372,14 +374,14 @@ public sealed class RadialController
         if (valid) _activate(index!.Value, items[index.Value]);
     }
 
-    private void CloseView(RadialCloseReason reason)
+    private void CloseView(RadialCloseReason reason, InputRef? chordKey = null)
     {
         var wasOpen = _state is RadialState.Held or RadialState.Open or RadialState.Dragging;
         SetState(RadialState.Idle);
         _highlight = null;
         if (!wasOpen) return;
         _view.Hide(reason == RadialCloseReason.Selected);
-        Closed?.Invoke(new RadialClose(reason, _clockMs() - _openedAt, _everHighlighted));
+        Closed?.Invoke(new RadialClose(reason, _clockMs() - _openedAt, _everHighlighted, chordKey));
     }
 
     private void SetState(RadialState state)

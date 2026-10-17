@@ -203,6 +203,24 @@ public class ListFlowTests
         rig.Service.Router.OnMouseButton(MouseButton.X1, false);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(60)]
+    public async Task Press_mode_shortcuts_still_get_their_ctrl(int afterMs)
+    {
+        // Ctrl+V in the chat: the game must see Ctrl held when V comes.
+        using var rig = new Rig(PressMode);
+        rig.Key(Ctrl, true);
+        if (afterMs > 0) await Task.Delay(afterMs);
+        Assert.True(rig.Key("KeyV", true));
+        var events = rig.Output.Events.ToList();
+        var v = events.IndexOf("+KeyV");
+        Assert.Equal("+ControlLeft", events[v - 1]);  // Ctrl (sent for the chord) right before V
+        rig.Key("KeyV", false);
+        rig.Key(Ctrl, false);
+        await rig.Idle();
+    }
+
     [Fact]
     public async Task Press_mode_typing_by_hand_keeps_the_list_open()
     {
@@ -382,23 +400,44 @@ public class ListFlowTests
     }
 
     [Fact]
-    public async Task After_three_misses_in_a_row_codes_are_typed_unchecked_again()
+    public async Task Repeated_misses_never_make_the_player_walk_but_are_reported()
     {
-        // The list worked, then is never found again (display mode changed): after three misses the tool stops
-        // trusting "not found" instead of refusing everything for the rest of the session.
+        // In a vehicle the list does not open, however often the player tries: nothing is typed, ever, and after
+        // three misses the player is told (in case it is something else).
         using var rig = new Rig(knownIcons: true);
+        var notices = new List<string>();
+        rig.Service.Notice += notices.Add;
         rig.Service.Activate(StratagemCode.Parse("DURRU"), "Test");
         await rig.Idle();
         rig.Capture.File = "black";
-        for (var i = 0; i < 3; i++)
+        rig.Output.Clear();
+        for (var i = 0; i < 4; i++)
         {
             rig.Service.Activate(StratagemCode.Parse("DURRU"), "Test");
             await rig.Idle();
         }
+        Assert.Equal(string.Concat(Enumerable.Repeat("+ControlLeft -ControlLeft ", 4)).Trim(), rig.Events);
+        Assert.Single(notices);
+    }
+
+    [Theory]
+    [InlineData("nolist-1.png")]
+    [InlineData("nolist-3.png")]
+    [InlineData("nolist-6.png")]
+    public async Task A_game_scene_without_the_list_is_not_taken_for_it(string scene)
+    {
+        // Objectives with icons, HUD, scenery: may look like a row or two, but is not the list. Nothing is typed,
+        // and the radial menu keeps the game's list it has.
+        using var rig = new Rig(knownIcons: true);
+        rig.Service.Activate(StratagemCode.Parse("DURRU"), "Test");
+        await rig.Idle();
+        var before = rig.Service.RadialItems;
+        rig.Capture.File = scene;
         rig.Output.Clear();
         rig.Service.Activate(StratagemCode.Parse("DURRU"), "Test");
         await rig.Idle();
-        Assert.Equal($"+ControlLeft {Arrows("DURRU")} -ControlLeft", rig.Events);
+        Assert.Equal("+ControlLeft -ControlLeft", rig.Events);
+        Assert.Same(before, rig.Service.RadialItems);
     }
 
     [Fact]

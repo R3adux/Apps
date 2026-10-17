@@ -200,8 +200,13 @@ public static class GameInputSettings
         var named = KeyNames.FromGameName(input);
         if (layoutId is not (> 0 and < 0x80)) return named;
         if (named is { } n && n.ScanCode == layoutId) return n;
+        // An unknown name on a position that also has an E0 twin (Numpad / vs. /, right Ctrl, arrows vs. numpad):
+        // which of the two is meant is not known – better report it than press the wrong one.
+        if (named is null && HasExtendedTwin(layoutId.Value)) return null;
         return new Key((ushort)layoutId.Value, false);
     }
+
+    private static bool HasExtendedTwin(int scan) => scan is 0x1C or 0x1D or 0x35 or 0x38 or (>= 0x47 and <= 0x53) or (>= 0x5B and <= 0x5D);
 
     private static int? LayoutId(Dictionary<string, object?> entry) =>
         entry.TryGetValue("fixed_layout_id", out var v) && v is double d && d == Math.Floor(d) ? (int)d : null;

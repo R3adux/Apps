@@ -201,6 +201,7 @@ public sealed class ScreenStratagemSource : IStratagemSource
         }
         // Icons change pixel by pixel all the time (cooldown fill): compare what matters, and only renew the
         // pictures now and then (making them costs more than reading the whole list).
+        if (found.Count == 0) return false; // never replace a list with nothing
         var signature = string.Join(",", found.Select(f => $"{f.Code.Letters}:{f.Available}"));
         var now = Environment.TickCount64;
         bool changed, renew;
@@ -223,6 +224,13 @@ public sealed class ScreenStratagemSource : IStratagemSource
         Changed?.Invoke();
         return changed;
     }
+
+    /// <summary>
+    /// Is this the stratagem list? At least two rows (Reinforce and Resupply are always there), and at least one
+    /// with a code read from arrows or an icon seen before. Rows the game scene makes up have neither.
+    /// </summary>
+    public bool LooksLikeTheList(IReadOnlyList<MenuRow> rows) =>
+        rows.Count >= 2 && rows.Any(r => r.Code is not null || _memory.Find(r.IconHash) is not null);
 
     /// <summary>The list was looked for but is not on screen. The last list stays.</summary>
     public void ListNotFound() =>

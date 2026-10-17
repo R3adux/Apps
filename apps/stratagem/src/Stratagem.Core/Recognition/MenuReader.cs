@@ -42,7 +42,7 @@ public sealed record MenuGeometry(
     double TextLeft = 105, double TextRight = 330,
     double ArrowSize = 14.5, double ArrowPitch = 21.5, double ArrowStartMax = 42,
     int MinArrows = 3, int MaxRows = 14,
-    double MinArrowMatch = 0.7, double MinArrowMargin = 0.03)
+    double MinArrowMatch = 0.7, double MinArrowMargin = 0.04)
 {
     public static MenuGeometry Default { get; } = new();
 }
@@ -172,7 +172,10 @@ public static class MenuReader
 
         // The arrows are near white; on a bright background (explosion behind the half-transparent list) the
         // threshold moves up with it, but always stays clearly above the background.
-        var threshold = bg + Math.Clamp((255 - bg) / 2, 20, 45);
+        // A dark picture (HDR, dim gamma) lowers the arrows too: never ask more than half of what the brightest
+        // marks on the line reach, or arrows break into small pieces that look like text.
+        var peak = Percentile(img, textL, textR, lineTop, lineBottom, 0.99);
+        var threshold = bg + Math.Clamp(Math.Min((255 - bg) / 2, (peak - bg) / 2), 20, 45);
         var blobs = Blobs(img, textL, textR, lineTop, lineBottom, threshold);
         var chain = ArrowChain(blobs, scale, g);
         var titleTop = top;
@@ -347,6 +350,18 @@ public static class MenuReader
 
     public static int Distance(ulong a, ulong b) => System.Numerics.BitOperations.PopCount(a ^ b);
 
+    /// <summary>
+    /// The game draws all arrows alike: one that is much larger than the others has merged with something bright
+    /// (a glow) and cannot be trusted.
+    /// </summary>
+    private static bool SameSize(List<Blob> chain)
+    {
+        var widths = chain.Select(b => b.Width).Order().ToList();
+        var heights = chain.Select(b => b.Height).Order().ToList();
+        double w = widths[widths.Count / 2], h = heights[heights.Count / 2];
+        return chain.All(b => Math.Abs(b.Width - w) <= Math.Max(2, w * 0.35) && Math.Abs(b.Height - h) <= Math.Max(2, h * 0.35));
+    }
+
     /// <summary>Does the arrow row start where the title above it starts (both are left-aligned in the game)?</summary>
     private static bool StartsWithTitle(PixelImage img, int firstArrowX, int textL, int textR, int top, int bottom, int titleBg, int titleContrast, double scale, MenuGeometry g)
     {
@@ -408,7 +423,7 @@ public static class MenuReader
                 if (next is null) break;
                 chain.Add(next);
             }
-            if (chain.Count >= g.MinArrows) return chain;
+            if (chain.Count >= g.MinArrows && SameSize(chain)) return chain;
         }
         return null;
     }

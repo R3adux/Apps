@@ -271,6 +271,12 @@ public sealed class StratagemService : IDisposable
                     Physical.Set(bindings.Menu, true);
                     Runner.Enqueue([new MacroStep.HandOver(bindings.Menu)], "Liste übergeben");
                 }
+                else if (!IsDirection(bindings, close.ChordKey))
+                {
+                    // Press mode, a shortcut (Ctrl+V): the trigger goes to the game as without the tool (and toggles
+                    // the list we opened shut); the reading is not needed any more.
+                    abort?.Cancel();
+                }
                 break;
             case RadialCloseReason.Released when bindings.MenuMode == MenuMode.Press && close.OpenMs < 300 && !close.EverHighlighted:
                 // A quick tap in "press" mode is how the player opens the game's own list: leave it open.
@@ -285,13 +291,19 @@ public sealed class StratagemService : IDisposable
 
     private bool TriggerIsListKey(GameBindings bindings) => Radial.Options.Trigger == InputRef.Of(bindings.Menu);
 
-    /// <summary>Press mode, chord right after the menu opened the list: the trigger must not toggle it shut again.</summary>
-    private bool KeepTriggerOnChord()
+    /// <summary>
+    /// Press mode, the menu opened the list, and the player now types a code by hand (an arrow key): the trigger
+    /// must not be sent again, it would toggle the list shut. Any other key (Ctrl+V in the chat) gets its Ctrl.
+    /// </summary>
+    private bool KeepTriggerOnChord(InputRef other)
     {
         if (Volatile.Read(ref _menuOpenedByUs) != 1) return false;
         var bindings = Snapshot().Bindings;
-        return bindings.MenuMode == MenuMode.Press && TriggerIsListKey(bindings);
+        return bindings.MenuMode == MenuMode.Press && TriggerIsListKey(bindings) && IsDirection(bindings, other);
     }
+
+    private static bool IsDirection(GameBindings bindings, InputRef? input) =>
+        input?.Key is { } key && bindings.DirectionKeys.Contains(key);
 
     private void CloseOpenedMenu()
     {
@@ -413,6 +425,9 @@ public sealed class StratagemService : IDisposable
             }
             _unreadableInARow = 0;
             var rows = MenuReader.Read(image.captured, image.scale * screenScale);
+            // The game scene behind a closed list can look like a row or two (an objective with an icon): only a
+            // reading with a code or a known icon in it is the list.
+            if (!_screen!.LooksLikeTheList(rows)) rows = [];
             var elapsed = watch.ElapsedMilliseconds;
             if (rows.Count > 0 && previous is { Count: > 0 } && SameReading(rows, previous))
             {
@@ -453,13 +468,9 @@ public sealed class StratagemService : IDisposable
             _listVisible = ListNotVisible;
             _lastReadingStable = true;
             _screen!.ListNotFound();
-            if (++_notFoundInARow >= 3)
-            {
-                // Three times in a row: more likely the picture changed (display mode) than three tries in a
-                // vehicle – stop trusting "not found" until the list is read again, and tell the player.
-                _readerWorked = false;
-                ShowNotice();
-            }
+            // Black pictures (fullscreen, HDR) count as "unreadable", not here; a list that is really not found
+            // three times in a row is worth a word to the player all the same.
+            if (++_notFoundInARow >= 3) ShowNotice();
         }
     }
 

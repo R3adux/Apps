@@ -122,7 +122,7 @@ nur Namen und kann veralten, ohne etwas kaputtzumachen.
 | 1 | **Mausbewegung im Spiel abfangen** (Radialmenü darf die Kamera nicht drehen) | hoch | Low-Level-Maus-Hook schluckt Bewegungen, solange das Menü offen ist, und wertet sie selbst aus. **Ungeklärt, ob Helldivers' Raw-Input das respektiert** → erster Test im Spiel. Plan B: Overlay kurz fokussieren (Spiel bekommt dann keine Maus), oder Auswahl per Mausrad/WASD. |
 | 2 | Mauszeiger ist im Spiel gefangen | mittel | Bewegung wird als Differenz zur aktuellen Zeigerposition berechnet; da Bewegungen geschluckt werden, bleibt der Zeiger stehen. Zusätzlich „virtueller Stick“: Vektor auf Radius begrenzt, Richtungswechsel brauchen keinen langen Rückweg. **Offen:** Sperrt das Spiel den Zeiger in ein sehr kleines Rechteck (`ClipCursor`), könnte Windows die Position im Hook begrenzen – dann ließe sich das Menü nicht steuern. Raw Input hilft nicht (geschluckte Bewegungen erreichen auch WM_INPUT nicht). Wird beim ersten Test sichtbar (Testliste Punkt 4); Plan B wie bei Stelle 1. |
 | 3 | Overlay über dem Spiel | mittel | Click-through, nie fokussiert, immer oben, Alpha pro Pixel. **Nur im Randlos-/Fenstermodus sichtbar**, nicht im exklusiven Vollbild. |
-| 4 | Strg ist die Stratagem-Taste des Spiels | gelöst | Echtes Strg wird geschluckt, das Tool schickt markiertes Strg. Strg + andere Taste (z. B. Strg+V im Chat) = „Akkord“: Menü zu, Strg geht ans Spiel **vor** der anderen Taste. Hält das Tool die Spielliste schon offen (Strg + WASD = Code selbst tippen), gehört die gehaltene Taste ab dann dem Spieler – die Liste bleibt offen, bis er loslässt. Getestet. |
+| 4 | Strg ist die Stratagem-Taste des Spiels | gelöst | Echtes Strg wird geschluckt, das Tool schickt markiertes Strg. Strg + andere Taste (z. B. Strg+V im Chat) = „Akkord“: Menü zu, Strg geht ans Spiel **vor** der anderen Taste. Hält das Tool die Spielliste schon offen (Strg + Pfeil = Code selbst tippen), gehört die gehaltene Taste ab dann dem Spieler – die Liste bleibt offen, bis er loslässt. Im Drücken-Modus wird Strg bei einer Pfeiltaste nicht erneut geschickt (es würde die Liste schließen), bei jeder anderen Taste schon (Strg+V). Getestet. |
 | 17 | Spielliste muss nach jeder Auswahl/jedem Abbruch wieder zu sein | gelöst | Halten-Modus: Taste wird nach dem Code bzw. beim Abbrechen losgelassen. Drücken-Modus: Das Spiel schließt nach dem Code selbst; beim Abbrechen drückt das Tool nur dann erneut, wenn die Liste sichtbar (oder unbekannt) ist – sonst würde es sie öffnen. Kurzes Antippen im Drücken-Modus lässt die normale Spielliste offen. Antippen-&-Ziehen-Modus: Liste nur kurz zum Lesen offen, Laufen wird so lange zurückgehalten. Getestet (`ListFlowTests`). |
 | 5 | Hängende Tasten | gelöst | Makro-Läufer gibt in jedem Fall (Abbruch, Fehler, Fokusverlust) alle gedrückten Tasten frei. Radialmenü schluckt das „Loslassen“ genau dann, wenn es das „Drücken“ geschluckt hat – sonst würde z. B. Dauerfeuer entstehen. Getestet. |
 | 6 | Laufen während des Makros (W gehalten, Code nutzt W) | gelöst | W wird vorher losgelassen, nach dem Code wieder gedrückt, falls noch gehalten. Spieler-Drücke der Makro-Tasten werden währenddessen zurückgehalten, damit sie sich nicht in den Code mischen. Besser: im Spiel Pfeiltasten für Stratagems (das Tool bevorzugt sie automatisch). |
@@ -186,7 +186,8 @@ Testfälle unter `tests/Stratagem.Core.Tests/data/`.
 3. Pfeile: eine Reihe gleich großer Formen ab Zeilenanfang im Pfeilabstand auf einer Linie. Jede muss der
    Pfeil-Vorlage des Spiels gleichen (echte Pfeile ≥ 0,83, alles andere in den Testbildern ≤ 0,35; Schwelle 0,7)
    und eindeutig in eine Richtung zeigen. Ein Fleck daneben verdirbt die Zeile nicht mehr.
-4. Der ganze Code oder keiner: Die Pfeilreihe muss genau am Titelanfang beginnen, und direkt davor oder dahinter
+4. Der ganze Code oder keiner: Die Pfeilreihe muss genau am Titelanfang beginnen, alle Pfeile müssen etwa gleich
+   groß sein (±35 %; einer, der mit einem Leuchten verschmolzen ist, ist größer), und direkt davor oder dahinter
    darf nichts Helles auf der Linie liegen. Sonst (ein Pfeil unter einem Leuchten verschwunden) wäre der gelesene
    Code kürzer und damit falsch – dann gilt die Zeile als **unklar**.
 5. Zustand: Pfeile = aufrufbar; Text in der zweiten Zeile = nicht aufrufbar (Titelhelligkeit: gedimmt = Abklingzeit,
@@ -224,9 +225,11 @@ schwierige Stelle 17). Tasten und Deck lesen genauso vor dem Tippen. Alles in ei
 durcheinander. Aufnahme per GDI nur vom Listenbereich (ein paar Millisekunden, Puffer wird wiederverwendet).
 
 **Ohne Einstellung:** „Aus dem Spiel lesen“ ist Standard (alte Einstellungen werden einmalig umgestellt). Bis zur
-ersten Lesung gilt die eigene Liste. Wird die Liste dreimal hintereinander nicht gefunden (oder ist das Bild schwarz:
-Vollbild/HDR), kommt eine Meldung unten rechts, und Codes werden wieder ungeprüft getippt – ein „nicht gefunden“
-blockiert nie dauerhaft. Ein gemerkter Abklingzeit-Stand sperrt weder Deck noch Tasten noch Radialmenü: Vor dem Tippen
+ersten Lesung gilt die eigene Liste. Ist das Bild schwarz (Vollbild/HDR), gilt es als „nicht lesbar“: Codes werden
+ungeprüft getippt, nach drei Malen kommt eine Meldung unten rechts. Wird die Liste dreimal hintereinander nicht gefunden
+(z. B. im Fahrzeug), kommt dieselbe Meldung, getippt wird dann weiterhin nichts. Als Liste zählt eine Lesung nur mit
+mindestens zwei Zeilen, davon eine mit Pfeilcode oder bekanntem Icon – Zeilen, die eine Spielszene vortäuscht
+(Missionsziele mit Icons), haben weder das eine noch das andere und ersetzen nie die gelesene Liste. Ein gemerkter Abklingzeit-Stand sperrt weder Deck noch Tasten noch Radialmenü: Vor dem Tippen
 wird ohnehin frisch gelesen. Lässt der Spieler los, während noch gelesen wird, wird sofort abgebrochen und die Liste
 geschlossen (Laufen geht dann schon wieder ans Spiel).
 

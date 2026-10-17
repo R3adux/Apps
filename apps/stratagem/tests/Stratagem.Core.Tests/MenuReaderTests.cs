@@ -69,6 +69,7 @@ public class MenuReaderTests
         { "menu-1080p-a.png", "brighter" }, { "menu-1080p-a.png", "darker" }, { "menu-1080p-a.png", "more contrast" }, { "menu-1080p-a.png", "less contrast" },
         { "menu-1080p-b.png", "brighter" }, { "menu-1080p-b.png", "darker" }, { "menu-1080p-b.png", "more contrast" }, { "menu-1080p-b.png", "less contrast" },
         { "menu-1080p-a.png", "gamma 0.8" }, { "menu-1080p-a.png", "gamma 1.25" }, { "menu-1080p-b.png", "gamma 0.8" }, { "menu-1080p-b.png", "gamma 1.25" },
+        { "menu-1080p-a.png", "dim" }, { "menu-1080p-b.png", "dim" },
         { "menu-1080p-a.png", "noise" }, { "menu-1080p-b.png", "noise" },
         { "menu-1080p-a.png", "shifted right" }, { "menu-1080p-a.png", "shifted left" }, { "menu-1080p-a.png", "shifted down" }, { "menu-1080p-a.png", "shifted up" },
         { "menu-1080p-b.png", "shifted right" }, { "menu-1080p-b.png", "shifted left" }, { "menu-1080p-b.png", "shifted down" }, { "menu-1080p-b.png", "shifted up" },
@@ -92,6 +93,7 @@ public class MenuReaderTests
             "more contrast" => (Map(image, v => (int)((v - 128) * 1.2 + 128)), 1.0),
             "less contrast" => (Map(image, v => (int)((v - 128) * 0.8 + 128)), 1.0),
             "gamma 0.8" => (Map(image, v => (int)(255 * Math.Pow(v / 255.0, 0.8))), 1.0),
+            "dim" => (Map(image, v => (int)(v * 0.55)), 1.0),
             "gamma 1.25" => (Map(image, v => (int)(255 * Math.Pow(v / 255.0, 1.25))), 1.0),
             "noise" => (Map(image, v => v + rnd.Next(-12, 13)), 1.0),
             "shifted right" => (Shift(image, 12, 0), 1.0),
@@ -150,11 +152,14 @@ public class MenuReaderTests
     [InlineData(212, 8, 160)]
     [InlineData(212, 10, 160)]
     [InlineData(169, 8, 160)]
-    public void A_half_hidden_code_is_never_read_short(int x, double sigma, int strength)
+    [InlineData(126, 8, 120, 6)] // first arrow of the MG sentry (↓↑→→↑) merges with the glow
+    [InlineData(126, 6, 160, 6)]
+    public void A_half_hidden_code_is_never_read_short(int x, double sigma, int strength, int rowIndex = 2)
     {
         var image = Load("menu-1080p-a.png");
         var data = (byte[])image.Bgra.Clone();
-        const int y = 220;
+        var y = rowIndex == 2 ? 220 : 428;
+        var expected = rowIndex == 2 ? "UULUR" : "DURRU";
         for (var py = 0; py < image.Height; py++)
         for (var px = 0; px < image.Width; px++)
         {
@@ -167,8 +172,8 @@ public class MenuReaderTests
                 data[i] = (byte)Math.Min(255, data[i] + add);
             }
         }
-        var row = MenuReader.Read(new PixelImage(image.Width, image.Height, data), 1.0)[2];
-        Assert.True(row.Code is null || row.Code.Letters == "UULUR", $"falscher Code {row.Code?.Letters}");
+        var row = MenuReader.Read(new PixelImage(image.Width, image.Height, data), 1.0)[rowIndex];
+        Assert.True(row.Code is null || row.Code.Letters == expected, $"falscher Code {row.Code?.Letters}");
         Assert.True(row.Code is not null || row.State == RowState.Unclear, $"Zustand {row.State}");
     }
 
