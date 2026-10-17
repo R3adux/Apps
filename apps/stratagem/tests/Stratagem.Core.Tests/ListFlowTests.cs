@@ -222,6 +222,23 @@ public class ListFlowTests
     }
 
     [Fact]
+    public async Task Press_mode_shortcut_during_the_tools_tap_keeps_ctrl_down_while_held()
+    {
+        // Ctrl+V a few milliseconds after Ctrl: the tool's own tap is cut short – Ctrl must stay down for the game
+        // as long as the player holds it (Ctrl+V, V again, Ctrl+A …).
+        using var rig = new Rig(s => { PressMode(s); s.Timing.KeyHoldMs = 60; });
+        rig.Key(Ctrl, true);
+        await MacroRunnerTests.WaitUntil(() => rig.Output.Events.Count >= 1);
+        rig.Key("KeyV", true);
+        rig.Key("KeyV", false);
+        await rig.Idle();
+        var events = rig.Output.Events;
+        // What counts is the game's last word on Ctrl: down.
+        Assert.True(events.Last(e => e.EndsWith("ControlLeft")) == "+ControlLeft", string.Join(" ", events));
+        Assert.False(rig.Key(Ctrl, false)); // the player's release reaches the game
+    }
+
+    [Fact]
     public async Task Press_mode_typing_by_hand_keeps_the_list_open()
     {
         // Tap Ctrl and press W before letting go (normal rollover): the list the tool opened must stay open.

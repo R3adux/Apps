@@ -185,7 +185,9 @@ public sealed class StratagemService : IDisposable
     // Before a code is typed, the fresh reading must show it as callable – nothing is typed into a list that
     // did not open (in a vehicle, while swimming), which would make the player walk.
 
-    private const int ListVisibleUnknown = 0, ListVisible = 1, ListNotVisible = 2;
+    // Rejected: something row-like was there, but not the list (no code, no known icon) – a closed list in front of a
+    // busy scene, or a list nothing of which is known yet. Refuses like "not visible", but may need closing.
+    private const int ListVisibleUnknown = 0, ListVisible = 1, ListNotVisible = 2, ListRejected = 3;
 
     // Macro thread only (set by a reading, used by the next steps of the same sequence).
     private int _listVisible;
@@ -274,7 +276,9 @@ public sealed class StratagemService : IDisposable
                 else if (!IsDirection(bindings, close.ChordKey))
                 {
                     // Press mode, a shortcut (Ctrl+V): the trigger goes to the game as without the tool (and toggles
-                    // the list we opened shut); the reading is not needed any more.
+                    // the list we opened shut); the reading is not needed any more. The player holds Ctrl: if the
+                    // stopped tap releases it, it is pressed again for them (and their own release clears it).
+                    Physical.Set(bindings.Menu, true);
                     abort?.Cancel();
                 }
                 break;
@@ -346,7 +350,7 @@ public sealed class StratagemService : IDisposable
             return [new MacroStep.Decide(() => _weOpenedList ? null : [done]), new MacroStep.Release(bindings.Menu), new MacroStep.Wait(t.KeyGapMs), done];
         return
         [
-            new MacroStep.Decide(() => !_weOpenedList || (_listVisible == ListNotVisible && _readerWorked) ? [done] : null),
+            new MacroStep.Decide(() => !_weOpenedList || (_listVisible == ListNotVisible && _readerWorked) ? [done] : null), // rejected: close
             new MacroStep.Press(bindings.Menu),
             new MacroStep.Wait(t.KeyHoldMs),
             new MacroStep.Release(bindings.Menu),
@@ -380,7 +384,7 @@ public sealed class StratagemService : IDisposable
     private IReadOnlyList<MacroStep>? Verify(StratagemItem item, GameBindings bindings, MacroTiming timing)
     {
         string? why = null;
-        if (_listVisible == ListNotVisible && _readerWorked) why = "die Stratagem-Liste ist nicht aufgegangen (z. B. im Fahrzeug)";
+        if (_listVisible is ListNotVisible or ListRejected && _readerWorked) why = "die Stratagem-Liste ist nicht aufgegangen (z. B. im Fahrzeug)";
         else if (_listVisible == ListVisible && _lastReadingStable)
         {
             var found = _screen!.Find(item.Code);
@@ -392,7 +396,7 @@ public sealed class StratagemService : IDisposable
         // Hold mode: ending the job releases the list key. Press mode: close the list if it is open.
         var t = timing.Clamped();
         var done = new MacroStep.Run(() => _weOpenedList = false);
-        return bindings.MenuMode == MenuMode.Press && _listVisible == ListVisible && _weOpenedList
+        return bindings.MenuMode == MenuMode.Press && _listVisible is ListVisible or ListRejected && _weOpenedList
             ? [new MacroStep.Press(bindings.Menu), new MacroStep.Wait(t.KeyHoldMs), new MacroStep.Release(bindings.Menu), new MacroStep.Wait(t.KeyGapMs), done]
             : [done];
     }
@@ -406,6 +410,7 @@ public sealed class StratagemService : IDisposable
         var watch = System.Diagnostics.Stopwatch.StartNew();
         IReadOnlyList<MenuRow>? previous = null;
         var screenScale = Current.List.ScreenScale;
+        var rejected = false;
         while (!ct.IsCancellationRequested)
         {
             var image = _platform.Capture?.CaptureMenuArea(out var scale) is { } captured ? (captured, scale) : default;
@@ -427,7 +432,11 @@ public sealed class StratagemService : IDisposable
             var rows = MenuReader.Read(image.captured, image.scale * screenScale);
             // The game scene behind a closed list can look like a row or two (an objective with an icon): only a
             // reading with a code or a known icon in it is the list.
-            if (!_screen!.LooksLikeTheList(rows)) rows = [];
+            if (!_screen!.LooksLikeTheList(rows))
+            {
+                rejected |= rows.Count > 0;
+                rows = [];
+            }
             var elapsed = watch.ElapsedMilliseconds;
             if (rows.Count > 0 && previous is { Count: > 0 } && SameReading(rows, previous))
             {
@@ -465,7 +474,7 @@ public sealed class StratagemService : IDisposable
 
         void NotFound()
         {
-            _listVisible = ListNotVisible;
+            _listVisible = rejected ? ListRejected : ListNotVisible;
             _lastReadingStable = true;
             _screen!.ListNotFound();
             // Black pictures (fullscreen, HDR) count as "unreadable", not here; a list that is really not found

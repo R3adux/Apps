@@ -121,6 +121,36 @@ public class MacroQueueTests
     }
 
     [Fact]
+    public async Task An_aborted_job_presses_a_key_again_that_the_player_holds()
+    {
+        // Press mode, Ctrl+V during the tool's own tap of Ctrl: the tap is cut short, but the player holds Ctrl –
+        // the game must end with Ctrl down, whichever thread was first.
+        var output = new FakeOutput();
+        var physical = new PhysicalKeyState();
+        using var runner = new MacroRunner(output, physical);
+        using var abort = new CancellationTokenSource();
+        var done = runner.Enqueue([new MacroStep.Press(KeyNames.ControlLeft), new MacroStep.Wait(2000)], "Tippen", abort: abort.Token);
+        await MacroRunnerTests.WaitUntil(() => output.Events.Count == 1);
+        physical.Set(KeyNames.ControlLeft, true);
+        abort.Cancel();
+        Assert.False(await done.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.Equal(["+ControlLeft", "-ControlLeft", "+ControlLeft"], output.Events);
+    }
+
+    [Fact]
+    public async Task An_aborted_waiting_job_never_runs()
+    {
+        var output = new FakeOutput();
+        using var runner = new MacroRunner(output, new PhysicalKeyState());
+        using var abort = new CancellationTokenSource();
+        _ = runner.Enqueue([new MacroStep.Wait(200)], "busy");
+        var done = runner.Enqueue([new MacroStep.Press(KeyNames.ControlLeft), new MacroStep.Release(KeyNames.ControlLeft)], "x", abort: abort.Token);
+        abort.Cancel();
+        Assert.False(await done.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.Empty(output.Events);
+    }
+
+    [Fact]
     public async Task Cancel_drops_waiting_jobs()
     {
         var output = new FakeOutput();

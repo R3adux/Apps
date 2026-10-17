@@ -154,9 +154,10 @@ public class MenuReaderTests
     [InlineData(169, 8, 160)]
     [InlineData(126, 8, 120, 6)] // first arrow of the MG sentry (↓↑→→↑) merges with the glow
     [InlineData(126, 6, 160, 6)]
-    public void A_half_hidden_code_is_never_read_short(int x, double sigma, int strength, int rowIndex = 2)
+    [InlineData(211, 10, 120, 6, "menu-1080p-b.png")] // last MG arrow merges with the glow and touches its neighbour
+    public void A_half_hidden_code_is_never_read_short(int x, double sigma, int strength, int rowIndex = 2, string file = "menu-1080p-a.png")
     {
-        var image = Load("menu-1080p-a.png");
+        var image = Load(file);
         var data = (byte[])image.Bgra.Clone();
         var y = rowIndex == 2 ? 220 : 428;
         var expected = rowIndex == 2 ? "UULUR" : "DURRU";

@@ -390,8 +390,9 @@ public static class MenuReader
         {
             if (chain.Contains(b) || b.Bottom < lineTop || b.Top > lineBottom) continue;
             if (b.Width < minSize || b.Height < minSize) continue; // a thin edge (icon frame), not a lost arrow
-            if (b.Right < first.Left && b.Right >= first.Left - reach) return true;
-            if (b.Left > last.Right && b.Left <= last.Left + reach) return true;
+            // Overlap counts: a lost arrow merged with a glow can touch its neighbour.
+            if (b.Left < first.Left && b.Right >= first.Left - reach) return true;
+            if (b.Right > last.Right && b.Left <= last.Left + reach) return true;
         }
         return false;
     }
