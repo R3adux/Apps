@@ -101,14 +101,19 @@ for (const resume of [true, false]) {
       await lamp.ready;
       await new Promise((r) => setTimeout(r, 500)); // the user taps right after the lamp is back
 
+      const statuses = [];
+      const unsubscribe = hub.subscribe((e) => e.light && statuses.push(e.light.status));
       const t = Date.now();
       await hub.update(id, { on: true, brightness: 80, mode: 'white', temperature: 0 });
       await waitFor(() => lamp.state.onOff === true, 'lamp on');
       const ms = Date.now() - t;
-      await waitFor(() => hub.light(id).status === 'online', 'shown as connected', 5000);
-      const onlineMs = Date.now() - t;
-      console.log(`TIMING powercut (${resume ? 'resume' : 'no resume'}) first tap ${ms} ms, online after ${onlineMs} ms`);
+      console.log(`TIMING powercut (${resume ? 'resume' : 'no resume'}) first tap ${ms} ms`);
       assert.ok(ms < 3000, `first tap after power cut took ${ms} ms`);
+      // Licht replaced the dead connection itself: other screens never saw "Verbinde …".
+      await new Promise((r) => setTimeout(r, 3500));
+      unsubscribe();
+      assert.deepEqual(statuses.filter((st) => st !== 'online'), []);
+      assert.equal(hub.light(id).status, 'online');
     } finally {
       await hub?.close().catch(() => {});
       await cutPower(lamp);

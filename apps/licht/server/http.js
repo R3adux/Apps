@@ -115,17 +115,20 @@ function fromForeignSite(req) {
 // The API answers only when addressed by a home-network name or address. A foreign web site could
 // otherwise point its own name at this computer ("DNS rebinding") and then count as same-origin.
 const HOME_SUFFIXES = ['.local', '.lan', '.home', '.home.arpa', '.internal', '.localdomain', '.fritz.box'];
+// More names can be allowed with LICHT_HOSTS, e.g. LICHT_HOSTS=licht.example.org,pc.tail1234.ts.net
+const EXTRA_HOSTS = (process.env.LICHT_HOSTS ?? '').split(',').map((h) => h.trim().toLowerCase()).filter(Boolean);
 export function isHomeHost(hostHeader) {
+  if (!hostHeader) return false;
   let hostname;
   try {
-    hostname = new URL(`http://${hostHeader}`).hostname.toLowerCase();
+    hostname = new URL(`http://${hostHeader}`).hostname.toLowerCase().replace(/\.$/, ''); // "pi.fritz.box." too
   } catch {
     return false;
   }
   if (hostname === 'localhost' || hostname.endsWith('.localhost')) return true;
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname) || hostname.startsWith('[')) return true; // IP address
   if (!hostname.includes('.')) return true; // name of a computer in the home network, e.g. "raspberrypi"
-  if (hostname === hostname_().toLowerCase()) return true;
+  if (hostname === hostname_().toLowerCase() || EXTRA_HOSTS.includes(hostname)) return true;
   return HOME_SUFFIXES.some((suffix) => hostname.endsWith(suffix));
 }
 
@@ -215,8 +218,13 @@ export function createHttpServer(hub, { webDir, webFiles, ble = false, desktop, 
   return createServer(async (req, res) => {
     const { pathname } = new URL(req.url, 'http://localhost');
     try {
-      if (pathname.startsWith('/api/') && (fromForeignSite(req) || !isHomeHost(req.headers.host))) {
+      if (pathname.startsWith('/api/') && fromForeignSite(req)) {
         send(res, 403, { error: 'Verboten.' });
+      } else if (pathname.startsWith('/api/') && !isHomeHost(req.headers.host)) {
+        send(res, 403, {
+          error: 'Licht bitte über die IP-Adresse oder den Namen des Computers öffnen (z. B. http://192.168.178.20:8080). '
+            + 'Weitere Namen erlaubt LICHT_HOSTS.',
+        });
       } else if (pathname.startsWith('/api/')) await api(hub, req, res, pathname, { ble, desktop, ready });
       else if (req.method === 'GET' || req.method === 'HEAD') await staticFile(res, web, pathname);
       else send(res, 405, { error: 'Methode nicht erlaubt.' });

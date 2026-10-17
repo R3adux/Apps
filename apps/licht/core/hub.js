@@ -48,6 +48,11 @@ const WAKE_THROTTLE_MS = 5000;
 // in the background, and when the user taps (see #restartConnecting).
 const RESTART_CONNECTING_MS = 15_000;
 const RESTART_ON_TAP_MS = 3000;
+const LONG_AWAY_MS = 5 * 60_000;
+const RESTART_LONG_AWAY_MS = 60_000;
+// After Licht itself replaced a dead connection while sending a command, the lamp is still shown as
+// connected this long – usually it is back within a second, and other screens should not flicker.
+const HOLD_ONLINE_MS = 3000;
 // After losing the connection, a lamp is shown as "connecting" for this long, then as unreachable.
 const CONNECTING_GRACE_MS = 30_000;
 // Several attribute changes in a row (e.g. a colour change) are sent as one update.
@@ -250,7 +255,7 @@ export class LightHub {
   // 'online', 'connecting' (connection lost less than CONNECTING_GRACE_MS ago, or never yet
   // established since start) or 'offline'. Stable: retries in the background don't make it flicker.
   #status(lamp) {
-    if (lamp.node.connectionState === NodeStates.Connected) return 'online';
+    if (lamp.node.connectionState === NodeStates.Connected || Date.now() < lamp.holdOnlineUntil) return 'online';
     return Date.now() - lamp.lostAt < CONNECTING_GRACE_MS ? 'connecting' : 'offline';
   }
 
@@ -374,8 +379,18 @@ export class LightHub {
    * Returns { localOnly: true } if the lamp could not be reached: Licht forgot it, but the lamp
    * still lists Licht (and uses one of its few places for apps) until it is reset.
    */
-  async remove(id) {
+  remove(id) {
     const lamp = this.#lamp(id);
+    // Asked twice (e.g. a second tap while waiting for an unreachable lamp): one removal, one answer.
+    lamp.removing ??= this.#remove(lamp).catch((err) => {
+      lamp.removing = undefined; // failed: may be tried again
+      throw err;
+    });
+    return lamp.removing;
+  }
+
+  async #remove(lamp) {
+    const { id } = lamp;
     let localOnly = false;
     try {
       if (!this.#isConnected(lamp)) {
@@ -458,19 +473,28 @@ export class LightHub {
         return;
       } catch (err) {
         if (err instanceof StatusResponseError || err instanceof ValidationError) {
-          // The lamp is there but refused (e.g. a value it does not support): no connection problem.
+          // The lamp is there but answered with an error: no connection problem.
+          const code = err.code;
+          if ((code === Status.Busy || code === Status.ResourceExhausted) && attempt < 3) {
+            await new Promise((r) => setTimeout(r, 200)); // busy for a moment: once more
+            continue;
+          }
           logger.warn(`Lamp ${lamp.id} refused the command`, err);
-          throw Object.assign(new Error('Die Lampe hat den Befehl abgelehnt.'), { status: 502 });
+          const message = code === Status.UnsupportedAccess
+            ? 'Die Lampe kennt Licht nicht mehr (zurückgesetzt oder in einer anderen App entfernt?). Bitte neu hinzufügen.'
+            : 'Die Lampe hat den Befehl abgelehnt.';
+          throw Object.assign(new Error(message), { status: 502 });
         }
         const left = deadline - Date.now();
         if (attempt >= 3 || left < 300) {
           logger.info(`Command for ${lamp.id} not answered:`, err.message ?? err);
+          lamp.holdOnlineUntil = 0;
           this.#dropConnection(lamp);
           throw Object.assign(new Error(UNREACHABLE), { status: 503 });
         }
         // No answer over the existing connection: it is dead. Open a new one and send again.
         logger.info(`Command for ${lamp.id} not answered (${err.message ?? err}), new connection and once more`);
-        await this.#dropConnection(lamp);
+        await this.#dropConnection(lamp, { holdOnline: true });
       } finally {
         clearTimeout(timer);
       }
@@ -510,7 +534,12 @@ export class LightHub {
   }
 
   // Forgets the (dead) connection to a lamp and starts a fresh one right away.
-  async #dropConnection(lamp) {
+  // holdOnline: keep showing the lamp as connected for a moment (see HOLD_ONLINE_MS).
+  async #dropConnection(lamp, { holdOnline = false } = {}) {
+    if (holdOnline && this.#isConnected(lamp)) {
+      lamp.holdOnlineUntil = Date.now() + HOLD_ONLINE_MS;
+      setTimeout(() => this.#changed(lamp), HOLD_ONLINE_MS + 50).unref?.();
+    }
     try {
       await this.#peer(lamp).disconnect(new Error('no answer'));
     } catch (err) {
@@ -524,15 +553,17 @@ export class LightHub {
   // matter.js waits longer and longer between attempts to reach a lamp that is away (up to 2 minutes).
   // A lamp just switched on again would stay unreachable for that long: restart the attempt, so it
   // begins again with quick retries.
-  #restartConnecting(lamp, minGap = RESTART_CONNECTING_MS) {
+  #restartConnecting(lamp, minGap) {
+    // Away for long (unplugged): try less often.
+    minGap ??= Date.now() - lamp.lostAt > LONG_AWAY_MS ? RESTART_LONG_AWAY_MS : RESTART_CONNECTING_MS;
     if (this.#hasSession(lamp) || Date.now() - lamp.lastRestart < minGap) return;
     lamp.lastRestart = Date.now();
-    lamp.lastWake = Date.now();
+    // Only abort the slowed-down attempt: whoever waits for the connection (the lamp's subscription,
+    // or the user's command) starts a fresh one with quick retries by itself. No resubscribe here,
+    // which would also write to storage each time.
     Promise.resolve()
       .then(() => this.#peer(lamp).disconnect())
-      .catch((err) => logger.debug('Restarting connection attempt failed', err))
-      .finally(() => lamp.node.triggerReconnect());
-    this.#changed(lamp);
+      .catch((err) => logger.debug('Restarting connection attempt failed', err));
   }
 
   /* ---------- Connection handling ---------- */
@@ -542,7 +573,7 @@ export class LightHub {
     const node = await this.#controller.getNode(NodeId(BigInt(id)));
     const lamp = {
       id, nodeId: node.nodeId, node, ready: false, attrs: {}, features: {}, clients: {}, name: 'Lampe',
-      lastWake: 0, lastRestart: Date.now(), lastSeen: Date.now(), probing: false,
+      lastWake: 0, lastRestart: Date.now(), lastSeen: Date.now(), probing: false, holdOnlineUntil: 0,
       // Counts as "connecting" during the first moments after start.
       lostAt: Date.now(), wasConnected: false, offlineTimer: undefined,
     };

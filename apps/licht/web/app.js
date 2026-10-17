@@ -74,8 +74,9 @@ class Sender {
     }
     await new Promise((r) => setTimeout(r, SEND_GAP_MS));
     this.busy = false;
-    if (failed) reload();
-    else this.#run();
+    // A new tap right after a failure is sent (the user tries again); otherwise show the real state.
+    if (this.pending) this.#run();
+    else if (failed) reload();
   }
 }
 
@@ -467,7 +468,9 @@ async function lightAction(action, id) {
         danger: true,
       });
       if (!sure) return;
+      toast(`„${light.name}“ wird entfernt …`, 'ok'); // can take a moment if the lamp is not reachable
       const result = await api.remove(id);
+      $('#toast').hidden = true;
       lights = lights.filter((l) => l.id !== id);
       render();
       if (result?.localOnly) {

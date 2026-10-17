@@ -174,7 +174,7 @@ test('lamp requests wait until the lamps are loaded', async () => {
 
 test('the API answers only under home-network names (no DNS rebinding)', async () => {
   for (const host of ['localhost:8080', '127.0.0.1:8080', '192.168.178.20:8080', '[::1]:8080', 'raspberrypi:8080',
-    'raspberrypi.fritz.box:8080', 'licht.local', 'pc.lan:8080', 'pc.home.arpa']) {
+    'raspberrypi.fritz.box:8080', 'raspberrypi.fritz.box.:8080', 'licht.local', 'pc.lan:8080', 'pc.home.arpa']) {
     assert.equal(isHomeHost(host), true, host);
   }
   for (const host of ['evil.example:8080', 'licht.app', 'attacker.com', '', 'a b']) {

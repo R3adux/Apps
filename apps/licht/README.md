@@ -137,10 +137,13 @@ Diesen Code in der Licht-App auf dem Handy unter „Lampe hinzufügen“ eingebe
 | Ausführliche Meldungen | `LICHT_LOG=info npm start` |
 
 Einstellungen über Umgebungsvariablen: `PORT` (Standard 8080), `LICHT_DATA` (Speicherort der
-Kopplungsdaten, Standard `~/.licht`), `LICHT_BLE=1`, `LICHT_LOG`.
+Kopplungsdaten, Standard `~/.licht`), `LICHT_BLE=1`, `LICHT_LOG`, `LICHT_HOSTS` (siehe unten).
 
 Die Zentrale ist für das Heimnetz gedacht und hat kein Passwort. Jeder im WLAN kann das
 Licht steuern, wie bei einem Lichtschalter. Gib den Port nicht ins Internet frei.
+Webseiten aus dem Internet können Licht nicht fernsteuern: Licht antwortet nur, wenn es über eine
+IP-Adresse, den Computernamen oder einen Heimnetz-Namen (`….local`, `….fritz.box`, `….lan`, …)
+aufgerufen wird. Andere Namen (z. B. über ein VPN) lassen sich mit `LICHT_HOSTS=name1,name2` erlauben.
 
 ## Entwicklung
 
