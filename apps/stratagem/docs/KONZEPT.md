@@ -80,6 +80,9 @@ nur Namen und kann veralten, ohne etwas kaputtzumachen.
 - Gespeichert werden **nur Aktionen, die vom Standard abweichen** – eine Aktion dann mit all ihren Belegungen
   (auch Controller). Tastennamen: `"left ctrl"`, `"left shift"`, `"up"`, `"tab"`, `"c"`, `"4"`;
   Maus: `"MouseButton1…5"`, `"MouseWheel"` (Achse). Auslöser: `Press`, `Hold`, `Tap`, `LongPress`, `Y+`/`Y-`.
+- Zu jeder Taste steht auch ihre Position: `fixed_layout_id` = Scancode (Satz 1, ohne E0). Die Position gewinnt
+  über den Namen (Buchstabennamen hängen vom Tastaturlayout ab, QWERTZ/AZERTY); der Name unterscheidet nur
+  E0-Tasten (`"up"` 72 = Pfeil hoch, nicht Num 8).
 - Der Parser bleibt tolerant und meldet Unbekanntes in der Oberfläche, statt zu scheitern.
 - Die Datei wird überwacht: Änderst du im Spiel eine Taste, übernimmt Stratagem sie ohne Neustart.
 
@@ -101,8 +104,9 @@ nur Namen und kann veralten, ohne etwas kaputtzumachen.
 - Kein offizielles Statement von Arrowhead zu Makros gefunden, keine bestätigten Banns. Berichte, dass
   GameGuard teils AutoHotkey blockiert.
 - Grundsatz hier: **kein Eingriff ins Spiel.** Kein Lesen von Spielspeicher, keine DLL im Spiel, kein
-  Treiber, kein Verstecken. Das Spielfenster wird über den Prozessnamen aus der Prozessliste erkannt –
-  es wird nie ein Handle auf den Spielprozess geöffnet. Bildschirm lesen = dasselbe wie OBS/Discord.
+  Treiber, kein Verstecken. Das Spielfenster wird über den Prozessnamen aus der Prozessliste (Schnappschuss)
+  erkannt – es wird nie ein Handle auf den Spielprozess geöffnet (auch nicht indirekt: `Process.GetProcessById`
+  und `.ProcessName` würden eines öffnen und werden deshalb nicht benutzt). Bildschirm lesen = dasselbe wie OBS/Discord.
 - Restrisiko bleibt dasselbe wie bei Stream Deck/AutoHotkey/G Hub: Software-Eingaben sind als solche erkennbar.
 
 ### Stream Deck (pausiert, Notizen für später)
@@ -116,13 +120,13 @@ nur Namen und kann veralten, ohne etwas kaputtzumachen.
 | # | Stelle | Risiko | Lösung / Stand |
 |---|---|---|---|
 | 1 | **Mausbewegung im Spiel abfangen** (Radialmenü darf die Kamera nicht drehen) | hoch | Low-Level-Maus-Hook schluckt Bewegungen, solange das Menü offen ist, und wertet sie selbst aus. **Ungeklärt, ob Helldivers' Raw-Input das respektiert** → erster Test im Spiel. Plan B: Overlay kurz fokussieren (Spiel bekommt dann keine Maus), oder Auswahl per Mausrad/WASD. |
-| 2 | Mauszeiger ist im Spiel gefangen | mittel | Bewegung wird als Differenz zur aktuellen Zeigerposition berechnet; da Bewegungen geschluckt werden, bleibt der Zeiger stehen. Zusätzlich „virtueller Stick“: Vektor auf Radius begrenzt, Richtungswechsel brauchen keinen langen Rückweg. |
+| 2 | Mauszeiger ist im Spiel gefangen | mittel | Bewegung wird als Differenz zur aktuellen Zeigerposition berechnet; da Bewegungen geschluckt werden, bleibt der Zeiger stehen. Zusätzlich „virtueller Stick“: Vektor auf Radius begrenzt, Richtungswechsel brauchen keinen langen Rückweg. **Offen:** Sperrt das Spiel den Zeiger in ein sehr kleines Rechteck (`ClipCursor`), könnte Windows die Position im Hook begrenzen – dann ließe sich das Menü nicht steuern. Raw Input hilft nicht (geschluckte Bewegungen erreichen auch WM_INPUT nicht). Wird beim ersten Test sichtbar (Testliste Punkt 4); Plan B wie bei Stelle 1. |
 | 3 | Overlay über dem Spiel | mittel | Click-through, nie fokussiert, immer oben, Alpha pro Pixel. **Nur im Randlos-/Fenstermodus sichtbar**, nicht im exklusiven Vollbild. |
 | 4 | Strg ist die Stratagem-Taste des Spiels | gelöst | Echtes Strg wird geschluckt, das Tool schickt markiertes Strg. Strg + andere Taste (z. B. Strg+V im Chat) = „Akkord“: Menü zu, Strg geht ans Spiel **vor** der anderen Taste. Hält das Tool die Spielliste schon offen (Strg + WASD = Code selbst tippen), gehört die gehaltene Taste ab dann dem Spieler – die Liste bleibt offen, bis er loslässt. Getestet. |
 | 17 | Spielliste muss nach jeder Auswahl/jedem Abbruch wieder zu sein | gelöst | Halten-Modus: Taste wird nach dem Code bzw. beim Abbrechen losgelassen. Drücken-Modus: Das Spiel schließt nach dem Code selbst; beim Abbrechen drückt das Tool nur dann erneut, wenn die Liste sichtbar (oder unbekannt) ist – sonst würde es sie öffnen. Kurzes Antippen im Drücken-Modus lässt die normale Spielliste offen. Antippen-&-Ziehen-Modus: Liste nur kurz zum Lesen offen, Laufen wird so lange zurückgehalten. Getestet (`ListFlowTests`). |
 | 5 | Hängende Tasten | gelöst | Makro-Läufer gibt in jedem Fall (Abbruch, Fehler, Fokusverlust) alle gedrückten Tasten frei. Radialmenü schluckt das „Loslassen“ genau dann, wenn es das „Drücken“ geschluckt hat – sonst würde z. B. Dauerfeuer entstehen. Getestet. |
 | 6 | Laufen während des Makros (W gehalten, Code nutzt W) | gelöst | W wird vorher losgelassen, nach dem Code wieder gedrückt, falls noch gehalten. Spieler-Drücke der Makro-Tasten werden währenddessen zurückgehalten, damit sie sich nicht in den Code mischen. Besser: im Spiel Pfeiltasten für Stratagems (das Tool bevorzugt sie automatisch). |
-| 7 | Hooks werden von Windows entfernt (Timeout ~1 s) | mittel | Hook-Callbacks arbeiten nur im Speicher, Log schreibt im Hintergrund, Hooks werden bei jedem Wechsel ins Spiel neu gesetzt (außerhalb gibt es sie gar nicht). |
+| 7 | Hooks werden von Windows entfernt (Timeout ~1 s) | mittel | Hook-Callbacks arbeiten nur im Speicher, Log schreibt im Hintergrund, Hooks werden bei jedem Wechsel ins Spiel neu gesetzt (außerhalb gibt es sie gar nicht). Die Spieldatei wird außerhalb der Sperre gelesen, die auch der Hook-Thread nimmt – er wartet nie auf die Festplatte. |
 | 14 | Markierung flackert an Segmentgrenzen / am Rand der Mitte | gelöst | Hysterese: Die Markierung wechselt erst 7° hinter der Grenze und fällt erst bei 75 % des Abbrechen-Bereichs zurück. Getestet. |
 | 16 | Auslöser oder direkte Taste ist im Spiel schon belegt (z. B. Maus-Seitentaste = Kameraseite wechseln) | gelöst | Alle Belegungen aus der Spieldatei werden mit Auslöser und Tasten verglichen; die Oberfläche warnt mit dem Namen der Spielaktion. Strg als Auslöser auf der Stratagem-Taste ist gewollt und keine Warnung. Grenze: Standardbelegungen stehen nicht in der Datei. |
 | 15 | Kurzes Antippen lässt das Menü aufblitzen | gelöst | Im Halten-Modus erscheint der Kreis erst nach 90 ms – oder sofort, sobald ein Segment gewählt wird. Schnelle „Flicks“ funktionieren ohne Wartezeit, die Auswahl wird mit kurzem Ausblenden bestätigt. |
@@ -182,9 +186,12 @@ Testfälle unter `tests/Stratagem.Core.Tests/data/`.
 3. Pfeile: eine Reihe gleich großer Formen ab Zeilenanfang im Pfeilabstand auf einer Linie. Jede muss der
    Pfeil-Vorlage des Spiels gleichen (echte Pfeile ≥ 0,83, alles andere in den Testbildern ≤ 0,35; Schwelle 0,7)
    und eindeutig in eine Richtung zeigen. Ein Fleck daneben verdirbt die Zeile nicht mehr.
-4. Zustand: Pfeile = aufrufbar; sonst über die Helligkeit des Titels (gedimmt = Abklingzeit, hell = unterwegs) – nur
-   zur Anzeige, entscheidend ist „aufrufbar oder nicht“.
-5. Icon: ausgeschnitten (PNG nur bei Änderung, für Radialmenü/Weboberfläche) und als Fingerabdruck (Differenz-Hash,
+4. Der ganze Code oder keiner: Die Pfeilreihe muss genau am Titelanfang beginnen, und direkt davor oder dahinter
+   darf nichts Helles auf der Linie liegen. Sonst (ein Pfeil unter einem Leuchten verschwunden) wäre der gelesene
+   Code kürzer und damit falsch – dann gilt die Zeile als **unklar**.
+5. Zustand: Pfeile = aufrufbar; Text in der zweiten Zeile = nicht aufrufbar (Titelhelligkeit: gedimmt = Abklingzeit,
+   hell = unterwegs); weder noch = unklar. Unklar blockiert nie – getippt wird, das Spiel entscheidet.
+6. Icon: ausgeschnitten (PNG nur bei Änderung, für Radialmenü/Weboberfläche) und als Fingerabdruck (Differenz-Hash,
    unempfindlich gegen die helle Abklingzeit-Füllung).
 
 **Getestet** (`MenuReaderTests`): beide echten Bilder in 540p, 720p, 1440p, 4K, heller, dunkler, mehr/weniger Kontrast,
@@ -217,7 +224,11 @@ schwierige Stelle 17). Tasten und Deck lesen genauso vor dem Tippen. Alles in ei
 durcheinander. Aufnahme per GDI nur vom Listenbereich (ein paar Millisekunden, Puffer wird wiederverwendet).
 
 **Ohne Einstellung:** „Aus dem Spiel lesen“ ist Standard (alte Einstellungen werden einmalig umgestellt). Bis zur
-ersten Lesung gilt die eigene Liste. Wird die Liste dreimal nicht gefunden, kommt eine Meldung unten rechts.
+ersten Lesung gilt die eigene Liste. Wird die Liste dreimal hintereinander nicht gefunden (oder ist das Bild schwarz:
+Vollbild/HDR), kommt eine Meldung unten rechts, und Codes werden wieder ungeprüft getippt – ein „nicht gefunden“
+blockiert nie dauerhaft. Ein gemerkter Abklingzeit-Stand sperrt weder Deck noch Tasten noch Radialmenü: Vor dem Tippen
+wird ohnehin frisch gelesen. Lässt der Spieler los, während noch gelesen wird, wird sofort abgebrochen und die Liste
+geschlossen (Laufen geht dann schon wieder ans Spiel).
 
 **Ohne Spiel testen:** Weboberfläche → „Erkennung mit einem Bildschirmfoto testen“ (PNG hochladen).
 
