@@ -196,7 +196,8 @@ public sealed class ScreenStratagemSource : IStratagemSource
             var code = row.Code ?? _memory.Find(row.IconHash, exclude: used);
             if (code is null) continue;
             used.Add(code);
-            found.Add((code, row.State == RowState.Callable, row));
+            // Unclear (arrows half hidden, nothing readable) is no proof of a cooldown: let the game decide.
+            found.Add((code, row.State is RowState.Callable or RowState.Unclear, row));
         }
         // Icons change pixel by pixel all the time (cooldown fill): compare what matters, and only renew the
         // pictures now and then (making them costs more than reading the whole list).

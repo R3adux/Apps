@@ -93,7 +93,7 @@ public static class GameInputSettings
             {
                 foreach (var entry in Entries(section, action))
                 {
-                    var input = ToInput(Str(entry, "device_type"), Str(entry, "input"));
+                    var input = ToInput(Str(entry, "device_type"), Str(entry, "input"), LayoutId(entry));
                     if (input is { } i) result.Add(new GameBinding(i, sectionName, action, Str(entry, "trigger")));
                 }
             }
@@ -101,10 +101,10 @@ public static class GameInputSettings
         return result;
     }
 
-    internal static InputRef? ToInput(string? device, string? input)
+    internal static InputRef? ToInput(string? device, string? input, int? layoutId = null)
     {
         if (string.Equals(device, "Keyboard", StringComparison.OrdinalIgnoreCase))
-            return KeyNames.FromGameName(input) is { } key ? InputRef.Of(key) : null;
+            return KeyOf(input, layoutId) is { } key ? InputRef.Of(key) : null;
         if (string.Equals(device, "Mouse", StringComparison.OrdinalIgnoreCase))
         {
             return input?.ToLowerInvariant() switch
@@ -174,7 +174,7 @@ public static class GameInputSettings
             var device = Str(entry, "device_type");
             var input = Str(entry, "input");
             if (device is not null && !device.Equals("Keyboard", StringComparison.OrdinalIgnoreCase)) continue;
-            if (input is not null && KeyNames.FromGameName(input) is null)
+            if (input is not null && KeyOf(input, LayoutId(entry)) is null)
                 notes.Add($"Unbekannter Tastenname '{input}' bei Stratagem '{action}'.");
         }
     }
@@ -185,9 +185,26 @@ public static class GameInputSettings
         {
             var device = Str(entry, "device_type");
             if (device is not null && !device.Equals("Keyboard", StringComparison.OrdinalIgnoreCase)) continue;
-            if (KeyNames.FromGameName(Str(entry, "input")) is { } key) yield return (entry, key);
+            if (KeyOf(Str(entry, "input"), LayoutId(entry)) is { } key) yield return (entry, key);
         }
     }
+
+    /// <summary>
+    /// The physical key. The game writes the key's name ("w", "left ctrl", "up") and its position on the keyboard
+    /// (fixed_layout_id = set-1 scancode, without the E0 prefix). The position wins: names of letter keys depend on
+    /// the keyboard layout (QWERTZ, AZERTY), positions do not. The name still tells extended keys apart
+    /// ("up" = E0 48, not Numpad 8).
+    /// </summary>
+    internal static Key? KeyOf(string? input, int? layoutId)
+    {
+        var named = KeyNames.FromGameName(input);
+        if (layoutId is not (> 0 and < 0x80)) return named;
+        if (named is { } n && n.ScanCode == layoutId) return n;
+        return new Key((ushort)layoutId.Value, false);
+    }
+
+    private static int? LayoutId(Dictionary<string, object?> entry) =>
+        entry.TryGetValue("fixed_layout_id", out var v) && v is double d && d == Math.Floor(d) ? (int)d : null;
 
     private static IEnumerable<Dictionary<string, object?>> Entries(Dictionary<string, object?> section, string action) =>
         section.TryGetValue(action, out var value) switch

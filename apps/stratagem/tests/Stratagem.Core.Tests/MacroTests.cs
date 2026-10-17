@@ -20,7 +20,7 @@ public class MacroPlannerTests
     public void Hold_mode_keeps_menu_pressed()
     {
         var steps = MacroPlanner.Plan(StratagemCode.Parse("URD"), GameBindings.Default, Timing);
-        Assert.Equal("+ControlLeft 50 +KeyW 30 -KeyW 20 +KeyD 30 -KeyD 20 +KeyS 30 -KeyS 20 -ControlLeft", Describe(steps));
+        Assert.Equal("+ControlLeft 50 +KeyW 30 -KeyW 20 +KeyD 30 -KeyD 20 +KeyS 30 -KeyS 20 -ControlLeft 20", Describe(steps));
     }
 
     [Fact]
@@ -28,14 +28,14 @@ public class MacroPlannerTests
     {
         var bindings = GameBindings.Default with { MenuMode = MenuMode.Press, Up = KeyNames.ArrowUp, Right = KeyNames.ArrowRight };
         var steps = MacroPlanner.Plan(StratagemCode.Parse("UR"), bindings, Timing);
-        Assert.Equal("+ControlLeft 30 -ControlLeft 50 +ArrowUp 30 -ArrowUp 20 +ArrowRight 30 -ArrowRight", Describe(steps));
+        Assert.Equal("+ControlLeft 30 -ControlLeft 50 +ArrowUp 30 -ArrowUp 20 +ArrowRight 30 -ArrowRight 20", Describe(steps));
     }
 
     [Fact]
     public void Menu_already_open_types_the_code_and_releases_the_held_key()
     {
         var steps = MacroPlanner.Plan(StratagemCode.Parse("UD"), GameBindings.Default, Timing, menuAlreadyOpen: true);
-        Assert.Equal("+KeyW 30 -KeyW 20 +KeyS 30 -KeyS 20 -ControlLeft", Describe(steps)); // hold mode: the held key is released after the code
+        Assert.Equal("+KeyW 30 -KeyW 20 +KeyS 30 -KeyS 20 -ControlLeft 20", Describe(steps)); // hold mode: the held key is released after the code
     }
 
     [Fact]

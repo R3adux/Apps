@@ -42,8 +42,14 @@ public abstract record MacroStep
     public sealed record Press(Key Key) : MacroStep;
     public sealed record Release(Key Key) : MacroStep;
     public sealed record Wait(int Ms) : MacroStep;
-    /// <summary>Runs code on the macro thread between key events (e.g. read the screen once the list is open).</summary>
-    public sealed record Run(Action Action) : MacroStep;
+    /// <summary>
+    /// Runs code on the macro thread between key events (e.g. read the screen once the list is open).
+    /// The token is cancelled when the job is cancelled: longer work should stop then.
+    /// </summary>
+    public sealed record Run(Action<CancellationToken> Action) : MacroStep
+    {
+        public Run(Action action) : this(_ => action()) { }
+    }
     /// <summary>Releases keys an earlier job kept held.</summary>
     public sealed record ReleaseHeld : MacroStep;
     /// <summary>
@@ -52,10 +58,11 @@ public abstract record MacroStep
     /// </summary>
     public sealed record Decide(Func<IReadOnlyList<MacroStep>?> Instead) : MacroStep;
     /// <summary>
-    /// A key an earlier job kept held now belongs to the player (they hold it themselves): forget it without
-    /// releasing it, so it is neither released under their finger nor pressed again later.
+    /// A key an earlier job kept held is handed to the player: if they hold it themselves now, it is forgotten
+    /// without releasing it (neither released under their finger nor pressed again later); if they do not (any
+    /// more), it is released like any other.
     /// </summary>
-    public sealed record Forget(Key Key) : MacroStep;
+    public sealed record HandOver(Key Key) : MacroStep;
 }
 
 public static class MacroPlanner
@@ -92,6 +99,9 @@ public static class MacroPlanner
         }
 
         if (hold) steps.Add(new MacroStep.Release(bindings.Menu));
+        // A pause at the end: a next stratagem right after starts with the list key, and the game must see it as a
+        // new press (it reads input once per frame).
+        steps.Add(new MacroStep.Wait(t.KeyGapMs));
         return steps;
     }
 

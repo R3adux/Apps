@@ -13,6 +13,11 @@ public enum RowState
     Active,
     /// <summary>Normal title but no arrows, e.g. Reinforce "Bereit" when nobody needs reinforcing.</summary>
     Idle,
+    /// <summary>
+    /// Something arrow-like that could not be read safely (half hidden by a glow behind the list), or nothing at all
+    /// on the line. Neither a code nor proof that the stratagem is not callable.
+    /// </summary>
+    Unclear,
 }
 
 /// <param name="IconHash">Identity of the icon (stays the same while the stratagem stays the same).</param>
@@ -168,23 +173,36 @@ public static class MenuReader
         // The arrows are near white; on a bright background (explosion behind the half-transparent list) the
         // threshold moves up with it, but always stays clearly above the background.
         var threshold = bg + Math.Clamp((255 - bg) / 2, 20, 45);
-        var chain = ArrowChain(Blobs(img, textL, textR, lineTop, lineBottom, threshold), scale, g);
+        var blobs = Blobs(img, textL, textR, lineTop, lineBottom, threshold);
+        var chain = ArrowChain(blobs, scale, g);
+        var titleTop = top;
+        var titleBottom = top + (int)(h * 0.45);
+        var titleBg = Median(img, textL, textR, titleTop, titleBottom);
+        var titleContrast = Percentile(img, textL, textR, titleTop, titleBottom, 0.95) - titleBg;
 
+        // A code is typed into the game, so it must be the whole code: every shape must really look like the game's
+        // arrow and clearly point one way, the row must start where the title starts (a lost first arrow would
+        // otherwise give a shorter, wrong code), and nothing bright may sit on the line right before or after it
+        // (a lost arrow under a glow).
         StratagemCode? code = null;
         RowState state;
-        // Every shape must really look like the game's arrow (and clearly point one way): a code is typed into the
-        // game, so a row of something else that happens to be arrow-sized must never become one.
         var arrows = chain?.Select(b => ArrowDirection(img, b, textL, lineTop, bg)).ToList();
-        if (arrows is not null && arrows.All(a => a.Match >= g.MinArrowMatch && a.Margin >= g.MinArrowMargin))
+        var whole = chain is not null
+                    && arrows!.All(a => a.Match >= g.MinArrowMatch && a.Margin >= g.MinArrowMargin)
+                    && StartsWithTitle(img, chain[0].Left + textL, textL, textR, titleTop, titleBottom, titleBg, titleContrast, scale, g)
+                    && !BrightNextTo(chain, blobs, scale, g);
+        if (whole)
         {
-            code = new StratagemCode(arrows.Select(a => a.Direction));
+            code = new StratagemCode(arrows!.Select(a => a.Direction));
             state = RowState.Callable;
         }
         else
         {
-            var titleBg = Median(img, textL, textR, top, top + (int)(h * 0.45));
-            var contrast = Percentile(img, textL, textR, top, top + (int)(h * 0.45), 0.95) - titleBg;
-            state = contrast > 105 ? RowState.Active : contrast < 68 ? RowState.Cooldown : RowState.Idle;
+            // Only a line with text on it (a cooldown, "Bereit", "Ankunft in …") proves "not callable now".
+            var arrowSized = g.ArrowSize * 0.7 * scale;
+            var looksLikeText = blobs.Count(b => b.Width < arrowSized || b.Height < arrowSized) >= 3;
+            state = !looksLikeText ? RowState.Unclear
+                : titleContrast > 105 ? RowState.Active : titleContrast < 68 ? RowState.Cooldown : RowState.Idle;
         }
 
         var icon = img.Crop(iconL, top, iconR - iconL, h);
@@ -328,6 +346,40 @@ public static class MenuReader
     }
 
     public static int Distance(ulong a, ulong b) => System.Numerics.BitOperations.PopCount(a ^ b);
+
+    /// <summary>Does the arrow row start where the title above it starts (both are left-aligned in the game)?</summary>
+    private static bool StartsWithTitle(PixelImage img, int firstArrowX, int textL, int textR, int top, int bottom, int titleBg, int titleContrast, double scale, MenuGeometry g)
+    {
+        // Looked for from a little less than one arrow step before the first arrow: if that arrow were lost, the
+        // title would already be running there and start "too early".
+        var threshold = titleBg + Math.Max(25, titleContrast / 2);
+        var from = Math.Max(textL, firstArrowX - (int)Math.Round(g.ArrowPitch * 0.9 * scale));
+        var limit = Math.Min(textR, firstArrowX + (int)Math.Round(g.ArrowPitch * scale));
+        for (var x = from; x < limit; x++)
+        {
+            var hits = 0;
+            for (var y = top; y < bottom && hits < 2; y++) if (img.Luma(x, y) >= threshold) hits++;
+            if (hits >= 2) return Math.Abs(x - firstArrowX) <= g.ArrowPitch * 0.45 * scale;
+        }
+        return false;
+    }
+
+    /// <summary>Something bright of some size on the arrow line within an arrow step before the first or after the last arrow.</summary>
+    private static bool BrightNextTo(List<Blob> chain, List<Blob> blobs, double scale, MenuGeometry g)
+    {
+        var reach = g.ArrowPitch * 1.3 * scale;
+        var minSize = g.ArrowSize * 0.35 * scale;
+        int lineTop = chain.Min(b => b.Top), lineBottom = chain.Max(b => b.Bottom);
+        Blob first = chain[0], last = chain[^1];
+        foreach (var b in blobs)
+        {
+            if (chain.Contains(b) || b.Bottom < lineTop || b.Top > lineBottom) continue;
+            if (b.Width < minSize || b.Height < minSize) continue; // a thin edge (icon frame), not a lost arrow
+            if (b.Right < first.Left && b.Right >= first.Left - reach) return true;
+            if (b.Left > last.Right && b.Left <= last.Left + reach) return true;
+        }
+        return false;
+    }
 
     /// <summary>
     /// The arrows of a row: arrow-sized shapes in a regular row – starting at the beginning of the line, one after

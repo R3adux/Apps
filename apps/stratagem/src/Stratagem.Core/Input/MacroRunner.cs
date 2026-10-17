@@ -59,7 +59,8 @@ public sealed class MacroRunner : IDisposable
     private int _generation;
     private readonly object _gate = new();
 
-    private sealed record Job(IReadOnlyList<MacroStep> Steps, string Label, IReadOnlySet<Key> KeepHeld, IReadOnlySet<Key> Guard, int Generation, TaskCompletionSource<bool> Done);
+    private sealed record Job(IReadOnlyList<MacroStep> Steps, string Label, IReadOnlySet<Key> KeepHeld, IReadOnlySet<Key> Guard,
+        CancellationToken Abort, int Generation, TaskCompletionSource<bool> Done);
 
     public MacroRunner(IInputOutput output, PhysicalKeyState physical, IPrecisionTimer? timer = null, Action<string>? log = null)
     {
@@ -88,7 +89,7 @@ public sealed class MacroRunner : IDisposable
     {
         done = Task.FromResult(false);
         if (_queue.IsAddingCompleted || Interlocked.CompareExchange(ref _pending, 1, 0) != 0) return false;
-        done = Add(steps, label, null, null);
+        done = Add(steps, label, null, null, default);
         return true;
     }
 
@@ -97,17 +98,20 @@ public sealed class MacroRunner : IDisposable
     /// <paramref name="keepHeld"/>: keys this job leaves pressed for a later job, which releases them.
     /// <paramref name="guard"/>: further keys of the player held back from the game while the job runs (and pressed
     /// again afterwards if still held), e.g. walking keys while the list is briefly open for reading.
+    /// <paramref name="abort"/>: ends just this job (waiting or running; it then counts as not completed and releases
+    /// its keys), e.g. the reading of a list the player already closed.
     /// </summary>
-    public Task<bool> Enqueue(IReadOnlyList<MacroStep> steps, string label, IReadOnlySet<Key>? keepHeld = null, IReadOnlySet<Key>? guard = null)
+    public Task<bool> Enqueue(IReadOnlyList<MacroStep> steps, string label, IReadOnlySet<Key>? keepHeld = null, IReadOnlySet<Key>? guard = null,
+        CancellationToken abort = default)
     {
         if (_queue.IsAddingCompleted) return Task.FromResult(false);
         Interlocked.Increment(ref _pending);
-        return Add(steps, label, keepHeld, guard);
+        return Add(steps, label, keepHeld, guard, abort);
     }
 
-    private Task<bool> Add(IReadOnlyList<MacroStep> steps, string label, IReadOnlySet<Key>? keepHeld, IReadOnlySet<Key>? guard)
+    private Task<bool> Add(IReadOnlyList<MacroStep> steps, string label, IReadOnlySet<Key>? keepHeld, IReadOnlySet<Key>? guard, CancellationToken abort)
     {
-        var job = new Job(steps, label, keepHeld ?? new HashSet<Key>(), guard ?? new HashSet<Key>(), Volatile.Read(ref _generation),
+        var job = new Job(steps, label, keepHeld ?? new HashSet<Key>(), guard ?? new HashSet<Key>(), abort, Volatile.Read(ref _generation),
             new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously));
         try { _queue.Add(job); }
         catch (InvalidOperationException)
@@ -125,21 +129,28 @@ public sealed class MacroRunner : IDisposable
     public void Cancel()
     {
         Interlocked.Increment(ref _generation);
-        lock (_gate) _current?.Cancel();
-        if (_anyHeld && !_queue.IsAddingCompleted) Enqueue([new MacroStep.ReleaseHeld()], "Tasten freigeben");
+        bool running;
+        lock (_gate)
+        {
+            running = _current is not null;
+            _current?.Cancel();
+        }
+        // Also when a job is running: it may still be about to hand a key over to the next one.
+        if ((running || _anyHeld) && !_queue.IsAddingCompleted) Enqueue([new MacroStep.ReleaseHeld()], "Tasten freigeben");
     }
 
     private void Loop()
     {
         foreach (var job in _queue.GetConsumingEnumerable())
         {
-            var cts = new CancellationTokenSource();
+            var cts = CancellationTokenSource.CreateLinkedTokenSource(job.Abort);
             lock (_gate) _current = cts;
             var completed = false;
             try
             {
-                // Dropped by Cancel() while waiting (the release job itself always runs).
-                var stale = job.Generation != Volatile.Read(ref _generation) && job.Steps is not [MacroStep.ReleaseHeld];
+                // Dropped by Cancel() or its own abort while waiting (the release job itself always runs).
+                var stale = (job.Generation != Volatile.Read(ref _generation) || job.Abort.IsCancellationRequested)
+                            && job.Steps is not [MacroStep.ReleaseHeld];
                 if (!stale) completed = Execute(job, cts.Token);
             }
             catch (Exception e)
@@ -176,6 +187,8 @@ public sealed class MacroRunner : IDisposable
             {
                 if (!Step(step)) return false;
             }
+            // Cancelled during the last step (a long Run): not completed, so nothing is kept held.
+            if (ct.IsCancellationRequested) return false;
             completed = true;
             return true;
 
@@ -198,15 +211,17 @@ public sealed class MacroRunner : IDisposable
                         if (ct.WaitHandle.WaitOne(w.Ms)) return false;
                         break;
                     case MacroStep.Run run:
-                        run.Action();
+                        run.Action(ct);
+                        if (ct.IsCancellationRequested) return false;
                         break;
                     case MacroStep.ReleaseHeld:
                         foreach (var key in _held) _output.Send(key, false);
                         _held.Clear();
                         break;
-                    case MacroStep.Forget f:
-                        _held.Remove(f.Key);
-                        pressed.Remove(f.Key);
+                    case MacroStep.HandOver h:
+                        if (!_physical.IsDown(h.Key)) _output.Send(h.Key, false);
+                        _held.Remove(h.Key);
+                        pressed.Remove(h.Key);
                         break;
                     case MacroStep.Decide d:
                         if (d.Instead() is not { } instead) break;

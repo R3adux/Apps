@@ -54,6 +54,7 @@ public sealed class StratagemService : IDisposable
         Router = new InputRouter(Radial, Runner, Physical, () => IsActive, OnHotkey);
         Radial.Opened += OnRadialOpened;
         Radial.Closed += OnRadialClosed;
+        Radial.KeepTriggerOnChord = KeepTriggerOnChord;
         if (platform.Capture is not null)
         {
             _screen = new ScreenStratagemSource(
@@ -152,12 +153,9 @@ public sealed class StratagemService : IDisposable
     /// <summary>Re-reads the game's key bindings (called when input_settings.config changed).</summary>
     public void ReloadBindings()
     {
-        BindingsResult result;
-        lock (_gate)
-        {
-            result = ResolveBindings(_settings);
-            _bindings = result;
-        }
+        // The file is read outside the lock: the hook thread takes it and must never wait for a disk.
+        var result = ResolveBindings(Current);
+        lock (_gate) _bindings = result;
         Log($"Tastenbelegung: Menü {result.Bindings.Menu} ({result.Bindings.MenuMode}), " +
             $"Richtungen {result.Bindings.Up}/{result.Bindings.Down}/{result.Bindings.Left}/{result.Bindings.Right}" +
             (result.SourceFile is null ? " (eingestellt)" : " (aus dem Spiel)"));
@@ -194,8 +192,14 @@ public sealed class StratagemService : IDisposable
     private bool _lastReadingStable;
     private bool _readerWorked; // a list was read in this session: "not found" then really means "not open"
     private int _notFoundInARow;
+    private int _unreadableInARow;
+    private long _unreadableLoggedAt = long.MinValue / 2;
     private bool _noticeShown;
+    private bool _weOpenedList; // press mode: pressing the list key again closes only a list we opened
     private long _lastGoodRead = long.MinValue / 2;
+
+    // Ends the reading of a list the player closed already (hook thread → macro thread).
+    private CancellationTokenSource? _openAbort;
 
     /// <summary>Something the player should know even while playing (shown as a tray message). Once per session.</summary>
     public event Action<string>? Notice;
@@ -209,7 +213,8 @@ public sealed class StratagemService : IDisposable
     private bool ActivateFromRadial(StratagemItem item)
     {
         var opened = Interlocked.Exchange(ref _menuOpenedByUs, 0) == 1;
-        if (!IsActive || !item.Available)
+        Interlocked.Exchange(ref _openAbort, null); // the reading must finish: the code waits for it
+        if (!IsActive || (!item.Available && !CanRead))
         {
             if (opened) CloseOpenedMenu(); // the list must not stay open
             return Activate(item, "Radialmenü"); // logs why
@@ -235,13 +240,16 @@ public sealed class StratagemService : IDisposable
         if (Current.Radial.Mode == RadialMode.HoldRelease)
         {
             Interlocked.Exchange(ref _menuOpenedByUs, 1);
-            Runner.Enqueue([.. OpenList(bindings, timing, readMs), new MacroStep.Run(ReadUntilStable)], "Liste öffnen", MacroPlanner.KeepHeld(bindings));
+            var abort = new CancellationTokenSource();
+            Interlocked.Exchange(ref _openAbort, abort);
+            Runner.Enqueue(OpenAndRead(bindings, timing, readMs), "Liste öffnen",
+                MacroPlanner.KeepHeld(bindings), abort: abort.Token);
             return;
         }
         // Tap mode: a short look (open, read, close). The player's walking keys wait meanwhile, so they do not
         // end up as arrows in the list. Not again right after a reading.
         if (Environment.TickCount64 - Interlocked.Read(ref _lastGoodRead) < 2000) return;
-        Runner.Enqueue([.. OpenList(bindings, timing, readMs), new MacroStep.Run(ReadUntilStable), .. CloseList(bindings, timing)],
+        Runner.Enqueue([.. OpenAndRead(bindings, timing, readMs), .. CloseList(bindings, timing)],
             "Liste lesen", guard: bindings.DirectionKeys.ToHashSet());
     }
 
@@ -249,21 +257,40 @@ public sealed class StratagemService : IDisposable
     {
         if (close.Reason == RadialCloseReason.Selected) return; // ActivateFromRadial takes over the open list
         if (Interlocked.Exchange(ref _menuOpenedByUs, 0) == 0) return;
+        var abort = Interlocked.Exchange(ref _openAbort, null);
         var (bindings, timing, _) = Snapshot();
         switch (close.Reason)
         {
-            case RadialCloseReason.Chord:
-                // The player holds the trigger and pressed another key (Ctrl+W: typing a code by hand). The list
-                // stays open and the held list key is theirs now; the game sees their release later.
-                if (bindings.MenuMode == MenuMode.Hold) Runner.Enqueue([new MacroStep.Forget(bindings.Menu)], "Liste übergeben");
+            case RadialCloseReason.Chord when TriggerIsListKey(bindings):
+                // The player holds the list key and pressed another key (Ctrl+W: typing a code by hand). The list
+                // stays open. Hold mode: the held key is theirs now – the game sees their release later; if they let
+                // go before the hand-over runs, it is released then. Press mode: the trigger is not sent again
+                // (KeepTriggerOnChord), it would close the list.
+                if (bindings.MenuMode == MenuMode.Hold)
+                {
+                    Physical.Set(bindings.Menu, true);
+                    Runner.Enqueue([new MacroStep.HandOver(bindings.Menu)], "Liste übergeben");
+                }
                 break;
             case RadialCloseReason.Released when bindings.MenuMode == MenuMode.Press && close.OpenMs < 300 && !close.EverHighlighted:
                 // A quick tap in "press" mode is how the player opens the game's own list: leave it open.
                 break;
             default:
+                // Closed without a selection: stop the reading at once (the player may be walking already) and close.
+                abort?.Cancel();
                 Runner.Enqueue(CloseList(bindings, timing), "Liste schließen");
                 break;
         }
+    }
+
+    private bool TriggerIsListKey(GameBindings bindings) => Radial.Options.Trigger == InputRef.Of(bindings.Menu);
+
+    /// <summary>Press mode, chord right after the menu opened the list: the trigger must not toggle it shut again.</summary>
+    private bool KeepTriggerOnChord()
+    {
+        if (Volatile.Read(ref _menuOpenedByUs) != 1) return false;
+        var bindings = Snapshot().Bindings;
+        return bindings.MenuMode == MenuMode.Press && TriggerIsListKey(bindings);
     }
 
     private void CloseOpenedMenu()
@@ -272,34 +299,47 @@ public sealed class StratagemService : IDisposable
         Runner.Enqueue(CloseList(bindings, timing), "Liste schließen");
     }
 
-    /// <summary>Opens the game's list and waits until it should be on screen. Hold mode: the key stays down.</summary>
-    private List<MacroStep> OpenList(GameBindings bindings, MacroTiming timing, int readMs)
+    /// <summary>Opens the game's list and reads it once it should be on screen. Hold mode: the key stays down.</summary>
+    private List<MacroStep> OpenAndRead(GameBindings bindings, MacroTiming timing, int readMs)
     {
         var t = timing.Clamped();
+        var press = bindings.MenuMode == MenuMode.Press;
         var steps = new List<MacroStep>
         {
-            new MacroStep.Run(() => { _listVisible = ListVisibleUnknown; _lastReadingStable = false; }), // nothing from last time
+            new MacroStep.Run(() => { _listVisible = ListVisibleUnknown; _lastReadingStable = false; _weOpenedList = false; }),
             new MacroStep.Press(bindings.Menu),
         };
-        if (bindings.MenuMode == MenuMode.Press)
+        if (press)
         {
             steps.Add(new MacroStep.Wait(t.KeyHoldMs));
             steps.Add(new MacroStep.Release(bindings.Menu));
+            steps.Add(new MacroStep.Run(() => _weOpenedList = true)); // toggled open: closing needs another press
         }
         steps.Add(new MacroStep.Wait(Math.Max(t.MenuOpenMs, readMs)));
+        steps.Add(new MacroStep.Run(ReadUntilStable));
+        // Hold mode: only a job that ran to here keeps the key down; an aborted one released it already.
+        if (!press) steps.Add(new MacroStep.Run(() => _weOpenedList = true));
         return steps;
     }
 
-    /// <summary>Closes a list we opened. Press mode: only if it is (or may be) open – pressing again would open it.</summary>
+    /// <summary>
+    /// Closes a list we opened. Press mode: only if we opened it and it is (or may be) open – pressing again would
+    /// open it. Ends with a short pause, so a next press of the list key is a new press for the game.
+    /// </summary>
     private List<MacroStep> CloseList(GameBindings bindings, MacroTiming timing)
     {
-        if (bindings.MenuMode == MenuMode.Hold) return [new MacroStep.Release(bindings.Menu)];
+        var t = timing.Clamped();
+        var done = new MacroStep.Run(() => _weOpenedList = false);
+        if (bindings.MenuMode == MenuMode.Hold)
+            return [new MacroStep.Decide(() => _weOpenedList ? null : [done]), new MacroStep.Release(bindings.Menu), new MacroStep.Wait(t.KeyGapMs), done];
         return
         [
-            new MacroStep.Decide(() => _listVisible == ListNotVisible && _readerWorked ? [] : null),
+            new MacroStep.Decide(() => !_weOpenedList || (_listVisible == ListNotVisible && _readerWorked) ? [done] : null),
             new MacroStep.Press(bindings.Menu),
-            new MacroStep.Wait(timing.Clamped().KeyHoldMs),
+            new MacroStep.Wait(t.KeyHoldMs),
             new MacroStep.Release(bindings.Menu),
+            new MacroStep.Wait(t.KeyGapMs),
+            done,
         ];
     }
 
@@ -313,11 +353,11 @@ public sealed class StratagemService : IDisposable
         if (!menuOpen)
         {
             if (!CanRead) return MacroPlanner.Plan(item.Code, bindings, timing);
-            steps.AddRange(OpenList(bindings, timing, Snapshot().ReadMs));
-            steps.Add(new MacroStep.Run(ReadUntilStable));
+            steps.AddRange(OpenAndRead(bindings, timing, Snapshot().ReadMs));
         }
         if (CanRead) steps.Add(new MacroStep.Decide(() => Verify(item, bindings, timing)));
         steps.AddRange(MacroPlanner.Plan(item.Code, bindings, timing, menuAlreadyOpen: true));
+        steps.Add(new MacroStep.Run(() => _weOpenedList = false)); // a complete code closes the list
         return steps;
     }
 
@@ -338,30 +378,40 @@ public sealed class StratagemService : IDisposable
         if (why is null) return null;
         Log($"{item.Label} nicht getippt – {why}");
         // Hold mode: ending the job releases the list key. Press mode: close the list if it is open.
-        return bindings.MenuMode == MenuMode.Press && _listVisible == ListVisible
-            ? [new MacroStep.Press(bindings.Menu), new MacroStep.Wait(timing.Clamped().KeyHoldMs), new MacroStep.Release(bindings.Menu)]
-            : [];
+        var t = timing.Clamped();
+        var done = new MacroStep.Run(() => _weOpenedList = false);
+        return bindings.MenuMode == MenuMode.Press && _listVisible == ListVisible && _weOpenedList
+            ? [new MacroStep.Press(bindings.Menu), new MacroStep.Wait(t.KeyHoldMs), new MacroStep.Release(bindings.Menu), new MacroStep.Wait(t.KeyGapMs), done]
+            : [done];
     }
 
     /// <summary>
     /// On the macro thread, while the game's list should be open: read it until two pictures in a row agree
     /// (the list may still be appearing, an explosion may flash behind it). A few dozen milliseconds normally.
     /// </summary>
-    private void ReadUntilStable()
+    private void ReadUntilStable(CancellationToken ct)
     {
         var watch = System.Diagnostics.Stopwatch.StartNew();
         IReadOnlyList<MenuRow>? previous = null;
         var screenScale = Current.List.ScreenScale;
-        while (true)
+        while (!ct.IsCancellationRequested)
         {
             var image = _platform.Capture?.CaptureMenuArea(out var scale) is { } captured ? (captured, scale) : default;
             if (image.captured is null)
             {
+                // Unknown, not "closed": a black picture (exclusive fullscreen, HDR) proves nothing.
                 _listVisible = ListVisibleUnknown;
                 _lastReadingStable = false;
-                Log("Bildschirm nicht lesbar (Spiel nicht im Vordergrund oder Aufnahme blockiert).");
+                var now = Environment.TickCount64;
+                if (now - _unreadableLoggedAt > 30_000)
+                {
+                    _unreadableLoggedAt = now;
+                    Log("Bildschirm nicht lesbar (Vollbild/HDR, oder das Spiel war nicht vorn) – Codes werden ungeprüft getippt.");
+                }
+                if (++_unreadableInARow >= 3) ShowNotice();
                 return;
             }
+            _unreadableInARow = 0;
             var rows = MenuReader.Read(image.captured, image.scale * screenScale);
             var elapsed = watch.ElapsedMilliseconds;
             if (rows.Count > 0 && previous is { Count: > 0 } && SameReading(rows, previous))
@@ -381,7 +431,7 @@ public sealed class StratagemService : IDisposable
                 break;
             }
             previous = rows;
-            Thread.Sleep(30);
+            if (ct.WaitHandle.WaitOne(30)) return;
         }
         if (watch.ElapsedMilliseconds > 120) _log($"Liste gelesen in {watch.ElapsedMilliseconds} ms");
 
@@ -403,12 +453,21 @@ public sealed class StratagemService : IDisposable
             _listVisible = ListNotVisible;
             _lastReadingStable = true;
             _screen!.ListNotFound();
-            if (++_notFoundInARow >= 3 && !_readerWorked && !_noticeShown)
+            if (++_notFoundInARow >= 3)
             {
-                _noticeShown = true;
-                Notice?.Invoke("Stratagem findet die Stratagem-Liste des Spiels nicht. Spiel im Randlos-Modus starten (Optionen → Anzeige). Bis dahin gilt die eigene Liste.");
+                // Three times in a row: more likely the picture changed (display mode) than three tries in a
+                // vehicle – stop trusting "not found" until the list is read again, and tell the player.
+                _readerWorked = false;
+                ShowNotice();
             }
         }
+    }
+
+    private void ShowNotice()
+    {
+        if (_noticeShown) return;
+        _noticeShown = true;
+        Notice?.Invoke("Stratagem findet die Stratagem-Liste des Spiels nicht. Spiel im Randlos-Modus starten (Optionen → Anzeige). Bis dahin werden Codes ungeprüft getippt.");
     }
 
     private static bool SameReading(IReadOnlyList<MenuRow> a, IReadOnlyList<MenuRow> b)
@@ -425,9 +484,8 @@ public sealed class StratagemService : IDisposable
     /// <summary>Reads the game's list from a picture (diagnosis: uploaded screenshot). Returns the rows found.</summary>
     public IReadOnlyList<MenuRow> ReadPicture(PixelImage image, double scale)
     {
-        var rows = MenuReader.Read(image, scale);
-        _screen?.Update(rows);
-        return rows;
+        // Only shown, not used: an old screenshot must not replace the live list or teach the icon memory.
+        return MenuReader.Read(image, scale);
     }
 
     private void OnListChanged()
@@ -459,7 +517,9 @@ public sealed class StratagemService : IDisposable
             Log($"{origin}: {item.Label} ignoriert – {(Current.Paused ? "pausiert" : "Spiel nicht im Vordergrund")}");
             return false;
         }
-        if (!item.Available)
+        // With the list read from the game, the state shown may be old (Reinforce once a teammate died): the fresh
+        // reading right before typing decides.
+        if (!item.Available && !CanRead)
         {
             Log($"{origin}: {item.Label} ist gerade nicht verfügbar");
             return false;
@@ -548,12 +608,14 @@ public sealed class StratagemService : IDisposable
 
     private void Apply(AppSettings settings)
     {
+        var bindings = ResolveBindings(settings); // outside the lock (reads a file)
         lock (_gate)
         {
             _settings = settings;
             _manual = settings.ToManualItems(_catalog);
-            _bindings = ResolveBindings(settings);
+            _bindings = bindings;
         }
+        Radial.SelectUnavailable = CanRead;
         _screen?.RefreshNames();
         UpdateRadialItems();
         var options = settings.ToRadialOptions();
@@ -563,7 +625,14 @@ public sealed class StratagemService : IDisposable
         RaiseChanged();
     }
 
+    private readonly object _bindingsReadGate = new();
+
     private BindingsResult ResolveBindings(AppSettings settings)
+    {
+        lock (_bindingsReadGate) return ResolveBindingsLocked(settings);
+    }
+
+    private BindingsResult ResolveBindingsLocked(AppSettings settings)
     {
         if (settings.Game.ReadBindingsFromGame && _platform.ReadGameBindings is { } read)
         {

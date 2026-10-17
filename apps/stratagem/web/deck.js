@@ -18,7 +18,9 @@ function render() {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = `tile${item.available ? '' : ' unavailable'}${item.empty ? ' empty' : ''}`; // free places keep the grid stable
-    b.disabled = !item.available;
+    // Only free places are dead. A stratagem shown as unavailable can still be tried: with the list read from the
+    // game the state may be old, and Stratagem checks the game's list again before it types anything.
+    b.disabled = !!item.empty;
     if (item.hasIcon) {
       const img = document.createElement('img');
       img.src = `/api/icon/${i}?v=${item.code}`;

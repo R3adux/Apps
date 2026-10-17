@@ -267,3 +267,37 @@ public class RealGameFileTests
         Assert.Contains(conflicts, c => c.By == "hotkey" && c.Input == "KeyR" && c.Action == "Reload");
     }
 }
+
+public class KeyPositionTests
+{
+    [Fact]
+    public void The_key_position_in_the_game_file_wins_over_its_name()
+    {
+        // German keyboard: the key the game calls "z" sits where QWERTY has Y (scancode 0x15). The name alone would
+        // press the wrong key; the position (fixed_layout_id) is the physical key.
+        var r = GameInputSettings.Read("""
+            Stratagem = {
+            	Start = [ { trigger = "Hold" device_type = "Keyboard" input = "left ctrl" fixed_layout_id = 29 } ]
+            	Up = [ { trigger = "Press" device_type = "Keyboard" input = "z" fixed_layout_id = 21 } ]
+            	Down = [ { trigger = "Press" device_type = "Keyboard" input = "s" fixed_layout_id = 31 } ]
+            	Left = [ { trigger = "Press" device_type = "Keyboard" input = "left" fixed_layout_id = 75 } ]
+            	Right = [ { trigger = "Press" device_type = "Keyboard" input = "d" } ]
+            }
+            """);
+        Assert.Equal(KeyNames.ControlLeft, r.Bindings.Menu);
+        Assert.Equal("KeyY", KeyNames.NameOf(r.Bindings.Up));      // position 0x15
+        Assert.Equal("KeyS", KeyNames.NameOf(r.Bindings.Down));
+        Assert.Equal(KeyNames.ArrowLeft, r.Bindings.Left);          // "left" + 75: the arrow key (E0 4B), not Numpad 4
+        Assert.Equal("KeyD", KeyNames.NameOf(r.Bindings.Right));    // no position: by name
+    }
+
+    [Fact]
+    public void NumLock_and_Pause_are_told_apart()
+    {
+        // The keyboard hook reports NumLock as extended 0x45 and Pause as plain 0x45.
+        Assert.True(KeyNames.TryParse("NumLock", out var numLock));
+        Assert.True(KeyNames.TryParse("Pause", out var pause));
+        Assert.Equal(new Key(0x45, true), numLock);
+        Assert.Equal(new Key(0x45, false), pause);
+    }
+}

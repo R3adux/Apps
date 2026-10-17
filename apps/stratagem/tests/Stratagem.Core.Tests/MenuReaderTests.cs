@@ -138,6 +138,40 @@ public class MenuReaderTests
             Assert.DoesNotContain(MenuReader.Read(image, scale), r => r.Code is not null);
     }
 
+    /// <summary>
+    /// A glow behind the list (explosion, flare) swallows the first or last arrow of "Eagle Rearm" (↑↑←↑→).
+    /// A shorter code would be another stratagem or none: the row must then give no code at all – and not count as
+    /// "on cooldown" either, because it might well be callable.
+    /// </summary>
+    [Theory]
+    [InlineData(126, 8, 160)]
+    [InlineData(126, 8, 120)]
+    [InlineData(126, 8, 80)]
+    [InlineData(212, 8, 160)]
+    [InlineData(212, 10, 160)]
+    [InlineData(169, 8, 160)]
+    public void A_half_hidden_code_is_never_read_short(int x, double sigma, int strength)
+    {
+        var image = Load("menu-1080p-a.png");
+        var data = (byte[])image.Bgra.Clone();
+        const int y = 220;
+        for (var py = 0; py < image.Height; py++)
+        for (var px = 0; px < image.Width; px++)
+        {
+            var d2 = (px - x) * (px - x) + (py - y) * (py - y);
+            var add = strength * Math.Exp(-d2 / (2 * sigma * sigma));
+            if (add < 1) continue;
+            for (var c = 0; c < 3; c++)
+            {
+                var i = (py * image.Width + px) * 4 + c;
+                data[i] = (byte)Math.Min(255, data[i] + add);
+            }
+        }
+        var row = MenuReader.Read(new PixelImage(image.Width, image.Height, data), 1.0)[2];
+        Assert.True(row.Code is null || row.Code.Letters == "UULUR", $"falscher Code {row.Code?.Letters}");
+        Assert.True(row.Code is not null || row.State == RowState.Unclear, $"Zustand {row.State}");
+    }
+
     private static PixelImage Map(PixelImage src, Func<int, int> f)
     {
         var d = (byte[])src.Bgra.Clone();

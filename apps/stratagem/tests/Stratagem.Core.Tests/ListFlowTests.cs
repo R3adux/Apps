@@ -111,11 +111,28 @@ public class ListFlowTests
     }
 
     [Fact]
-    public async Task A_quick_tap_closes_the_list_after_reading()
+    public async Task A_quick_tap_leaves_nothing_pressed()
     {
+        // Released at once: the reading stops, the list key is released (or was never pressed).
         using var rig = new Rig();
         rig.Key(Ctrl, true);
         rig.Key(Ctrl, false);
+        await rig.Idle();
+        Assert.Contains(rig.Events, new[] { "", "+ControlLeft -ControlLeft" });
+    }
+
+    [Fact]
+    public async Task Releasing_during_the_reading_releases_the_list_key_at_once()
+    {
+        // The player let go: walking keys go to the game again right away, so the list must close right away,
+        // not after the reading.
+        using var rig = new Rig(s => s.Timing.ListReadMs = 400);
+        rig.Key(Ctrl, true);
+        await MacroRunnerTests.WaitUntil(() => rig.Output.Events.Count == 1);
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        rig.Key(Ctrl, false);
+        await MacroRunnerTests.WaitUntil(() => rig.Output.Events.Contains("-ControlLeft"));
+        Assert.True(watch.ElapsedMilliseconds < 150, $"{watch.ElapsedMilliseconds} ms");
         await rig.Idle();
         Assert.Equal("+ControlLeft -ControlLeft", rig.Events);
     }
@@ -142,6 +159,7 @@ public class ListFlowTests
         rig.Key(Ctrl, true);
         await rig.ListRead();
         Assert.True(rig.Key("KeyW", true));   // re-sent after the trigger
+        await rig.Idle();                     // the held list key is handed over
         Assert.False(rig.Key("KeyW", false));
         Assert.False(rig.Key(Ctrl, false));   // the game sees the release: the list closes as without the tool
         await rig.Idle();
@@ -152,6 +170,63 @@ public class ListFlowTests
         rig.Game.Raise();
         await rig.Idle();
         Assert.Equal("+ControlLeft +ControlLeft +KeyW", rig.Events);
+    }
+
+    [Fact]
+    public async Task Letting_go_before_the_hand_over_still_releases_the_list_key()
+    {
+        using var rig = new Rig();
+        rig.Key(Ctrl, true);
+        await rig.ListRead();
+        _ = rig.Service.Runner.Enqueue([new MacroStep.Wait(200)], "busy"); // e.g. a code from the phone is still typing
+        rig.Key("KeyW", true);
+        rig.Key("KeyW", false);
+        rig.Key(Ctrl, false); // before the hand-over job ran
+        await rig.Idle();
+        Assert.EndsWith("-ControlLeft", rig.Events);
+    }
+
+    [Fact]
+    public async Task With_another_trigger_a_chord_closes_the_list()
+    {
+        // Trigger on the mouse side button, list on Ctrl: strafing with A while the menu is open must not leave
+        // the list (and Ctrl) open.
+        using var rig = new Rig(s => s.Radial.Trigger = "MouseX1");
+        Assert.True(rig.Service.Router.OnMouseButton(MouseButton.X1, true));
+        await rig.ListRead();
+        Assert.True(rig.Key("KeyA", true));
+        await rig.Idle();
+        var events = rig.Output.Events;
+        Assert.Equal(["+ControlLeft", "+KeyA", "+MouseX1", "-ControlLeft"], events.Order(StringComparer.Ordinal));
+        Assert.True(events.ToList().IndexOf("-ControlLeft") > events.ToList().IndexOf("+ControlLeft"));
+        rig.Key("KeyA", false);
+        rig.Service.Router.OnMouseButton(MouseButton.X1, false);
+    }
+
+    [Fact]
+    public async Task Press_mode_typing_by_hand_keeps_the_list_open()
+    {
+        // Tap Ctrl and press W before letting go (normal rollover): the list the tool opened must stay open.
+        using var rig = new Rig(PressMode);
+        rig.Key(Ctrl, true);
+        await rig.Idle();
+        Assert.True(rig.Key("KeyW", true));
+        rig.Key(Ctrl, false);
+        rig.Key("KeyW", false);
+        await rig.Idle();
+        Assert.Equal("+ControlLeft -ControlLeft +KeyW", rig.Events); // no second Ctrl that would close it
+    }
+
+    [Fact]
+    public async Task Leaving_the_game_while_reading_leaves_nothing_pressed()
+    {
+        using var rig = new Rig(s => s.Timing.ListReadMs = 300);
+        rig.Key(Ctrl, true);
+        await MacroRunnerTests.WaitUntil(() => rig.Output.Events.Count == 1);
+        rig.Game.IsFocused = false;
+        rig.Game.Raise();
+        await rig.Idle();
+        Assert.Equal("+ControlLeft -ControlLeft", rig.Events);
     }
 
     [Fact]
@@ -288,6 +363,61 @@ public class ListFlowTests
         rig.Service.Activate(StratagemCode.Parse("URDR"), "Test");
         await rig.Idle();
         Assert.Equal($"+ControlLeft {Arrows("URDR")} -ControlLeft", rig.Events);
+    }
+
+    [Fact]
+    public async Task An_unreadable_screen_never_blocks_and_is_reported()
+    {
+        // Exclusive fullscreen / HDR: the capture gives nothing. Codes are typed unchecked, the player is told once.
+        using var rig = new Rig(knownIcons: true, picture: null);
+        var notices = new List<string>();
+        rig.Service.Notice += notices.Add;
+        for (var i = 0; i < 3; i++)
+        {
+            rig.Service.Activate(StratagemCode.Parse("DURRU"), "Test");
+            await rig.Idle();
+        }
+        Assert.Equal(string.Concat(Enumerable.Repeat($"+ControlLeft {Arrows("DURRU")} -ControlLeft ", 3)).Trim(), rig.Events);
+        Assert.Single(notices);
+    }
+
+    [Fact]
+    public async Task After_three_misses_in_a_row_codes_are_typed_unchecked_again()
+    {
+        // The list worked, then is never found again (display mode changed): after three misses the tool stops
+        // trusting "not found" instead of refusing everything for the rest of the session.
+        using var rig = new Rig(knownIcons: true);
+        rig.Service.Activate(StratagemCode.Parse("DURRU"), "Test");
+        await rig.Idle();
+        rig.Capture.File = "black";
+        for (var i = 0; i < 3; i++)
+        {
+            rig.Service.Activate(StratagemCode.Parse("DURRU"), "Test");
+            await rig.Idle();
+        }
+        rig.Output.Clear();
+        rig.Service.Activate(StratagemCode.Parse("DURRU"), "Test");
+        await rig.Idle();
+        Assert.Equal($"+ControlLeft {Arrows("DURRU")} -ControlLeft", rig.Events);
+    }
+
+    [Fact]
+    public async Task An_old_cooldown_state_does_not_block_a_place_the_game_is_asked_again()
+    {
+        // The deck/hotkey shows Orbital Laser on cooldown from the last reading; pressing it still asks the game.
+        using var rig = new Rig(knownIcons: true);
+        rig.Key(Ctrl, true);
+        await rig.ListRead();
+        rig.Key(Ctrl, false);
+        await rig.Idle();
+        var laser = rig.Service.Items.ToList().FindIndex(i => i.Code.Letters == "RDURD");
+        Assert.False(rig.Service.Items[laser].Available);
+        rig.Output.Clear();
+
+        Assert.True(rig.Service.Activate(laser, "Deck"));
+        await rig.Idle();
+        Assert.Equal("+ControlLeft -ControlLeft", rig.Events); // the fresh reading still says cooldown: not typed
+        Assert.Contains("nicht verfügbar", rig.LogText);
     }
 
     // --- tap mode: the list is only opened briefly ------------------------------------------------

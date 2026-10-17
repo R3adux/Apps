@@ -79,7 +79,7 @@ public static class KeyNames
         ("NumpadMultiply", 0x37, false), ("AltLeft", 0x38, false), ("Space", 0x39, false), ("CapsLock", 0x3A, false),
         ("F1", 0x3B, false), ("F2", 0x3C, false), ("F3", 0x3D, false), ("F4", 0x3E, false), ("F5", 0x3F, false),
         ("F6", 0x40, false), ("F7", 0x41, false), ("F8", 0x42, false), ("F9", 0x43, false), ("F10", 0x44, false),
-        ("NumLock", 0x45, false), ("ScrollLock", 0x46, false),
+        ("Pause", 0x45, false), ("ScrollLock", 0x46, false), // the hooks see NumLock as extended 0x45, Pause as plain 0x45
         ("Numpad7", 0x47, false), ("Numpad8", 0x48, false), ("Numpad9", 0x49, false), ("NumpadSubtract", 0x4A, false),
         ("Numpad4", 0x4B, false), ("Numpad5", 0x4C, false), ("Numpad6", 0x4D, false), ("NumpadAdd", 0x4E, false),
         ("Numpad1", 0x4F, false), ("Numpad2", 0x50, false), ("Numpad3", 0x51, false), ("Numpad0", 0x52, false),
@@ -91,7 +91,7 @@ public static class KeyNames
         ("AltRight", 0x38, true), ("Home", 0x47, true), ("ArrowUp", 0x48, true), ("PageUp", 0x49, true),
         ("ArrowLeft", 0x4B, true), ("ArrowRight", 0x4D, true), ("End", 0x4F, true), ("ArrowDown", 0x50, true),
         ("PageDown", 0x51, true), ("Insert", 0x52, true), ("Delete", 0x53, true),
-        ("MetaLeft", 0x5B, true), ("MetaRight", 0x5C, true), ("ContextMenu", 0x5D, true),
+        ("MetaLeft", 0x5B, true), ("MetaRight", 0x5C, true), ("ContextMenu", 0x5D, true), ("NumLock", 0x45, true),
     ];
 
     private static readonly Dictionary<string, Key> ByName =

@@ -140,6 +140,18 @@ public sealed class RadialController
     private bool _capturesMouse;
     public int? Highlighted { get { lock (_gate) return _highlight; } }
 
+    /// <summary>
+    /// Places shown as unavailable can be selected anyway (the list read from the game: whether it is callable is
+    /// checked again on a fresh reading right before typing, a remembered state may be old).
+    /// </summary>
+    public bool SelectUnavailable { get; set; }
+
+    /// <summary>
+    /// Asked when a chord starts: true = do not send the trigger to the game (it already did what the trigger does,
+    /// e.g. opened the game's list in "press" mode, where a second press would close it again). Inside the lock.
+    /// </summary>
+    public Func<bool>? KeepTriggerOnChord { get; set; }
+
     public RadialOptions Options
     {
         get { lock (_gate) return _options; }
@@ -323,11 +335,12 @@ public sealed class RadialController
 
     private bool StartChord(InputRef other)
     {
+        var keepTrigger = KeepTriggerOnChord?.Invoke() == true; // asked first: closing changes what it is based on
         CloseView(RadialCloseReason.Chord);
         SetState(RadialState.Chord);
         _swallowedDowns.Remove(_options.Trigger);
         // The current key arrives before anything we inject, so it is swallowed and re-sent after the trigger.
-        _inject(_options.Trigger, true);
+        if (!keepTrigger) _inject(_options.Trigger, true);
         _inject(other, true);
         return true;
     }
@@ -354,7 +367,7 @@ public sealed class RadialController
     {
         var index = _highlight;
         var items = _shown;
-        var valid = index is { } i && i < items.Count && items[i].Available;
+        var valid = index is { } i && i < items.Count && !items[i].IsEmpty && (items[i].Available || SelectUnavailable);
         CloseView(valid ? RadialCloseReason.Selected : RadialCloseReason.Released);
         if (valid) _activate(index!.Value, items[index.Value]);
     }

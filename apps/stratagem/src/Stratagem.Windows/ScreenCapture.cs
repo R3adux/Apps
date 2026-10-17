@@ -49,8 +49,10 @@ public sealed unsafe class GdiScreenCapture(Func<nint> gameWindow, Action<string
             var data = _buffer;
             Marshal.Copy(bits, data, 0, data.Length);
             var image = new PixelImage(w, h, data);
-            if (IsBlack(image)) Warn("Bildschirmaufnahme ist schwarz – läuft das Spiel im exklusiven Vollbild oder mit HDR? Randlos-Modus wählen.");
-            return image;
+            if (!IsBlack(image)) return image;
+            // Black says nothing about the list (exclusive fullscreen, HDR): "not readable", not "not open".
+            Warn("Bildschirmaufnahme ist schwarz – läuft das Spiel im exklusiven Vollbild oder mit HDR? Randlos-Modus wählen.");
+            return null;
         }
         finally
         {

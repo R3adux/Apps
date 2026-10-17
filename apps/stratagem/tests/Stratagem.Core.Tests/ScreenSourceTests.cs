@@ -164,18 +164,33 @@ public sealed class FixtureCapture : IScreenCapture
 
 public class NamesAndPlacesTests
 {
+    /// <summary>Opens and closes the radial menu once: the game's list (the test picture) is read on the way.</summary>
+    internal static async Task ReadOnce(StratagemService service)
+    {
+        service.Router.OnKey(KeyNames.ControlLeft, true);
+        await MacroRunnerTests.WaitUntil(() => service.RadialItems.Any(i => i.Code.Letters == "DURRU") && !service.Runner.IsRunning);
+        service.Router.OnKey(KeyNames.ControlLeft, false);
+        await MacroRunnerTests.WaitUntil(() => !service.Runner.IsRunning);
+    }
+
+    private static StratagemService Start(string dir)
+    {
+        var store = new SettingsStore(Path.Combine(dir, "settings.json"));
+        var settings = store.Load();
+        settings.List.Source = ListSource.Screen;
+        settings.Timing = new TimingSettings { KeyHoldMs = 5, KeyGapMs = 5, MenuOpenMs = 5, ListReadMs = 30 };
+        return new StratagemService(store, settings, new ServicePlatform(new FakeOutput(), new FakeView(),
+            new GameWatcherStub { IsRunning = true, IsFocused = true }, Capture: new FixtureCapture("menu-1080p-a.png")));
+    }
+
     [Fact]
-    public void Own_names_win_and_show_at_once()
+    public async Task Own_names_win_and_show_at_once()
     {
         var dir = Directory.CreateTempSubdirectory().FullName;
         try
         {
-            var store = new SettingsStore(Path.Combine(dir, "settings.json"));
-            var settings = store.Load();
-            settings.List.Source = ListSource.Screen;
-            using var service = new StratagemService(store, settings, new ServicePlatform(new FakeOutput(), new FakeView(),
-                new GameWatcherStub { IsRunning = true, IsFocused = true }, Capture: new FixtureCapture("menu-1080p-a.png")));
-            service.ReadPicture(Png.Decode(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "data", "menu-1080p-a.png"))), 1.0);
+            using var service = Start(dir);
+            await ReadOnce(service);
             Assert.Contains(service.Items, i => i.Name == "MG-Geschütz");
 
             var s = service.Settings;
@@ -188,21 +203,33 @@ public class NamesAndPlacesTests
     }
 
     [Fact]
-    public void Places_are_stable_and_free_places_are_reported()
+    public async Task Places_are_stable_and_free_places_are_reported()
     {
         var dir = Directory.CreateTempSubdirectory().FullName;
         try
         {
-            var store = new SettingsStore(Path.Combine(dir, "settings.json"));
-            var settings = store.Load();
-            settings.List.Source = ListSource.Screen;
-            using var service = new StratagemService(store, settings, new ServicePlatform(new FakeOutput(), new FakeView(),
-                new GameWatcherStub { IsRunning = true, IsFocused = true }, Capture: new FixtureCapture("menu-1080p-a.png")));
-            service.ReadPicture(Png.Decode(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "data", "menu-1080p-a.png"))), 1.0);
+            using var service = Start(dir);
+            await ReadOnce(service);
             var state = service.GetState().List.Items;
             Assert.Equal(8, state.Count);
             Assert.Equal(["UULUR", "DURRU"], state.Where(i => !i.Empty).Select(i => i.Code));
             Assert.False(service.Activate(7, "Test")); // free place
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void A_test_screenshot_does_not_change_the_live_list()
+    {
+        var dir = Directory.CreateTempSubdirectory().FullName;
+        try
+        {
+            using var service = Start(dir);
+            var before = service.RadialItems;
+            var rows = service.ReadPicture(Png.Decode(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "data", "menu-1080p-a.png"))), 1.0);
+            Assert.Equal(7, rows.Count);
+            Assert.Same(before, service.RadialItems);
+            Assert.False(File.Exists(Path.Combine(dir, "icons.json")));
         }
         finally { Directory.Delete(dir, true); }
     }

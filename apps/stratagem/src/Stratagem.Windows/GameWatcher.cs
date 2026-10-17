@@ -29,7 +29,8 @@ public sealed unsafe class GameWatcher : IGameWatcher, IDisposable
     {
         _target = target;
         s_current = this;
-        _hook = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, 0, &OnForeground, 0, 0, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
+        // Also for our own windows: switching from the game to the Stratagem window must end "active" at once.
+        _hook = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, 0, &OnForeground, 0, 0, WINEVENT_OUTOFCONTEXT);
         // Safety net for missed events and for "game started/closed" (the process list has no event).
         // Cheap: same foreground window = no work; the process list only every 6 s while the game is not in front.
         _timer = new System.Windows.Forms.Timer { Interval = 2000 };
@@ -83,12 +84,18 @@ public sealed unsafe class GameWatcher : IGameWatcher, IDisposable
     {
         GetWindowThreadProcessId(hwnd, out var pid);
         if (pid == 0 || string.IsNullOrWhiteSpace(process)) return false;
-        try
-        {
-            using var p = Process.GetProcessById((int)pid);
-            return string.Equals(p.ProcessName, process, StringComparison.OrdinalIgnoreCase);
-        }
+        // From the system's process list (a snapshot): Process.GetProcessById and .ProcessName would open a
+        // handle to the game process.
+        Process[] matches;
+        try { matches = Process.GetProcessesByName(process); }
         catch (Exception) { return false; }
+        var found = false;
+        foreach (var p in matches)
+        {
+            found |= p.Id == pid;
+            p.Dispose();
+        }
+        return found;
     }
 
     /// <summary>Same letters and digits ("HELLDIVERS™ 2" = "helldivers 2"), nothing more.</summary>
