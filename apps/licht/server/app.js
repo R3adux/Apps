@@ -31,6 +31,7 @@ async function enableBle(environment) {
 // abruptly (closing the console window on Windows), they stay behind, and Windows soon reuses
 // the process id – matter.js then refuses to start ("Storage is locked by another process").
 // Only called once this instance owns the web port, i.e. no other Licht is running.
+const NOT_MATTER = new Set(['WebView2', 'fenster', 'node_modules']); // window data and programs (Licht.exe)
 export async function removeStaleLocks(dir, depth = 3) {
   let entries;
   try {
@@ -39,6 +40,7 @@ export async function removeStaleLocks(dir, depth = 3) {
     return;
   }
   for (const entry of entries) {
+    if (NOT_MATTER.has(entry.name)) continue;
     const path = join(dir, entry.name);
     if (entry.isDirectory() && depth > 0) await removeStaleLocks(path, depth - 1);
     else if (entry.name === 'matter.lock' || entry.name === 'matter.pid') await rm(path, { force: true });
@@ -57,10 +59,11 @@ function listen(server, port) {
 }
 
 /**
- * web: { webDir } or { webFiles }; desktop: see createHttpServer.
+ * web: { webDir } or { webFiles }; desktop: see createHttpServer;
+ * listening(): called as soon as the web page can be loaded (before the lamps are connected).
  * Returns { urls, dataDir, ble, close() }.
  */
-export async function startLicht({ web, ...options } = {}) {
+export async function startLicht({ web, listening, ...options } = {}) {
   const { port, dataDir, ble: wantBle, logLevel } = { ...defaults(), ...options };
   Logger.level = logLevel;
   const environment = Environment.default;
@@ -68,10 +71,22 @@ export async function startLicht({ web, ...options } = {}) {
   const ble = wantBle ? await enableBle(environment) : false;
 
   const hub = new LightHub({ environment });
-  const server = createHttpServer(hub, { ...web, ble, desktop: options.desktop });
+  // Lamp requests wait until the stored lamps are loaded (the page may already be open by then).
+  let started;
+  const ready = new Promise((resolve, reject) => { started = { resolve, reject }; });
+  ready.catch(() => {}); // a failed start is reported by startLicht itself
+  const server = createHttpServer(hub, { ...web, ble, desktop: options.desktop, ready });
   await listen(server, port); // before starting Matter, so a second instance stops right away
-  await removeStaleLocks(dataDir);
-  await hub.start();
+  listening?.();
+  try {
+    await removeStaleLocks(dataDir);
+    await hub.start();
+    started.resolve();
+  } catch (err) {
+    started.reject(err);
+    server.close();
+    throw err;
+  }
 
   const urls = [
     `http://localhost:${port}`,

@@ -36,18 +36,22 @@ du brauchst sie aber nicht mehr.
 
 1. **[Licht.exe herunterladen](https://github.com/R3adux/Apps/releases/download/licht-latest/Licht.exe)**
    und irgendwo ablegen, z. B. auf dem Desktop.
-2. Doppelklicken. Licht startet und öffnet sich im Browser (`http://localhost:8080`).
+2. Doppelklicken. Licht startet und öffnet sich in einem **kleinen eigenen Fenster** unten rechts.
    - Beim ersten Mal warnt Windows-SmartScreen, weil die Datei nicht signiert ist:
      **„Weitere Informationen“ → „Trotzdem ausführen“**.
    - Fragt die Firewall nach: **„Private Netzwerke“ erlauben**, sonst findet Licht die Lampe nicht.
-3. Licht läuft im Hintergrund, ohne schwarzes Fenster. Unten rechts in der Taskleiste ist ein
-   **Licht-Symbol** (eventuell hinter dem Pfeil `^`):
-   - **Klick**: App im Browser öffnen. Ein erneuter Doppelklick auf `Licht.exe` macht dasselbe.
-   - **Rechtsklick**: **Mit Windows starten** (an/aus) und **Beenden**.
-   - Beides gibt es auch in der App im Menü **⋯** (nur auf dem PC selbst).
+3. Das Fenster schließen beendet Licht nicht: Licht läuft im Hintergrund weiter, unten rechts in der
+   Taskleiste ist ein **Licht-Symbol** (eventuell hinter dem Pfeil `^`):
+   - **Klick**: Fenster öffnen – noch ein Klick legt es wieder weg. Ein erneuter Doppelklick auf
+     `Licht.exe` öffnet es ebenfalls.
+   - **Rechtsklick**: **Im Browser öffnen**, **Mit Windows starten** (an/aus) und **Licht beenden**.
+   - „Mit Windows starten“ und „Licht beenden“ gibt es auch in Licht im Menü **⋯** (nur auf dem PC selbst).
+   - Das Fenster merkt sich Position und Größe. Es nutzt Edge WebView2, das bei Windows 10/11 dabei ist;
+     fehlt es, öffnet sich Licht im Browser (`http://localhost:8080`).
 
 Nichts weiter zu installieren. Die Kopplungsdaten liegen in `C:\Users\<Name>\.licht`, dort steht
-auch das Protokoll `licht.log`, falls einmal etwas nicht klappt.
+auch das Protokoll `licht.log`, falls einmal etwas nicht klappt (außerdem: `fenster\` – das Fenster-Programm,
+das Licht.exe beim Start dort auspackt, `WebView2\` und `fenster.txt` – Daten des Fensters).
 Ein Update: Licht beenden, die neue `Licht.exe` an dieselbe Stelle legen und starten.
 
 > Läuft die Zentrale auf dem PC, geht das Handy nur, solange der PC an ist.
@@ -143,11 +147,18 @@ Licht steuern, wie bei einem Lichtschalter. Gib den Port nicht ins Internet frei
 ```sh
 npm test                       # alle Tests, inkl. Ende-zu-Ende-Test mit simulierter Matter-Lampe
 npm start                      # Zentrale starten
-node scripts/build-exe.mjs     # Einzeldatei bauen (Licht.exe unter Windows)
+node scripts/build-exe.mjs     # Einzeldatei bauen (Licht.exe unter Windows, braucht dort auch das .NET SDK)
+dotnet build desktop -c Release   # nur das Fenster-Programm (geht auch unter Linux/macOS)
 ```
 
+`desktop/` ist das Fenster-Programm `LichtFenster.exe` (C#, .NET Framework 4.8 + WebView2, beides bei
+Windows dabei): Taskleisten-Symbol und Licht-Fenster mit derselben Oberfläche wie im Browser. Licht.exe
+enthält seine Dateien (ca. 1 MB), packt sie beim Start nach `.licht\fenster\<Version>\` aus, startet es
+und spricht mit ihm zeilenweise über Standard-Ein-/Ausgabe (siehe `desktop/Program.cs`).
+
 Die Windows-`Licht.exe` baut GitHub Actions (`.github/workflows/licht-windows.yml`) bei jeder
-Änderung in `main`. Sie wird auf Windows gestartet und geprüft und dann als Release
+Änderung in `main`. Sie wird auf Windows gestartet und geprüft (auch dass das Licht-Fenster die Seite
+lädt) und dann als Release
 `licht-latest` veröffentlicht.
 
 Ohne Lampen ausprobieren: `http://localhost:8080/?demo` (Demo beenden im Menü).

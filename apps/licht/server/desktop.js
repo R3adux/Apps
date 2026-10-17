@@ -1,10 +1,13 @@
-// Windows desktop integration for Licht.exe – only with what Windows brings along:
-// reg.exe (autostart), PowerShell (tray icon, message box), cmd (open the browser).
-// No extra programs, no downloads, no connections outside this PC.
+// Windows desktop integration for Licht.exe: the window program (tray icon + Licht window, see
+// ../desktop/), autostart via reg.exe, message box via PowerShell, browser via cmd.
+// No downloads, no connections outside this PC.
 
 import { exec, execFile, spawn } from 'node:child_process';
-import { createWriteStream, existsSync, mkdirSync, renameSync, statSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { createHash } from 'node:crypto';
+import {
+  createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync,
+} from 'node:fs';
+import { dirname, join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { format } from 'node:util';
 
@@ -57,45 +60,102 @@ export function showError(title, message) {
 }
 
 /**
- * Tray icon (notification area). handlers: { ready(), open(), quit(), autostart(enabled) }.
- * Returns { stop() }, or undefined when PowerShell is not available.
+ * Writes the window program (LichtFenster.exe and its few files, embedded in Licht.exe) to
+ * <dataDir>/fenster/<version>/ and returns the path of LichtFenster.exe. Files already there and
+ * unchanged are kept; older versions are removed (if one still runs, next time).
+ * files: { 'LichtFenster.exe': Buffer, … }
  */
-export function startTray(script, { autostartEnabled, hello, ...handlers }) {
-  let child;
-  try {
-    child = spawn('powershell.exe', powershellArgs(script), {
-      windowsHide: true,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        LICHT_EXE: process.execPath,
-        LICHT_PID: String(process.pid),
-        LICHT_AUTOSTART: autostartEnabled ? '1' : '0',
-        LICHT_HELLO: hello ? '1' : '0',
-      },
-    });
-  } catch (err) {
-    console.error('Tray icon could not start:', err);
-    return undefined;
+export function installDesktopFiles(dataDir, files) {
+  const names = Object.keys(files).sort();
+  const hash = createHash('sha256');
+  for (const name of names) hash.update(name).update(files[name]);
+  const version = hash.digest('hex').slice(0, 12);
+  const base = join(dataDir, 'fenster');
+  const dir = join(base, version);
+  for (const name of names) {
+    const target = join(dir, name);
+    if (existsSync(target) && readFileSync(target).equals(files[name])) continue;
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(`${target}.neu`, files[name]);
+    renameSync(`${target}.neu`, target);
   }
-  child.on('error', (err) => console.error('Tray icon could not start:', err));
-  child.stderr.on('data', (data) => {
-    // PowerShell also reports progress on stderr (as "#< CLIXML"); only real errors matter.
-    const text = String(data).replace(/#< CLIXML/g, '').trim();
-    if (text && !(text.startsWith('<Objs') && !text.includes('S="Error"'))) console.error('Tray:', text);
+  for (const old of readdirSync(base)) {
+    if (old === version) continue;
+    try {
+      rmSync(join(base, old), { recursive: true, force: true });
+    } catch {
+      // still in use by a Licht that is ending right now
+    }
+  }
+  return join(dir, 'LichtFenster.exe');
+}
+
+/**
+ * Starts the window program: tray icon + Licht window. It ends together with Licht.
+ * options: { url, dataDir, autostartEnabled, show, hello }
+ * handlers: { ready(), openBrowser(), quit(), autostart(enabled), loaded(detail), unavailable(), exit(code) }
+ * Returns { show(), setAutostart(enabled), stop(), alive }; show() is false when the window program
+ * is not running (then Licht opens the browser instead).
+ */
+export function startDesktop(exe, options, handlers, { prefixArgs = [] } = {}) {
+  const args = [...prefixArgs, '--url', options.url, '--data', options.dataDir,
+    '--autostart', options.autostartEnabled ? 'on' : 'off'];
+  if (options.show) args.push('--show');
+  if (options.hello) args.push('--hello');
+  let child;
+  let alive = false;
+  try {
+    // Not windowsHide: that would also hide the Licht window the first time it opens.
+    child = spawn(exe, args, { stdio: ['pipe', 'pipe', 'pipe'] });
+    alive = true;
+  } catch (err) {
+    console.error('Fenster-Programm startet nicht:', err);
+    queueMicrotask(() => handlers.exit?.(null));
+    return { show: () => false, setAutostart() {}, async stop() {}, alive: false };
+  }
+  const write = (line) => {
+    if (alive && child.stdin.writable) child.stdin.write(`${line}\n`);
+    return alive;
+  };
+  const exited = new Promise((resolve) => child.on('close', resolve));
+  let stopping = false;
+  child.on('error', (err) => console.error('Fenster-Programm:', err.message));
+  // 'close' also follows a failed start ('exit' does not).
+  child.on('close', (code) => {
+    alive = false;
+    if (!stopping) {
+      console.warn(`Fenster-Programm beendet (${code})`);
+      handlers.exit?.(code);
+    }
   });
-  child.on('exit', (code) => console.warn(`Tray icon ended (${code})`));
+  child.stdin.on('error', () => {}); // the program ended; noticed via 'close'
+  child.stderr.on('data', (data) => console.error('Fenster:', String(data).trim()));
   createInterface({ input: child.stdout }).on('line', (line) => {
-    const command = line.trim();
+    const [command, ...rest] = line.trim().split(' ');
+    const detail = rest.join(' ');
     if (command === 'ready') handlers.ready?.();
-    else if (command === 'open') handlers.open();
-    else if (command === 'quit') handlers.quit();
-    else if (command === 'autostart:on') handlers.autostart(true);
-    else if (command === 'autostart:off') handlers.autostart(false);
+    else if (command === 'open-browser') handlers.openBrowser?.();
+    else if (command === 'quit') handlers.quit?.();
+    else if (command === 'autostart:on') handlers.autostart?.(true);
+    else if (command === 'autostart:off') handlers.autostart?.(false);
+    else if (command === 'window:loaded') handlers.loaded?.(detail);
+    else if (command === 'window:unavailable') handlers.unavailable?.();
+    else if (command.startsWith('log:')) console.log(line.trim().slice(4));
   });
   return {
-    stop() {
-      if (child.exitCode === null) child.kill();
+    get alive() {
+      return alive;
+    },
+    show: () => write('show'),
+    setAutostart: (enabled) => write(enabled ? 'autostart:on' : 'autostart:off'),
+    /** Ends the program properly (so its tray icon disappears at once), at most after 2 s. */
+    async stop() {
+      if (!alive) return;
+      stopping = true;
+      write('quit');
+      const timer = setTimeout(() => child.kill(), 2000);
+      await exited;
+      clearTimeout(timer);
     },
   };
 }

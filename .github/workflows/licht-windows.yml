@@ -29,8 +29,15 @@ jobs:
         with:
           node-version: 22
 
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
       - name: Abhängigkeiten
         run: npm ci
+
+      - name: Fenster-Programm bauen
+        run: dotnet build desktop -c Release -nologo
 
       - name: Tests
         run: node --test test/model.test.js test/pairing.test.js test/http.test.js test/color.test.js test/hub.test.js test/app.test.js test/desktop.test.js
@@ -67,7 +74,16 @@ jobs:
           $info = Invoke-RestMethod http://localhost:8090/api/info
           if ($null -eq $info.desktop) { throw "PC-Funktionen fehlen" }
 
-          # Second start while Licht runs: must end by itself (it only opens the browser).
+          $window = Get-CimInstance Win32_Process -Filter "Name='LichtFenster.exe'" | Where-Object { $_.ParentProcessId -eq $proc.Id }
+          if (-not $window) { throw "Fenster-Programm läuft nicht" }
+
+          # The Licht window opens and loads the page.
+          Invoke-RestMethod -Method Post http://localhost:8090/api/show | Out-Null
+          for ($i = 0; $i -lt 40 -and -not (Select-String -Path $log -Pattern 'App-Fenster (geladen|nicht)' -Quiet); $i++) { Start-Sleep 1 }
+          Select-String -Path $log -Pattern 'App-Fenster'
+          if (-not (Select-String -Path $log -Pattern 'App-Fenster geladen' -Quiet)) { throw "Licht-Fenster öffnet nicht" }
+
+          # Second start while Licht runs: must end by itself (it only brings the window to the front).
           $second = Start-Process -FilePath $exe -PassThru
           if (-not $second.WaitForExit(15000)) { $second.Kill(); throw "Zweiter Start beendet sich nicht" }
 
@@ -75,8 +91,7 @@ jobs:
           Invoke-RestMethod -Method Post http://localhost:8090/api/quit | Out-Null
           if (-not $proc.WaitForExit(15000)) { $proc.Kill(); throw "Licht.exe lässt sich nicht beenden" }
           Start-Sleep 3
-          $tray = Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" | Where-Object { $_.ParentProcessId -eq $proc.Id }
-          if ($tray) { throw "Tray-Symbol läuft nach dem Beenden weiter" }
+          if (Get-CimInstance Win32_Process -Filter "Name='LichtFenster.exe'") { throw "Fenster-Programm läuft nach dem Beenden weiter" }
           Get-Content $log -Tail 5
           if (Select-String -Path $log -Pattern ' ERROR ' -Quiet) { throw "Fehler im Protokoll (licht.log)" }
           "Licht.exe OK ($([math]::Round((Get-Item $exe).Length / 1MB, 1)) MB)"
@@ -93,7 +108,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # Replace the file in the existing release, so the download link never breaks.
-          notes="Licht.exe herunterladen und doppelklicken – die App öffnet sich im Browser, Licht läuft dann im Hintergrund (Symbol unten rechts in der Taskleiste). Beim ersten Start: Windows-SmartScreen → „Weitere Informationen“ → „Trotzdem ausführen“, und in der Firewall „Private Netzwerke“ erlauben. Gebaut aus ${GITHUB_SHA:0:7}."
+          notes="Licht.exe herunterladen und doppelklicken – das Licht-Fenster öffnet sich, Licht läuft dann im Hintergrund weiter (Symbol unten rechts in der Taskleiste). Beim ersten Start: Windows-SmartScreen → „Weitere Informationen“ → „Trotzdem ausführen“, und in der Firewall „Private Netzwerke“ erlauben. Gebaut aus ${GITHUB_SHA:0:7}."
           if gh release view licht-latest >/dev/null 2>&1; then
             gh release upload licht-latest dist/Licht.exe --clobber
             gh release edit licht-latest --title "Licht für Windows" --notes "$notes"

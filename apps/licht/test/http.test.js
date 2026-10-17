@@ -112,10 +112,15 @@ test('rejects API calls from other web sites', async () => {
   assert.equal(own.status, 200);
 });
 
-test('PC functions (quit, autostart) only for this computer', async () => {
+test('PC functions (quit, show, autostart) only for this computer', async () => {
   let quit = 0;
   let autostart = false;
-  const desktop = { quit: () => { quit++; }, autostart: { get: async () => autostart, set: async (on) => (autostart = on) } };
+  let shown = 0;
+  const desktop = {
+    quit: () => { quit++; },
+    show: () => { shown++; },
+    autostart: { get: async () => autostart, set: async (on) => (autostart = on) },
+  };
   const pc = createHttpServer(hub, { webDir: fileURLToPath(new URL('../web/', import.meta.url)), desktop, log: {} });
   await new Promise((r) => pc.listen(0, '127.0.0.1', r));
   const url = `http://127.0.0.1:${pc.address().port}`;
@@ -126,6 +131,8 @@ test('PC functions (quit, autostart) only for this computer', async () => {
     assert.equal((await fetch(`${url}/api/quit`, { method: 'POST' })).status, 200);
     await new Promise((r) => setTimeout(r, 200));
     assert.equal(quit, 1);
+    assert.equal((await fetch(`${url}/api/show`, { method: 'POST' })).status, 200);
+    assert.equal(shown, 1);
     // A web page under another name that points to this computer gets nothing.
     const status = await new Promise((resolve, reject) => {
       httpRequest(`${url}/api/quit`, { method: 'POST', headers: { Host: `rebind.example:${pc.address().port}` } }, (res) => {
@@ -141,4 +148,26 @@ test('PC functions (quit, autostart) only for this computer', async () => {
   // The normal server (no desktop) has none of this.
   assert.equal((await (await req('/api/info')).json()).desktop, undefined);
   assert.equal((await req('/api/quit', 'POST')).status, 404);
+});
+
+test('lamp requests wait until the lamps are loaded', async () => {
+  let loaded;
+  const ready = new Promise((resolve) => { loaded = resolve; });
+  const early = createHttpServer(hub, { webDir: fileURLToPath(new URL('../web/', import.meta.url)), ready, log: {} });
+  await new Promise((r) => early.listen(0, '127.0.0.1', r));
+  const url = `http://127.0.0.1:${early.address().port}`;
+  try {
+    // The page and the info already work …
+    assert.equal((await fetch(`${url}/`)).status, 200);
+    assert.equal((await fetch(`${url}/api/info`)).status, 200);
+    // … lamp requests are answered once the lamps are there (never an empty list in between).
+    let answered = false;
+    const lights = fetch(`${url}/api/lights`).then(async (res) => { answered = true; return res.json(); });
+    await new Promise((r) => setTimeout(r, 100));
+    assert.equal(answered, false);
+    loaded();
+    assert.equal((await lights).lights.length, 1);
+  } finally {
+    early.close();
+  }
 });
