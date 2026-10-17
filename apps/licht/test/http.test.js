@@ -2,7 +2,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { request as httpRequest } from 'node:http';
 import { fileURLToPath } from 'node:url';
-import { createHttpServer } from '../server/http.js';
+import { createHttpServer, isHomeHost } from '../server/http.js';
 
 const light = { id: '7', name: 'Flur', online: true, on: false, mode: 'white', brightness: 50, temperature: 50, color: { h: 0, s: 100 }, supports: {} };
 const calls = [];
@@ -140,7 +140,7 @@ test('PC functions (quit, show, autostart) only for this computer', async () => 
         resolve(res.statusCode);
       }).on('error', reject).end();
     });
-    assert.equal(status, 404);
+    assert.equal(status, 403);
     assert.equal(quit, 1);
   } finally {
     pc.close();
@@ -170,4 +170,21 @@ test('lamp requests wait until the lamps are loaded', async () => {
   } finally {
     early.close();
   }
+});
+
+test('the API answers only under home-network names (no DNS rebinding)', async () => {
+  for (const host of ['localhost:8080', '127.0.0.1:8080', '192.168.178.20:8080', '[::1]:8080', 'raspberrypi:8080',
+    'raspberrypi.fritz.box:8080', 'licht.local', 'pc.lan:8080', 'pc.home.arpa']) {
+    assert.equal(isHomeHost(host), true, host);
+  }
+  for (const host of ['evil.example:8080', 'licht.app', 'attacker.com', '', 'a b']) {
+    assert.equal(isHomeHost(host), false, host);
+  }
+  const status = await new Promise((resolve, reject) => {
+    httpRequest(`${base}/api/lights`, { headers: { Host: 'rebind.example:8080', Origin: 'http://rebind.example:8080' } }, (res) => {
+      res.resume();
+      resolve(res.statusCode);
+    }).on('error', reject).end();
+  });
+  assert.equal(status, 403);
 });

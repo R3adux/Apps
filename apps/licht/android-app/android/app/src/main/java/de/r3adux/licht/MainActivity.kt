@@ -28,14 +28,22 @@ class MainActivity : ReactActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     val wifi = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-    multicastLock = wifi.createMulticastLock("licht-matter").apply {
-      setReferenceCounted(false)
-      acquire()
-    }
+    multicastLock = wifi.createMulticastLock("licht-matter").apply { setReferenceCounted(false) }
     @Suppress("DEPRECATION")
     val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) WifiManager.WIFI_MODE_FULL_LOW_LATENCY
                else WifiManager.WIFI_MODE_FULL_HIGH_PERF
     lowLatencyLock = wifi.createWifiLock(mode, "licht-fast").apply { setReferenceCounted(false) }
+  }
+
+  // Multicast only while Licht is visible: in the background it would keep the WLAN chip awake.
+  override fun onStart() {
+    super.onStart()
+    multicastLock?.acquire()
+  }
+
+  override fun onStop() {
+    multicastLock?.takeIf { it.isHeld }?.release()
+    super.onStop()
   }
 
   override fun onResume() {

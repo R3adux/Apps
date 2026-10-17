@@ -144,6 +144,7 @@ export class DemoApi {
 
   async remove(id) {
     this.state = this.state.filter((l) => l.id !== id);
+    return { ok: true, localOnly: false };
   }
 
   subscribe(_onEvent, onStatus) {

@@ -87,6 +87,7 @@ async function main() {
   };
 
   const launchShell = async (files, showWindow) => {
+    const startedAt = Date.now();
     let exe;
     try {
       exe = installDesktopFiles(dataDir, files);
@@ -111,6 +112,7 @@ async function main() {
       exit: () => {
         // Crashed or could not start: try again (a few times), so the tray icon comes back.
         if (stopping) return;
+        if (Date.now() - startedAt > 60_000) restarts = 0; // ran fine for a while: a new problem
         if (restarts++ < MAX_RESTARTS) setTimeout(() => launchShell(files, false), 1000);
         else console.error('Fenster-Programm läuft nicht – Licht bleibt im Browser erreichbar');
       },

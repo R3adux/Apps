@@ -15,6 +15,8 @@ const node = await ServerNode.create({
   id: `virtual-light-${port}`,
   network: { port },
   commissioning: { passcode: 20202021, discriminator: 3840 },
+  // Like many real lamps: subscriptions are not resumed after a restart.
+  ...(process.env.NO_RESUME === '1' ? { subscriptions: { persistenceEnabled: false } } : {}),
   productDescription: { name: 'Virtual A60', deviceType: ExtendedColorLightDevice.deviceType },
   basicInformation: {
     vendorName: 'Test', productName: 'Virtuelle A60', vendorId: VendorId(0xfff1), productId: 0x8000,

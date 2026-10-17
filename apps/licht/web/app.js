@@ -62,15 +62,20 @@ class Sender {
     this.busy = true;
     const change = this.pending;
     this.pending = null;
+    let failed = false;
     try {
       await api.update(this.id, change);
     } catch (err) {
+      failed = true;
       toast(err.message);
-      reload();
+      // Show the lamp as it really is again – not the change that did not happen.
+      this.pending = null;
+      touched.delete(this.id);
     }
     await new Promise((r) => setTimeout(r, SEND_GAP_MS));
     this.busy = false;
-    this.#run();
+    if (failed) reload();
+    else this.#run();
   }
 }
 
@@ -399,9 +404,9 @@ $('#add-form').addEventListener('submit', async (event) => {
 
 /**
  * Small modal question. With `input`, resolves to the entered text (or null when cancelled),
- * otherwise to true/false.
+ * otherwise to true/false. notice: only an OK button (a message, not a question).
  */
-function ask({ title, text = '', input, label = '', okLabel = 'OK', danger = false }) {
+function ask({ title, text = '', input, label = '', okLabel = 'OK', danger = false, notice = false }) {
   const dialog = $('#ask-dialog');
   $('#ask-title').textContent = title;
   $('#ask-text').textContent = text;
@@ -412,6 +417,7 @@ function ask({ title, text = '', input, label = '', okLabel = 'OK', danger = fal
   const ok = $('#ask-ok');
   ok.textContent = okLabel;
   ok.classList.toggle('danger', danger);
+  $('#ask-cancel').hidden = notice;
   return new Promise((resolve) => {
     const done = (result) => {
       dialog.removeEventListener('close', onClose);
@@ -461,9 +467,18 @@ async function lightAction(action, id) {
         danger: true,
       });
       if (!sure) return;
-      await api.remove(id);
+      const result = await api.remove(id);
       lights = lights.filter((l) => l.id !== id);
       render();
+      if (result?.localOnly) {
+        await ask({
+          title: 'Lampe war nicht erreichbar',
+          text: `Licht hat „${light.name}“ vergessen. Die Lampe selbst kennt Licht aber noch, weil sie gerade nicht `
+            + 'antwortet. Wenn du sie nicht mehr mit Licht nutzen willst: in der anderen App entfernen oder die Lampe '
+            + 'zurücksetzen (5× aus- und einschalten).',
+          notice: true,
+        });
+      }
     }
   } catch (err) {
     toast(err.message);

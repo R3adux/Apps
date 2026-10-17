@@ -227,7 +227,8 @@ namespace Licht.Desktop
                 var attempts = 0;
                 core.NavigationCompleted += (s, e) =>
                 {
-                    if (!e.IsSuccess && attempts++ < 5)
+                    if (e.IsSuccess) attempts = 0;
+                    else if (attempts++ < 5)
                     {
                         // Licht.exe is still starting: try again shortly.
                         var retry = new Timer { Interval = 700 };

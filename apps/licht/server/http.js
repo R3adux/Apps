@@ -15,6 +15,7 @@
 //   POST   /api/show                 show the Licht window (PC only: from this computer)
 
 import { createServer } from 'node:http';
+import { hostname as hostname_ } from 'node:os';
 import { parsePairingCode } from '../core/pairing.js';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
@@ -111,6 +112,23 @@ function fromForeignSite(req) {
   }
 }
 
+// The API answers only when addressed by a home-network name or address. A foreign web site could
+// otherwise point its own name at this computer ("DNS rebinding") and then count as same-origin.
+const HOME_SUFFIXES = ['.local', '.lan', '.home', '.home.arpa', '.internal', '.localdomain', '.fritz.box'];
+export function isHomeHost(hostHeader) {
+  let hostname;
+  try {
+    hostname = new URL(`http://${hostHeader}`).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  if (hostname === 'localhost' || hostname.endsWith('.localhost')) return true;
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname) || hostname.startsWith('[')) return true; // IP address
+  if (!hostname.includes('.')) return true; // name of a computer in the home network, e.g. "raspberrypi"
+  if (hostname === hostname_().toLowerCase()) return true;
+  return HOME_SUFFIXES.some((suffix) => hostname.endsWith(suffix));
+}
+
 async function api(hub, req, res, path, options) {
   const { method } = req;
   const desktop = options.desktop && isLocal(req) ? options.desktop : undefined;
@@ -152,8 +170,8 @@ async function api(hub, req, res, path, options) {
   const [, id, action] = match;
   if (!action && method === 'POST') return send(res, 200, { light: await hub.update(id, await readJson(req)) });
   if (!action && method === 'DELETE') {
-    await hub.remove(id);
-    return send(res, 200, { ok: true });
+    const { localOnly } = (await hub.remove(id)) ?? {};
+    return send(res, 200, { ok: true, localOnly: Boolean(localOnly) });
   }
   if (action === 'name' && method === 'POST') {
     await hub.rename(id, (await readJson(req)).name);
@@ -165,7 +183,12 @@ async function api(hub, req, res, path, options) {
 
 // Serves the web app from a folder, or from memory (files embedded into Licht.exe).
 async function staticFile(res, web, path) {
-  const name = path === '/' ? '/index.html' : decodeURIComponent(path);
+  let name;
+  try {
+    name = path === '/' ? '/index.html' : decodeURIComponent(path);
+  } catch {
+    return send(res, 400, { error: 'Ungültige Adresse.' });
+  }
   let body;
   if (web.files) {
     body = web.files[name];
@@ -192,8 +215,9 @@ export function createHttpServer(hub, { webDir, webFiles, ble = false, desktop, 
   return createServer(async (req, res) => {
     const { pathname } = new URL(req.url, 'http://localhost');
     try {
-      if (pathname.startsWith('/api/') && fromForeignSite(req)) send(res, 403, { error: 'Verboten.' });
-      else if (pathname.startsWith('/api/')) await api(hub, req, res, pathname, { ble, desktop, ready });
+      if (pathname.startsWith('/api/') && (fromForeignSite(req) || !isHomeHost(req.headers.host))) {
+        send(res, 403, { error: 'Verboten.' });
+      } else if (pathname.startsWith('/api/')) await api(hub, req, res, pathname, { ble, desktop, ready });
       else if (req.method === 'GET' || req.method === 'HEAD') await staticFile(res, web, pathname);
       else send(res, 405, { error: 'Methode nicht erlaubt.' });
     } catch (err) {

@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Environment, Logger } from '@matter/main';
 import { LightHub } from '../core/hub.js';
-import { startVirtualLight, stopVirtualLight, waitFor } from './support/harness.js';
+import { cutPower, startVirtualLight, waitFor } from './support/harness.js';
 
 Logger.level = 'error';
 
@@ -34,7 +34,7 @@ test('starts instantly with the lamp off and reconnects when it is back', { time
     await first.close();
 
     // The lamp is switched off (e.g. at the wall switch), then Licht starts again.
-    await stopVirtualLight(lamp);
+    await cutPower(lamp);
     const hub = new LightHub({ id: 'restart' });
     hubs.push(hub);
     let t = Date.now();
@@ -73,41 +73,49 @@ test('starts instantly with the lamp off and reconnects when it is back', { time
     assert.ok(Date.now() - t < 2000, 'command after reconnect is fast');
   } finally {
     for (const hub of hubs) await hub.close().catch(() => {});
-    await stopVirtualLight(lamp);
+    await cutPower(lamp);
     rmSync(dir, { recursive: true, force: true });
   }
 });
 
-test('a lamp switched off and on at the wall reacts again right away', { timeout: 180_000 }, async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'licht-powercut-'));
-  const port = 5500 + Math.floor(Math.random() * 90);
-  let lamp = startVirtualLight(dir, port);
-  let hub;
-  try {
-    const code = await lamp.ready;
-    Environment.default.vars.set('storage.path', join(dir, 'hub'));
-    hub = new LightHub({ id: 'powercut' });
-    await hub.start();
-    const id = await hub.commission({ code, ip: `127.0.0.1:${port}` });
-    await waitFor(() => hub.light(id)?.online, 'connected');
+// A real power cut: the lamp vanishes without closing its connection, and after the restart it no
+// longer knows the old one – Licht must notice that at once instead of sending into the void.
+for (const resume of [true, false]) {
+  test(`a lamp switched off and on at the wall reacts to the first tap (${resume ? 'resumes' : 'no resume'})`, {
+    timeout: 180_000,
+  }, async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'licht-powercut-'));
+    const port = 5500 + Math.floor(Math.random() * 90);
+    let lamp = startVirtualLight(dir, port, { resume });
+    let hub;
+    try {
+      const code = await lamp.ready;
+      Environment.default.vars.set('storage.path', join(dir, 'hub'));
+      hub = new LightHub({ id: 'powercut' });
+      await hub.start();
+      const id = await hub.commission({ code, ip: `127.0.0.1:${port}` });
+      await waitFor(() => hub.light(id)?.online, 'connected');
 
-    // Power cut: the lamp restarts and forgets its connections; Licht has not noticed yet.
-    await stopVirtualLight(lamp);
-    lamp = startVirtualLight(dir, port);
-    await lamp.ready;
+      await cutPower(lamp);
+      lamp = startVirtualLight(dir, port, { resume });
+      await lamp.ready;
+      await new Promise((r) => setTimeout(r, 500)); // the user taps right after the lamp is back
 
-    const t = Date.now();
-    await hub.update(id, { on: true, brightness: 80, mode: 'white', temperature: 0 });
-    await waitFor(() => lamp.state.onOff === true, 'lamp on');
-    const ms = Date.now() - t;
-    console.log(`TIMING powercut command ${ms} ms`);
-    assert.ok(ms < 6000, `command after power cut took ${ms} ms`);
-  } finally {
-    await hub?.close().catch(() => {});
-    await stopVirtualLight(lamp);
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
+      const t = Date.now();
+      await hub.update(id, { on: true, brightness: 80, mode: 'white', temperature: 0 });
+      await waitFor(() => lamp.state.onOff === true, 'lamp on');
+      const ms = Date.now() - t;
+      await waitFor(() => hub.light(id).status === 'online', 'shown as connected', 5000);
+      const onlineMs = Date.now() - t;
+      console.log(`TIMING powercut (${resume ? 'resume' : 'no resume'}) first tap ${ms} ms, online after ${onlineMs} ms`);
+      assert.ok(ms < 3000, `first tap after power cut took ${ms} ms`);
+    } finally {
+      await hub?.close().catch(() => {});
+      await cutPower(lamp);
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+}
 
 test('a command sent while the lamp is still starting up goes through', { timeout: 180_000 }, async () => {
   const dir = mkdtempSync(join(tmpdir(), 'licht-booting-'));
@@ -123,7 +131,7 @@ test('a command sent while the lamp is still starting up goes through', { timeou
     await waitFor(() => hub.light(id)?.online, 'connected');
 
     // Switched off at the wall; the user switches it on again and taps the app immediately.
-    await stopVirtualLight(lamp);
+    await cutPower(lamp);
     const t = Date.now();
     const command = hub.update(id, { on: true });
     await new Promise((r) => setTimeout(r, 1000));
@@ -134,7 +142,7 @@ test('a command sent while the lamp is still starting up goes through', { timeou
     console.log(`TIMING booting command ${ms} ms`);
   } finally {
     await hub?.close().catch(() => {});
-    await stopVirtualLight(lamp);
+    await cutPower(lamp); // cleaning up: no need to wait for the lamp's goodbye
     rmSync(dir, { recursive: true, force: true });
   }
 });
@@ -152,7 +160,7 @@ test('notices by itself when a lamp goes away and comes back', { timeout: 300_00
     const id = await hub.commission({ code, ip: `127.0.0.1:${port}` });
     await waitFor(() => hub.light(id)?.online, 'connected');
 
-    await stopVirtualLight(lamp);
+    await cutPower(lamp);
     let t = Date.now();
     await waitFor(() => hub.light(id)?.online === false, 'lamp shown as away', 120_000);
     const awayMs = Date.now() - t;
@@ -167,7 +175,7 @@ test('notices by itself when a lamp goes away and comes back', { timeout: 300_00
     assert.ok(backMs < 30_000, `back after ${backMs} ms`);
   } finally {
     await hub?.close().catch(() => {});
-    await stopVirtualLight(lamp);
+    await cutPower(lamp); // cleaning up: no need to wait for the lamp's goodbye
     rmSync(dir, { recursive: true, force: true });
   }
 });
@@ -213,7 +221,74 @@ test('refresh: answering lamps stay connected, a silent one is reconnected', { t
   } finally {
     lamp.child.kill('SIGCONT');
     await hub?.close().catch(() => {});
-    await stopVirtualLight(lamp);
+    await cutPower(lamp);
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// matter.js backs off its connection attempts up to 2 minutes apart while a lamp is away.
+test('a lamp that was off for a while reacts at once when it is back', { timeout: 240_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'licht-longoff-'));
+  const port = 5900 + Math.floor(Math.random() * 90);
+  let lamp = startVirtualLight(dir, port);
+  let hub;
+  try {
+    const code = await lamp.ready;
+    Environment.default.vars.set('storage.path', join(dir, 'hub'));
+    hub = new LightHub({ id: 'longoff' });
+    await hub.start();
+    const id = await hub.commission({ code, ip: `127.0.0.1:${port}` });
+    await waitFor(() => hub.light(id)?.online, 'connected');
+
+    await cutPower(lamp);
+    await new Promise((r) => setTimeout(r, 90_000));
+    lamp = startVirtualLight(dir, port);
+    await lamp.ready;
+    await new Promise((r) => setTimeout(r, 2000));
+
+    const t = Date.now();
+    await hub.update(id, { on: true });
+    await waitFor(() => lamp.state.onOff === true, 'lamp on');
+    const ms = Date.now() - t;
+    console.log(`TIMING after 90 s off: first tap ${ms} ms`);
+    assert.ok(ms < 3000, `first tap took ${ms} ms`);
+  } finally {
+    await hub?.close().catch(() => {});
+    await cutPower(lamp); // cleaning up: no need to wait for the lamp's goodbye
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// The user is told a tap did not work – then it must not happen later behind their back.
+test('a command reported as failed is not carried out later', { timeout: 240_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'licht-ghost-'));
+  const port = 6500 + Math.floor(Math.random() * 90);
+  let lamp = startVirtualLight(dir, port);
+  let hub;
+  try {
+    const code = await lamp.ready;
+    Environment.default.vars.set('storage.path', join(dir, 'hub'));
+    hub = new LightHub({ id: 'ghost' });
+    await hub.start();
+    const id = await hub.commission({ code, ip: `127.0.0.1:${port}` });
+    await waitFor(() => hub.light(id)?.online, 'connected');
+    await hub.update(id, { on: true });
+    await waitFor(() => lamp.state.onOff === true, 'lamp on');
+    await hub.update(id, { on: false });
+    await waitFor(() => lamp.state.onOff === false, 'lamp off');
+    await new Promise((r) => setTimeout(r, 1500)); // stored by the lamp
+
+    await cutPower(lamp);
+    await assert.rejects(hub.update(id, { on: true }), (err) => err.status === 503);
+
+    lamp = startVirtualLight(dir, port);
+    await lamp.ready;
+    await waitFor(() => hub.light(id).status === 'online', 'connected again', 60_000);
+    await new Promise((r) => setTimeout(r, 15_000));
+    assert.notEqual(lamp.state.onOff, true, 'the failed "on" was carried out later');
+  } finally {
+    await hub?.close().catch(() => {});
+    await cutPower(lamp); // cleaning up: no need to wait for the lamp's goodbye
     rmSync(dir, { recursive: true, force: true });
   }
 });

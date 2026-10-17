@@ -28,7 +28,7 @@ const code = await new Promise((resolve, reject) => {
     if (msg.ready) resolve(msg.code);
   });
 });
-process.on('exit', () => lamp.kill());
+process.on('exit', () => lamp.kill('SIGKILL')); // at once: a lamp shutting down properly can wait for goodbyes
 console.log('probe: simulated lamp ready on port', port);
 
 // What Hermes does not have (PROBE_KEEP_GLOBALS=1 to keep them, for narrowing down problems)

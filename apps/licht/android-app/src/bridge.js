@@ -67,9 +67,10 @@ export async function handleCall(hub, method, args) {
       return { light: hub.light(args[0]) };
     case 'share':
       return hub.share(args[0]);
-    case 'remove':
-      await hub.remove(args[0]);
-      return { ok: true };
+    case 'remove': {
+      const { localOnly } = (await hub.remove(args[0])) ?? {};
+      return { ok: true, localOnly: Boolean(localOnly) };
+    }
     case 'discover':
       return hub.discover();
     case 'wake':

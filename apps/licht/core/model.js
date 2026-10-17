@@ -120,6 +120,36 @@ export function toLight({ id, name, online, attrs, features }) {
 
 // Returns a list of { cluster, command, args } in the order they should be sent.
 // Colour is set before brightness so a lamp being switched on shows the new colour right away.
+/**
+ * Checks a change from outside (web page, API) and brings it into the model's ranges.
+ * Unknown keys are dropped; wrong types throw an error with status 400.
+ */
+export function normalizeChange(change) {
+  const invalid = (what) => Object.assign(new Error(`Ungültiger Wert: ${what}`), { status: 400 });
+  const number = (value, lo, hi, what) => {
+    const n = typeof value === 'number' ? value : Number.NaN;
+    if (!Number.isFinite(n)) throw invalid(what);
+    return clamp(Math.round(n), lo, hi);
+  };
+  if (!change || typeof change !== 'object') throw invalid('Änderung');
+  const out = {};
+  if (change.on !== undefined) {
+    if (typeof change.on !== 'boolean') throw invalid('on');
+    out.on = change.on;
+  }
+  if (change.mode !== undefined) {
+    if (change.mode !== 'white' && change.mode !== 'colour') throw invalid('mode');
+    out.mode = change.mode;
+  }
+  if (change.brightness !== undefined) out.brightness = number(change.brightness, 1, 100, 'brightness');
+  if (change.temperature !== undefined) out.temperature = number(change.temperature, 0, 100, 'temperature');
+  if (change.color !== undefined) {
+    if (!change.color || typeof change.color !== 'object') throw invalid('color');
+    out.color = { h: number(change.color.h, 0, 360, 'color.h'), s: number(change.color.s, 0, 100, 'color.s') };
+  }
+  return out;
+}
+
 export function toCommands(change, { features, attrs = {} }) {
   const commands = [];
   const always = { executeIfOff: true };

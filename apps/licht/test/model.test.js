@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  applyChange, hsToXy, levelToPercent, miredsToPercent, percentToLevel, percentToMireds, toCommands, toLight, xyToHs,
+  applyChange, hsToXy, levelToPercent, miredsToPercent, normalizeChange, percentToLevel, percentToMireds, toCommands,
+  toLight, xyToHs,
 } from '../core/model.js';
 
 const features = { level: true, hueSaturation: true, xy: true, colorTemperature: true };
@@ -95,4 +96,13 @@ test('applyChange updates cached attributes', () => {
   assert.equal(next.currentLevel, 1);
   assert.equal(next.colorMode, 0);
   assert.equal(next.currentHue, 64);
+});
+
+test('normalizeChange checks values from outside and keeps them in range', () => {
+  assert.deepEqual(normalizeChange({ on: true, brightness: 150, extra: 1 }), { on: true, brightness: 100 });
+  assert.deepEqual(normalizeChange({ mode: 'colour', color: { h: 400.4, s: -3 } }), { mode: 'colour', color: { h: 360, s: 0 } });
+  assert.deepEqual(normalizeChange({ mode: 'white', temperature: 33.6 }), { mode: 'white', temperature: 34 });
+  for (const bad of [null, 'x', { on: 'yes' }, { mode: 'blau' }, { brightness: '50' }, { color: { h: 'abc', s: 50 } }, { color: 5 }]) {
+    assert.throws(() => normalizeChange(bad), (err) => err.status === 400, JSON.stringify(bad));
+  }
 });

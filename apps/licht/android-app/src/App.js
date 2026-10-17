@@ -28,6 +28,8 @@ const hub = new LightHub({ label: 'Licht Handy', id: 'licht-android' });
 const hubReady = hub.start();
 hubReady.catch((err) => console.error('Licht: Matter konnte nicht starten', err));
 
+let pageConnected = false;
+
 export default function App() {
   const webView = useRef(null);
   const send = (script) => webView.current?.injectJavaScript(script);
@@ -43,14 +45,14 @@ export default function App() {
     let backgroundSince = 0;
     const subscription = AppState.addEventListener('change', (state) => {
       if (state !== 'active') {
+        if (!backgroundSince) hubReady.then(() => hub.pause(), () => {});
         backgroundSince ||= Date.now();
         return;
       }
-      const stale = backgroundSince && Date.now() - backgroundSince > STALE_AFTER_MS;
+      const stale = Boolean(backgroundSince) && Date.now() - backgroundSince > STALE_AFTER_MS;
       backgroundSince = 0;
       hubReady.then(() => {
-        if (stale) hub.refresh();
-        else hub.wake();
+        hub.resume({ checkAll: stale });
         send(eventScript({ type: 'lights', lights: hub.lights() }));
       }, () => {});
     });
@@ -72,6 +74,10 @@ export default function App() {
       return;
     }
     const { id, method, args } = message;
+    if (!pageConnected) {
+      pageConnected = true;
+      console.log('LICHT_PAGE connected'); // the page talks to the hub (checked by the emulator test)
+    }
     try {
       await hubReady;
       const result = await handleCall(hub, method, args ?? []);

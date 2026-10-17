@@ -13,9 +13,9 @@ export async function waitFor(check, what, timeout = 15_000) {
   }
 }
 
-export function startVirtualLight(dir, port) {
+export function startVirtualLight(dir, port, { resume = true } = {}) {
   const child = spawn(process.execPath, [new URL('./virtual-light.mjs', import.meta.url).pathname], {
-    env: { ...process.env, STORE: join(dir, 'lamp'), PORT: String(port) },
+    env: { ...process.env, STORE: join(dir, 'lamp'), PORT: String(port), NO_RESUME: resume ? '0' : '1' },
     stdio: ['ignore', 'pipe', 'inherit'],
   });
   const lamp = { child, state: {}, ready: null };
@@ -30,11 +30,18 @@ export function startVirtualLight(dir, port) {
   return lamp;
 }
 
-/** Stops a simulated lamp and waits until its process is gone. */
-export function stopVirtualLight(lamp) {
-  if (lamp.child.exitCode !== null) return Promise.resolve();
+/**
+ * Stops a simulated lamp and waits until its process is gone.
+ * hard: like a power cut – the lamp disappears without closing its connections (SIGKILL);
+ * otherwise it shuts down properly and says goodbye to Licht.
+ */
+export function stopVirtualLight(lamp, { hard = false } = {}) {
+  if (lamp.child.exitCode !== null || lamp.child.signalCode !== null) return Promise.resolve();
   return new Promise((resolve) => {
     lamp.child.once('exit', resolve);
-    lamp.child.kill();
+    lamp.child.kill(hard ? 'SIGKILL' : 'SIGTERM');
   });
 }
+
+/** A power cut: the lamp is gone at once, without a word (see stopVirtualLight). */
+export const cutPower = (lamp) => stopVirtualLight(lamp, { hard: true });
