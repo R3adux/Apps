@@ -10,7 +10,8 @@ public interface IScreenCapture
 {
     /// <summary>
     /// The top-left area of the game window, or null if not possible (game not in front, capture blocked).
-    /// <paramref name="scale"/>: game window height / 1080.
+    /// <paramref name="scale"/>: game window height / 1080 (a first guess; the reader measures the HUD itself).
+    /// The picture may be reused by the next call: keep copies (crops), not the picture.
     /// </summary>
     PixelImage? CaptureMenuArea(out double scale);
 }
@@ -110,8 +111,12 @@ public sealed class ScreenStratagemSource : IStratagemSource
     private readonly string? _lastPath;
     private readonly object _gate = new();
     private IReadOnlyList<StratagemItem> _current = [];
-    private string? _problem = "Noch nicht gelesen – das Radialmenü einmal im Spiel öffnen.";
+    private string? _problem = NotReadYet;
     private string _signature = "";
+    private long _iconsAt;
+    private int _unknownRows;
+
+    public const string NotReadYet = "Noch nicht gelesen – sobald das Radialmenü im Spiel einmal offen war, steht hier deine Liste. Bis dahin gilt die eigene Liste.";
 
     /// <param name="nameOf">Display name for a code (own names, catalog); default: the built-in catalog.</param>
     /// <param name="lastPath">Where the last reading is kept (lastlist.json): after a restart the deck and the radial
@@ -163,45 +168,69 @@ public sealed class ScreenStratagemSource : IStratagemSource
     public string Name => "Bildschirm";
     public IReadOnlyList<StratagemItem> Current { get { lock (_gate) return _current; } }
     public string? Problem { get { lock (_gate) return _problem; } }
+
+    /// <summary>Rows of the last reading whose stratagem is not known yet (never seen with arrows).</summary>
+    public int UnknownRows { get { lock (_gate) return _unknownRows; } }
+
     public event Action? Changed;
 
-    /// <summary>Takes a reading. Returns true if the list changed.</summary>
-    public bool Update(IReadOnlyList<MenuRow> rows)
+    /// <summary>
+    /// Takes a reading of the open list. Returns true if the list changed.
+    /// <paramref name="learn"/>: remember icon → code (only for certain readings).
+    /// </summary>
+    public bool Update(IReadOnlyList<MenuRow> rows, bool learn = true)
     {
         if (rows.Count == 0)
         {
-            SetProblem("Stratagem-Liste im Bild nicht gefunden (Randlos-Modus? HUD-Größe?). Die letzte gelesene Liste bleibt.");
+            ListNotFound();
             return false;
         }
         // Codes shown as arrows are certain; a stratagem appears only once in the list, so a remembered code
         // that is shown as arrows in another row cannot belong to this one.
         var shown = rows.Where(r => r.Code is not null).Select(r => r.Code!).ToHashSet();
-        foreach (var row in rows) if (row.Code is { } seen) _memory.Learn(row.IconHash, seen);
-        var items = new List<StratagemItem>();
+        if (learn) foreach (var row in rows) if (row.Code is { } seen) _memory.Learn(row.IconHash, seen);
+        var found = new List<(StratagemCode Code, bool Available, MenuRow Row)>();
         var used = new HashSet<StratagemCode>(shown);
         foreach (var row in rows)
         {
             var code = row.Code ?? _memory.Find(row.IconHash, exclude: used);
             if (code is null) continue;
             used.Add(code);
-            items.Add(new StratagemItem(code, _nameOf(code), row.State == RowState.Callable, row.Icon));
+            found.Add((code, row.State == RowState.Callable, row));
         }
-        // Icons change pixel by pixel all the time (cooldown fill): compare what matters.
-        var signature = string.Join(",", items.Select(i => $"{i.Code.Letters}:{i.Available}"));
-        bool changed;
+        // Icons change pixel by pixel all the time (cooldown fill): compare what matters, and only renew the
+        // pictures now and then (making them costs more than reading the whole list).
+        var signature = string.Join(",", found.Select(f => $"{f.Code.Letters}:{f.Available}"));
+        var now = Environment.TickCount64;
+        bool changed, renew;
         lock (_gate)
         {
             changed = signature != _signature || _problem is not null;
+            renew = changed || now - _iconsAt > 5000;
+            _unknownRows = rows.Count - found.Count;
+        }
+        if (!renew) return false;
+        var items = found.Select(f => new StratagemItem(f.Code, _nameOf(f.Code), f.Available, f.Row.Icon)).ToList();
+        lock (_gate)
+        {
             _signature = signature;
-            _current = items; // always: the icons are fresher
+            _current = items;
+            _iconsAt = now;
             _problem = null;
         }
-        if (changed)
-        {
-            SaveLast(items); // only when the list changed, not on every reading
-            Changed?.Invoke();
-        }
+        if (changed) SaveLast(items); // only when the list changed, not on every reading
+        Changed?.Invoke();
         return changed;
+    }
+
+    /// <summary>The list was looked for but is not on screen. The last list stays.</summary>
+    public void ListNotFound() =>
+        SetProblem("Stratagem-Liste im Bild nicht gefunden – läuft das Spiel im Randlos-Modus? Die zuletzt gelesene Liste bleibt.");
+
+    /// <summary>The item with this code in the current list, if any.</summary>
+    public StratagemItem? Find(StratagemCode code)
+    {
+        lock (_gate) return _current.FirstOrDefault(i => i.Code.Equals(code));
     }
 
     /// <summary>Names changed (own names): show them now, not only after the next reading.</summary>

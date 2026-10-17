@@ -33,6 +33,22 @@ public interface IRadialView
 
 public enum RadialState { Idle, Held, TapPressed, Open, Dragging, Chord }
 
+public enum RadialCloseReason
+{
+    /// <summary>A stratagem was selected (it is activated right after).</summary>
+    Selected,
+    /// <summary>Trigger (hold mode) or drag button released without a stratagem: in the centre or on an empty place.</summary>
+    Released,
+    /// <summary>Esc, right click, the trigger tapped again, the timeout, or the menu was switched off.</summary>
+    Cancelled,
+    /// <summary>Trigger + another key (e.g. Ctrl+W, Ctrl+V): the trigger now belongs to the game.</summary>
+    Chord,
+}
+
+/// <param name="OpenMs">How long the menu was open.</param>
+/// <param name="EverHighlighted">Whether any place was pointed at while it was open.</param>
+public readonly record struct RadialClose(RadialCloseReason Reason, long OpenMs, bool EverHighlighted);
+
 /// <summary>
 /// The radial menu as a state machine, without any Windows code. The input hooks feed every player event
 /// in; the return value says whether the event is swallowed (the game never sees it).
@@ -61,6 +77,7 @@ public sealed class RadialController
     private IReadOnlyList<StratagemItem> _shown = [];
     private double _x, _y;
     private int? _highlight;
+    private bool _everHighlighted;
     private long _openedAt;
 
     /// <param name="activate">Called with the selected item (and its index) when a selection is made.</param>
@@ -93,8 +110,8 @@ public sealed class RadialController
     /// <summary>The menu appeared (inside the lock: must not block).</summary>
     public event Action? Opened;
 
-    /// <summary>The menu closed; true = a stratagem was selected (raised before it is activated). Must not block.</summary>
-    public event Action<bool>? Closed;
+    /// <summary>The menu closed, and why (raised before a selected stratagem is activated; inside the lock: must not block).</summary>
+    public event Action<RadialClose>? Closed;
 
     /// <summary>
     /// New items while the menu is open (e.g. the list was just read from the game). The current direction is
@@ -110,7 +127,11 @@ public sealed class RadialController
             if (_state is RadialState.Held or RadialState.Dragging)
             {
                 _highlight = RadialLayout.Hit(_x, _y, items.Count, _options.DeadzoneCounts);
-                if (_highlight is not null) _view.Highlight(_highlight);
+                if (_highlight is not null)
+                {
+                    _everHighlighted = true;
+                    _view.Highlight(_highlight);
+                }
             }
             else _highlight = null;
         }
@@ -158,6 +179,7 @@ public sealed class RadialController
                     if (hit != _highlight)
                     {
                         _highlight = hit;
+                        if (hit is not null) _everHighlighted = true;
                         _view.Highlight(hit);
                     }
                     return true;
@@ -174,7 +196,7 @@ public sealed class RadialController
     {
         lock (_gate)
         {
-            if (_state is RadialState.Open or RadialState.Dragging && _clockMs() - _openedAt > _options.TimeoutMs) CloseView();
+            if (_state is RadialState.Open or RadialState.Dragging && _clockMs() - _openedAt > _options.TimeoutMs) CloseView(RadialCloseReason.Cancelled);
         }
     }
 
@@ -226,14 +248,14 @@ public sealed class RadialController
         {
             if (!down) return false;
             Swallow(input);
-            if (button == MouseButton.Right) CloseView();
+            if (button == MouseButton.Right) CloseView(RadialCloseReason.Cancelled);
             return true;
         }
         if (!down) return false;
         if (input.Key == KeyNames.Escape)
         {
             Swallow(input);
-            CloseView();
+            CloseView(RadialCloseReason.Cancelled);
             return true;
         }
         return StartChord(input);
@@ -257,7 +279,7 @@ public sealed class RadialController
             if (down)
             {
                 Swallow(input);
-                CloseView();
+                CloseView(RadialCloseReason.Cancelled);
             }
             return true;
         }
@@ -281,13 +303,13 @@ public sealed class RadialController
             }
             if (!down) return false;
             Swallow(input);
-            if (button == MouseButton.Right) CloseView();
+            if (button == MouseButton.Right) CloseView(RadialCloseReason.Cancelled);
             return true;
         }
         if (down && input.Key == KeyNames.Escape)
         {
             Swallow(input);
-            CloseView();
+            CloseView(RadialCloseReason.Cancelled);
             return true;
         }
         return false; // other keys (walking) go to the game
@@ -301,7 +323,7 @@ public sealed class RadialController
 
     private bool StartChord(InputRef other)
     {
-        CloseView();
+        CloseView(RadialCloseReason.Chord);
         SetState(RadialState.Chord);
         _swallowedDowns.Remove(_options.Trigger);
         // The current key arrives before anything we inject, so it is swallowed and re-sent after the trigger.
@@ -321,6 +343,7 @@ public sealed class RadialController
         _shown = _items();
         _x = _y = 0;
         _highlight = null;
+        _everHighlighted = false;
         _openedAt = _clockMs();
         SetState(state);
         _view.Show(_shown, _options.Mode);
@@ -332,18 +355,18 @@ public sealed class RadialController
         var index = _highlight;
         var items = _shown;
         var valid = index is { } i && i < items.Count && items[i].Available;
-        CloseView(selected: valid);
+        CloseView(valid ? RadialCloseReason.Selected : RadialCloseReason.Released);
         if (valid) _activate(index!.Value, items[index.Value]);
     }
 
-    private void CloseView(bool selected = false)
+    private void CloseView(RadialCloseReason reason)
     {
         var wasOpen = _state is RadialState.Held or RadialState.Open or RadialState.Dragging;
         SetState(RadialState.Idle);
         _highlight = null;
         if (!wasOpen) return;
-        _view.Hide(selected);
-        Closed?.Invoke(selected);
+        _view.Hide(reason == RadialCloseReason.Selected);
+        Closed?.Invoke(new RadialClose(reason, _clockMs() - _openedAt, _everHighlighted));
     }
 
     private void SetState(RadialState state)
@@ -361,7 +384,7 @@ public sealed class RadialController
     private void CancelLocked()
     {
         if (_state == RadialState.Chord) _inject(_options.Trigger, false);
-        CloseView();
+        CloseView(RadialCloseReason.Cancelled);
         // _swallowedDowns stays: the ups of swallowed downs are still swallowed after a cancel.
     }
 }

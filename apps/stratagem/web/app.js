@@ -376,7 +376,6 @@ const renderers = [
   bindRange('#timing-gap', 'timing.keyGapMs', '#gap-val', ms),
   bindRange('#timing-open', 'timing.menuOpenMs', '#open-val', ms),
   bindRange('#screen-slots', 'radial.screenSlots', '#slots-val', (v) => (v === 0 ? 'so viele wie Stratagems' : `${v}`)),
-  bindRange('#screen-scale', 'list.screenScale', '#scale-val', (v) => `${Math.round(v * 100)} %`),
   bindCheck('#radial-enabled', 'radial.enabled'),
   bindCheck('#read-game', 'game.readBindingsFromGame'),
   bindCheck('#only-focused', 'onlyWhenGameFocused'),
@@ -497,6 +496,14 @@ function flash(text) {
   clearTimeout(flashTimer);
   flashTimer = setTimeout(renderState, 4000);
 }
+
+// First start: three lines on how it works, until dismissed.
+const howtoKey = 'stratagem.howto.done';
+try { $('#howto').hidden = localStorage.getItem(howtoKey) === '1'; } catch { $('#howto').hidden = false; }
+$('#howto-close').addEventListener('click', () => {
+  $('#howto').hidden = true;
+  try { localStorage.setItem(howtoKey, '1'); } catch { /* private mode: shows again next time */ }
+});
 
 $('#pause-btn').addEventListener('click', () => api.pause(!state?.paused).catch((e) => flash(e.message)));
 

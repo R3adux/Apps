@@ -225,3 +225,8 @@ body.deck { padding-left: 10px; padding-right: 10px; }
 .lan-urls .btn { flex: none; white-space: nowrap; }
 .lan-urls .btn.on { border-color: var(--accent); color: var(--accent); }
 @media (max-width: 480px) { .lan { grid-template-columns: 1fr; } }
+
+/* first start */
+.howto { max-width: 1100px; margin: 0 auto 14px; padding: 14px 18px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--accent); }
+.howto h2 { margin: 0 0 6px; font-size: 1.05rem; }
+.howto ol { margin: 0 0 8px; padding-left: 1.2em; line-height: 1.6; }

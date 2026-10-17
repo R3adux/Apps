@@ -11,7 +11,8 @@ namespace Stratagem.Core.Settings;
 /// </summary>
 public sealed class AppSettings
 {
-    public const int CurrentVersion = 1;
+    /// <summary>2: the list is read from the game by default.</summary>
+    public const int CurrentVersion = 2;
 
     public int Version { get; set; } = CurrentVersion;
     public bool Paused { get; set; }
@@ -78,6 +79,11 @@ public sealed class AppSettings
         Timing ??= new();
         List ??= new();
         List.Manual ??= [];
+        if (Version < 2 && List.Source == ListSource.Manual)
+        {
+            List.Source = ListSource.Screen;
+            fixes.Add("Die Liste wird jetzt aus dem Spiel gelesen (neuer Standard; die eigene Liste gilt, bis sie einmal gelesen wurde)");
+        }
         List.Names ??= [];
         Hotkeys ??= [];
         Web ??= new();
@@ -165,7 +171,8 @@ public enum ListSource
 
 public sealed class ListSettings
 {
-    public ListSource Source { get; set; } = ListSource.Manual;
+    /// <summary>Read from the game (default); the own list stands in until the game's list was read once.</summary>
+    public ListSource Source { get; set; } = ListSource.Screen;
     /// <summary>Size of the game's HUD relative to 100 % (if the list is not found with a changed HUD size).</summary>
     public double ScreenScale { get; set; } = 1.0;
     /// <summary>Own names per code ("URDDD" → "Bombe"), they win over the built-in names.</summary>

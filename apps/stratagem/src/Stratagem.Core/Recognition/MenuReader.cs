@@ -16,20 +16,28 @@ public enum RowState
 }
 
 /// <param name="IconHash">Identity of the icon (stays the same while the stratagem stays the same).</param>
-/// <param name="Icon">The icon cut out of the screen (PNG).</param>
-public sealed record MenuRow(int Index, RowState State, StratagemCode? Code, ulong IconHash, byte[] Icon);
+/// <param name="IconImage">The icon cut out of the screen.</param>
+public sealed record MenuRow(int Index, RowState State, StratagemCode? Code, ulong IconHash, PixelImage IconImage)
+{
+    private byte[]? _icon;
+
+    /// <summary>The icon as PNG, made on first use (most readings change nothing and never need it).</summary>
+    public byte[] Icon => _icon ??= Png.Encode(IconImage);
+}
 
 /// <summary>
 /// Where the list is on screen, in pixels of a 1920×1080 picture with 100 % HUD scale. Everything scales with the
-/// picture height (the list sits at the left edge, also on wide screens). Measured on real screenshots (Oct 2026).
+/// HUD (the list sits at the left edge, also on wide screens). Measured on real screenshots (Oct 2026).
 /// Kept as data so a game patch only needs new numbers.
 /// </summary>
 public sealed record MenuGeometry(
     double IconLeft = 50, double IconRight = 98,
     double FirstRowSearchTop = 60, double FirstRowSearchBottom = 220,
-    double RowPitch = 52.3, double MinIconHeight = 30,
-    double TextLeft = 115, double TextRight = 330,
-    int MaxRows = 14)
+    double RowPitch = 52.3, double IconHeight = 44,
+    double TextLeft = 105, double TextRight = 330,
+    double ArrowSize = 14.5, double ArrowPitch = 21.5, double ArrowStartMax = 42,
+    int MinArrows = 3, int MaxRows = 14,
+    double MinArrowMatch = 0.7, double MinArrowMargin = 0.03)
 {
     public static MenuGeometry Default { get; } = new();
 }
@@ -42,62 +50,134 @@ public sealed record MenuGeometry(
 /// - the state (arrows shown = callable; otherwise from the brightness of the title),
 /// - the icon (cut out, plus a hash as identity: the game shows no arrows during cooldown, so the code of an
 ///   icon is remembered once it was seen with arrows).
-/// Costs about a millisecond for the list area.
+/// The HUD size is taken from the picture itself (the rows repeat at a fixed pitch), so other aspect ratios and
+/// resolutions work without a setting; <paramref name="scale"/> is only the first guess.
+/// Costs one to two milliseconds for the list area.
 /// </summary>
 public static class MenuReader
 {
     public static IReadOnlyList<MenuRow> Read(PixelImage image, double scale, MenuGeometry? geometry = null)
     {
         var g = geometry ?? MenuGeometry.Default;
-        int S(double v) => (int)Math.Round(v * scale);
-        int iconL = S(g.IconLeft), iconR = Math.Min(S(g.IconRight), image.Width - 1);
-        if (iconR <= iconL) return [];
-
-        // 1. First row: the first run of "busy" lines in the icon column (icons have structure, the panel is flat).
-        var first = -1;
-        var iconHeight = 0;
-        for (int y = S(g.FirstRowSearchTop), run = 0; y < Math.Min(S(g.FirstRowSearchBottom), image.Height); y++)
+        var rows = ReadAt(image, scale, g);
+        // A HUD that is a few percent larger or smaller (other aspect ratio, odd resolution) shifts the lower rows
+        // off the expected pitch: measure the pitch and read again if it differs.
+        if (MeasureScale(image, scale, g) is { } measured && Math.Abs(measured / scale - 1) > 0.012)
         {
-            if (Busy(image, y, iconL, iconR)) run++;
-            else
-            {
-                if (run >= S(g.MinIconHeight)) { first = y - run; iconHeight = run; break; }
-                run = 0;
-            }
-        }
-        if (first < 0) return [];
-        iconHeight = Math.Min(iconHeight, S(g.RowPitch) - S(4));
-
-        // 2. Further rows on the fixed pitch, as long as the icon column is busy there.
-        var rows = new List<MenuRow>();
-        for (var k = 0; k < g.MaxRows; k++)
-        {
-            var top = first + (int)Math.Round(k * g.RowPitch * scale);
-            var bottom = top + iconHeight;
-            if (bottom + S(6) >= image.Height) break;
-            var busy = 0;
-            for (var y = top + iconHeight / 4; y < bottom - iconHeight / 4; y++) if (Busy(image, y, iconL, iconR)) busy++;
-            if (busy < iconHeight / 4) break;
-            rows.Add(ReadRow(image, k, top, bottom, iconL, iconR, S(g.TextLeft), Math.Min(S(g.TextRight), image.Width), scale));
+            var again = ReadAt(image, measured, g);
+            if (Quality(again) > Quality(rows)) return again;
         }
         return rows;
     }
 
-    private static MenuRow ReadRow(PixelImage img, int index, int top, int bottom, int iconL, int iconR, int textL, int textR, double scale)
+    /// <summary>More rows, and above all more rows with a clean arrow code, mean the geometry fits better.</summary>
+    private static int Quality(IReadOnlyList<MenuRow> rows) => rows.Sum(r => r.Code is null ? 1 : 3);
+
+    /// <summary>
+    /// The HUD scale from the picture: the icon column is "busy" on the icons and flat in the gaps between them,
+    /// so its line profile repeats with the row pitch. Null if no clear repetition is found.
+    /// </summary>
+    internal static double? MeasureScale(PixelImage image, double scale, MenuGeometry g)
+    {
+        int x0 = (int)Math.Round(g.IconLeft * scale), x1 = Math.Min((int)Math.Round(g.IconRight * scale), image.Width - 1);
+        int y0 = (int)Math.Round(g.FirstRowSearchTop * scale), y1 = image.Height;
+        var pitch = g.RowPitch * scale;
+        int minLag = (int)Math.Floor(pitch * 0.75), maxLag = (int)Math.Ceiling(pitch * 1.35);
+        if (x1 - x0 < 8 || y1 - y0 < maxLag * 3) return null;
+
+        var profile = new double[y1 - y0];
+        for (var y = y0; y < y1; y++) profile[y - y0] = Math.Min(StdDev(image, y, x0, x1), 40);
+        var mean = profile.Average();
+        for (var i = 0; i < profile.Length; i++) profile[i] -= mean;
+
+        var corr = new double[maxLag + 2];
+        for (var lag = minLag - 1; lag <= maxLag + 1; lag++)
+        {
+            double num = 0, a2 = 0, b2 = 0;
+            for (var i = 0; i + lag < profile.Length; i++)
+            {
+                num += profile[i] * profile[i + lag];
+                a2 += profile[i] * profile[i];
+                b2 += profile[i + lag] * profile[i + lag];
+            }
+            corr[lag] = num / Math.Max(1e-9, Math.Sqrt(a2 * b2));
+        }
+        var best = minLag;
+        for (var lag = minLag; lag <= maxLag; lag++) if (corr[lag] > corr[best]) best = lag;
+        if (corr[best] < 0.35 || best == minLag || best == maxLag) return null;
+        // Sub-pixel: the top of a parabola through the best lag and its neighbours.
+        double l = corr[best - 1], c = corr[best], r = corr[best + 1];
+        var denominator = l - 2 * c + r;
+        var offset = Math.Abs(denominator) < 1e-9 ? 0 : Math.Clamp(0.5 * (l - r) / denominator, -0.5, 0.5);
+        return (best + offset) / g.RowPitch;
+    }
+
+    private static IReadOnlyList<MenuRow> ReadAt(PixelImage image, double scale, MenuGeometry g)
+    {
+        int S(double v) => (int)Math.Round(v * scale);
+        int iconL = S(g.IconLeft), iconR = Math.Min(S(g.IconRight), image.Width - 1);
+        if (iconR <= iconL) return [];
+
+        // Icons have structure, the gaps between them are flat panel. Static things (the panel's edge, a lamp behind
+        // the half-transparent list) make every line equally "busy", so rows are found by the contrast between an
+        // icon and the gap below it, not by a fixed threshold.
+        var profile = new double[image.Height];
+        for (var y = 0; y < image.Height; y++) profile[y] = StdDev(image, y, iconL, iconR);
+        var pitch = g.RowPitch * scale;
+        var iconHeight = Math.Max(4, S(g.IconHeight));
+        var gap = Math.Max(2, (int)Math.Round(pitch) - iconHeight);
+
+        // 1. First row: the best icon/gap contrast in the search range.
+        int first = -1;
+        var bestContrast = 0.0;
+        for (var t = S(g.FirstRowSearchTop); t <= S(g.FirstRowSearchBottom) && t + iconHeight + gap < image.Height; t++)
+        {
+            var c = RowContrast(profile, t, iconHeight, gap);
+            if (c > bestContrast) { bestContrast = c; first = t; }
+        }
+        if (first < 0 || bestContrast < MinRowContrast) return [];
+
+        // 2. Further rows on the pitch (re-centred by a pixel or two against rounding), while they look like rows.
+        var rows = new List<MenuRow>();
+        var expected = (double)first;
+        for (var k = 0; k < g.MaxRows; k++)
+        {
+            var guess = (int)Math.Round(expected);
+            var top = guess;
+            var contrast = double.MinValue;
+            for (var t = guess - 2; t <= guess + 2; t++)
+            {
+                if (t < 0 || t + iconHeight + gap >= image.Height) continue;
+                var c = RowContrast(profile, t, iconHeight, gap);
+                if (c > contrast) { contrast = c; top = t; }
+            }
+            if (contrast < MinRowContrast) break;
+            var bottom = top + iconHeight;
+            rows.Add(ReadRow(image, k, top, bottom, iconL, iconR, Math.Max(0, S(g.TextLeft)), Math.Min(S(g.TextRight), image.Width), scale, g));
+            expected = top + pitch;
+        }
+        return rows;
+    }
+
+    private static MenuRow ReadRow(PixelImage img, int index, int top, int bottom, int iconL, int iconR, int textL, int textR, double scale, MenuGeometry g)
     {
         var h = bottom - top;
         int lineTop = top + (int)(h * 0.52), lineBottom = Math.Min(bottom + (int)Math.Round(4 * scale), img.Height);
         var bg = Median(img, textL, textR, lineTop, lineBottom);
 
-        var blobs = Blobs(img, textL, textR, lineTop, lineBottom, bg + 45);
-        double min = 11 * scale, max = 23 * scale;
-        var arrows = blobs.Count >= 2 && blobs.All(b => b.Width >= min && b.Height >= min && b.Width <= max && b.Height <= max);
+        // The arrows are near white; on a bright background (explosion behind the half-transparent list) the
+        // threshold moves up with it, but always stays clearly above the background.
+        var threshold = bg + Math.Clamp((255 - bg) / 2, 20, 45);
+        var chain = ArrowChain(Blobs(img, textL, textR, lineTop, lineBottom, threshold), scale, g);
 
         StratagemCode? code = null;
         RowState state;
-        if (arrows)
+        // Every shape must really look like the game's arrow (and clearly point one way): a code is typed into the
+        // game, so a row of something else that happens to be arrow-sized must never become one.
+        var arrows = chain?.Select(b => ArrowDirection(img, b, textL, lineTop, bg)).ToList();
+        if (arrows is not null && arrows.All(a => a.Match >= g.MinArrowMatch && a.Margin >= g.MinArrowMargin))
         {
-            code = new StratagemCode(blobs.OrderBy(b => b.Left).Select(b => ArrowDirection(img, b, textL, lineTop, bg)));
+            code = new StratagemCode(arrows.Select(a => a.Direction));
             state = RowState.Callable;
         }
         else
@@ -108,7 +188,7 @@ public static class MenuReader
         }
 
         var icon = img.Crop(iconL, top, iconR - iconL, h);
-        return new MenuRow(index, state, code, IconHash(icon), Png.Encode(icon));
+        return new MenuRow(index, state, code, IconHash(icon), icon);
     }
 
     /// <summary>
@@ -159,15 +239,35 @@ public static class MenuReader
         0.005, 0.005, 0.106, 0.506, 0.849, 0.862, 0.858, 0.847, 0.806, 0.436, 0.046, 0.001
     ];
 
-    private static readonly (Direction Direction, double[] Template)[] Templates = BuildTemplates();
+    /// <summary>Per direction the template, also moved by one cell each way: small arrows (720p) are cut out a little
+    /// off-centre, and a fair comparison must not punish that.</summary>
+    private static readonly (Direction Direction, double[][] Variants)[] Templates = BuildTemplates();
 
-    private static (Direction, double[])[] BuildTemplates()
+    private static (Direction, double[][])[] BuildTemplates()
     {
         var up = UpTemplate;
         var right = Rotate(up);
         var down = Rotate(right);
         var left = Rotate(down);
-        return [(Direction.Up, up), (Direction.Right, right), (Direction.Down, down), (Direction.Left, left)];
+        return [(Direction.Up, Shifts(up)), (Direction.Right, Shifts(right)), (Direction.Down, Shifts(down)), (Direction.Left, Shifts(left))];
+
+        static double[][] Shifts(double[] t)
+        {
+            var result = new List<double[]>();
+            for (var dy = -1; dy <= 1; dy++)
+            for (var dx = -1; dx <= 1; dx++)
+            {
+                var shifted = new double[N * N];
+                for (var y = 0; y < N; y++)
+                for (var x = 0; x < N; x++)
+                {
+                    int sx = x - dx, sy = y - dy;
+                    shifted[y * N + x] = sx < 0 || sy < 0 || sx >= N || sy >= N ? 0 : t[sy * N + sx];
+                }
+                result.Add(shifted);
+            }
+            return result.ToArray();
+        }
 
         // 90° clockwise
         static double[] Rotate(double[] m)
@@ -178,8 +278,11 @@ public static class MenuReader
         }
     }
 
-    /// <summary>The blob's brightness, scaled to N×N, compared with the template in all four directions.</summary>
-    private static Direction ArrowDirection(PixelImage img, Blob blob, int offsetX, int offsetY, int bg)
+    /// <summary>
+    /// The blob's brightness, scaled to N×N, compared with the template in all four directions.
+    /// Match: correlation with the best direction (1 = identical); Margin: how much better than the second best.
+    /// </summary>
+    internal static (Direction Direction, double Match, double Margin) ArrowDirection(PixelImage img, Blob blob, int offsetX, int offsetY, int bg)
     {
         int l = offsetX + blob.Left, t = offsetY + blob.Top, w = blob.Width, h = blob.Height;
         var peak = 0;
@@ -202,13 +305,14 @@ public static class MenuReader
             m[j * N + i] = sum / n;
         }
         var best = Direction.Up;
-        var bestScore = double.MinValue;
-        foreach (var (direction, template) in Templates)
+        double bestScore = double.MinValue, second = double.MinValue;
+        foreach (var (direction, variants) in Templates)
         {
-            var score = Correlation(m, template);
-            if (score > bestScore) { bestScore = score; best = direction; }
+            var score = variants.Max(t => Correlation(m, t));
+            if (score > bestScore) { second = bestScore; bestScore = score; best = direction; }
+            else if (score > second) second = score;
         }
-        return best;
+        return (best, bestScore, bestScore - second);
     }
 
     private static double Correlation(double[] a, double[] b)
@@ -225,18 +329,64 @@ public static class MenuReader
 
     public static int Distance(ulong a, ulong b) => System.Numerics.BitOperations.PopCount(a ^ b);
 
-    private static bool Busy(PixelImage img, int y, int x0, int x1)
+    /// <summary>
+    /// The arrows of a row: arrow-sized shapes in a regular row – starting at the beginning of the line, one after
+    /// the other at the arrow pitch, on one baseline. Anything else that is bright (text, a spark of the background
+    /// behind the half-transparent list) is ignored instead of spoiling the row. Null if there is no such row.
+    /// </summary>
+    private static List<Blob>? ArrowChain(List<Blob> blobs, double scale, MenuGeometry g)
+    {
+        double min = g.ArrowSize * 0.7 * scale, max = g.ArrowSize * 1.6 * scale;
+        var candidates = blobs
+            .Where(b => b.Width >= min && b.Height >= min && b.Width <= max && b.Height <= max
+                        && b.Width <= b.Height * 1.6 && b.Height <= b.Width * 1.6
+                        && b.Points.Count >= b.Width * b.Height * 0.3)
+            .OrderBy(b => b.Left)
+            .ToList();
+        double pitchMin = g.ArrowPitch * 0.75 * scale, pitchMax = g.ArrowPitch * 1.3 * scale, baseline = Math.Max(2, 3 * scale);
+        foreach (var start in candidates)
+        {
+            if (start.Left > g.ArrowStartMax * scale) break;
+            var chain = new List<Blob> { start };
+            while (true)
+            {
+                var last = chain[^1];
+                var next = candidates.FirstOrDefault(b =>
+                    b.Left - last.Left >= pitchMin && b.Left - last.Left <= pitchMax && Math.Abs(b.Top - last.Top) <= baseline);
+                if (next is null) break;
+                chain.Add(next);
+            }
+            if (chain.Count >= g.MinArrows) return chain;
+        }
+        return null;
+    }
+
+    /// <summary>How much more structure the icon lines have than the gap lines below them (std. deviation units).</summary>
+    private const double MinRowContrast = 9;
+
+    private static double RowContrast(double[] profile, int top, int iconHeight, int gap)
+    {
+        var margin = Math.Max(1, iconHeight / 10);
+        double icon = 0, gapSum = 0;
+        int n = 0, m = 0;
+        for (var y = top + margin; y < top + iconHeight - margin; y++) { icon += Math.Min(profile[y], 60); n++; }
+        for (var y = top + iconHeight + 1; y < top + iconHeight + gap; y++) { gapSum += profile[y]; m++; }
+        if (n == 0 || m == 0) return 0;
+        return icon / n - gapSum / m;
+    }
+
+    private static double StdDev(PixelImage img, int y, int x0, int x1)
     {
         long sum = 0, sq = 0;
         var n = x1 - x0;
+        if (n <= 0) return 0;
         for (var x = x0; x < x1; x++)
         {
             var l = img.Luma(x, y);
             sum += l;
             sq += l * l;
         }
-        var variance = (sq - sum * sum / (double)n) / n;
-        return variance > 64; // standard deviation > 8
+        return Math.Sqrt(Math.Max(0, (sq - sum * sum / (double)n) / n));
     }
 
     private static int Median(PixelImage img, int x0, int x1, int y0, int y1)
@@ -257,7 +407,7 @@ public static class MenuReader
         return values[(int)((values.Count - 1) * p)];
     }
 
-    private sealed class Blob
+    internal sealed class Blob
     {
         public List<(int X, int Y)> Points { get; } = [];
         public int Left, Right, Top, Bottom;

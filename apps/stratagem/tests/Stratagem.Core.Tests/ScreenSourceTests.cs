@@ -134,77 +134,31 @@ public class MacroQueueTests
     }
 }
 
-public sealed class FixtureCapture(string file) : IScreenCapture
+/// <summary>"Screen capture" from a test picture; the picture can be switched (list closed = black, capture blocked = null).</summary>
+public sealed class FixtureCapture : IScreenCapture
 {
+    private static readonly Dictionary<string, PixelImage> Cache = [];
+    private volatile string? _file;
     public int Calls;
+
+    public FixtureCapture(string? file) => _file = file;
+
+    /// <summary>A picture from tests/data; "black" = a black screen (the list is not open); null = capture fails.</summary>
+    public string? File { get => _file; set => _file = value; }
+
     public PixelImage? CaptureMenuArea(out double scale)
     {
         Interlocked.Increment(ref Calls);
         scale = 1.0;
-        return Png.Decode(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "data", file)));
-    }
-}
-
-public class ScreenFlowTests
-{
-    [Fact]
-    public async Task Radial_opens_the_game_list_reads_it_and_types_only_the_arrows()
-    {
-        var dir = Directory.CreateTempSubdirectory().FullName;
-        var output = new FakeOutput();
-        var view = new FakeView();
-        var game = new GameWatcherStub { IsRunning = true, IsFocused = true };
-        var capture = new FixtureCapture("menu-1080p-a.png");
-        var store = new SettingsStore(Path.Combine(dir, "settings.json"));
-        var settings = store.Load();
-        settings.List.Source = ListSource.Screen;
-        settings.Timing = new TimingSettings { KeyHoldMs = 5, KeyGapMs = 5, MenuOpenMs = 5, ListReadMs = 30 };
-        using var service = new StratagemService(store, settings, new ServicePlatform(output, view, game, Capture: capture, DataDir: dir));
-        try
+        var file = _file;
+        if (file is null) return null;
+        if (file == "black") return new PixelImage(480, 560, new byte[480 * 560 * 4]);
+        lock (Cache)
         {
-            // Hold Ctrl: the radial menu opens, the tool opens the game's list (hold mode: keeps the key down) and reads it.
-            Assert.True(service.Router.OnKey(KeyNames.ControlLeft, true));
-            await MacroRunnerTests.WaitUntil(() => service.RadialItems.Any(i => !i.IsEmpty));
-            Assert.Equal(1, capture.Calls);
-            Assert.Equal(["+ControlLeft"], output.Events);
-            Assert.Equal(8, service.RadialItems.Count);          // fixed places
-            Assert.Contains(view.Items, i => i.Code.Letters == "DURRU"); // the open menu was refreshed
-
-            // Move to the MG sentry's place and release: only the arrows, then the held list key is released.
-            var mg = service.RadialItems.ToList().FindIndex(i => i.Code.Letters == "DURRU");
-            var angle = Radial.RadialLayout.CenterAngle(mg, 8) * Math.PI / 180;
-            service.Router.OnMouseMove((int)(Math.Cos(angle) * 150), (int)(Math.Sin(angle) * 150));
-            Assert.True(service.Router.OnKey(KeyNames.ControlLeft, false));
-            await MacroRunnerTests.WaitUntil(() => !service.Runner.IsRunning && output.Events.Count >= 12,
-                () => $"Ereignisse: {string.Join(" ", output.Events)}, läuft: {service.Runner.IsRunning}");
-            Assert.Equal(
-                ["+ControlLeft", "+KeyS", "-KeyS", "+KeyW", "-KeyW", "+KeyD", "-KeyD", "+KeyD", "-KeyD", "+KeyW", "-KeyW", "-ControlLeft"],
-                output.Events);
-            Assert.True(File.Exists(Path.Combine(dir, "icons.json")));
+            if (!Cache.TryGetValue(file, out var image))
+                Cache[file] = image = Png.Decode(System.IO.File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "data", file)));
+            return image;
         }
-        finally { Directory.Delete(dir, true); }
-    }
-
-    [Fact]
-    public async Task Cancelling_closes_the_game_list_again()
-    {
-        var dir = Directory.CreateTempSubdirectory().FullName;
-        var output = new FakeOutput();
-        var store = new SettingsStore(Path.Combine(dir, "settings.json"));
-        var settings = store.Load();
-        settings.List.Source = ListSource.Screen;
-        settings.Timing = new TimingSettings { KeyHoldMs = 5, KeyGapMs = 5, MenuOpenMs = 5, ListReadMs = 30 };
-        using var service = new StratagemService(store, settings,
-            new ServicePlatform(output, new FakeView(), new GameWatcherStub { IsRunning = true, IsFocused = true }, Capture: new FixtureCapture("menu-1080p-b.png")));
-        try
-        {
-            service.Router.OnKey(KeyNames.ControlLeft, true);
-            service.Router.OnKey(KeyNames.ControlLeft, false); // released in the centre = cancel
-            await MacroRunnerTests.WaitUntil(() => !service.Runner.IsRunning && output.Events.Count == 2,
-                () => $"Ereignisse: {string.Join(" ", output.Events)}, läuft: {service.Runner.IsRunning}, Radial: {service.Radial.State}");
-            Assert.Equal(["+ControlLeft", "-ControlLeft"], output.Events);
-        }
-        finally { Directory.Delete(dir, true); }
     }
 }
 

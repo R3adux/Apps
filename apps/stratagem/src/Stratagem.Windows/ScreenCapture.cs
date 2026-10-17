@@ -13,8 +13,16 @@ namespace Stratagem.Windows;
 public sealed unsafe class GdiScreenCapture(Func<nint> gameWindow, Action<string> log) : IScreenCapture
 {
     private long _lastWarning;
+    private byte[]? _buffer; // reused: the list is read several times per radial menu, 2 MB (1080p) to 8 MB (4K) each
+    private readonly object _gate = new();
 
+    /// <summary>The picture is only valid until the next call (the reader copies what it keeps).</summary>
     public PixelImage? CaptureMenuArea(out double scale)
+    {
+        lock (_gate) return Capture(out scale);
+    }
+
+    private PixelImage? Capture(out double scale)
     {
         scale = 1;
         var hwnd = gameWindow();
@@ -23,8 +31,11 @@ public sealed unsafe class GdiScreenCapture(Func<nint> gameWindow, Action<string
         if (!ClientToScreen(hwnd, ref origin)) return null;
         int clientW = client.Right - client.Left, clientH = client.Bottom - client.Top;
         if (clientW < 200 || clientH < 200) return null;
-        scale = clientH / 1080.0;
-        int w = Math.Min(clientW, (int)(520 * scale)), h = Math.Min(clientH, (int)(1000 * scale));
+        // Games fit their HUD into 16:9: the smaller side decides (a first guess – the reader measures the HUD).
+        // The area is sized for the larger guess, so a bigger HUD is not cut off.
+        var byHeight = clientH / 1080.0;
+        scale = Math.Min(clientW / 1920.0, byHeight);
+        int w = Math.Min(clientW, (int)(560 * byHeight)), h = Math.Min(clientH, (int)(1000 * byHeight));
 
         var screen = GetDC(0);
         var mem = CreateCompatibleDC(screen);
@@ -34,7 +45,8 @@ public sealed unsafe class GdiScreenCapture(Func<nint> gameWindow, Action<string
         try
         {
             if (bitmap == 0 || !BitBlt(mem, 0, 0, w, h, screen, origin.X, origin.Y, SRCCOPY)) return null;
-            var data = new byte[w * h * 4];
+            if (_buffer?.Length != w * h * 4) _buffer = new byte[w * h * 4];
+            var data = _buffer;
             Marshal.Copy(bits, data, 0, data.Length);
             var image = new PixelImage(w, h, data);
             if (IsBlack(image)) Warn("Bildschirmaufnahme ist schwarz – läuft das Spiel im exklusiven Vollbild oder mit HDR? Randlos-Modus wählen.");

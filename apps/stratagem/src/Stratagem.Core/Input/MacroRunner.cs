@@ -59,7 +59,7 @@ public sealed class MacroRunner : IDisposable
     private int _generation;
     private readonly object _gate = new();
 
-    private sealed record Job(IReadOnlyList<MacroStep> Steps, string Label, IReadOnlySet<Key> KeepHeld, int Generation, TaskCompletionSource<bool> Done);
+    private sealed record Job(IReadOnlyList<MacroStep> Steps, string Label, IReadOnlySet<Key> KeepHeld, IReadOnlySet<Key> Guard, int Generation, TaskCompletionSource<bool> Done);
 
     public MacroRunner(IInputOutput output, PhysicalKeyState physical, IPrecisionTimer? timer = null, Action<string>? log = null)
     {
@@ -88,24 +88,26 @@ public sealed class MacroRunner : IDisposable
     {
         done = Task.FromResult(false);
         if (_queue.IsAddingCompleted || Interlocked.CompareExchange(ref _pending, 1, 0) != 0) return false;
-        done = Add(steps, label, null);
+        done = Add(steps, label, null, null);
         return true;
     }
 
     /// <summary>
     /// Queues a job after the current ones (a sequence that belongs together: open the list, read it, enter the code).
     /// <paramref name="keepHeld"/>: keys this job leaves pressed for a later job, which releases them.
+    /// <paramref name="guard"/>: further keys of the player held back from the game while the job runs (and pressed
+    /// again afterwards if still held), e.g. walking keys while the list is briefly open for reading.
     /// </summary>
-    public Task<bool> Enqueue(IReadOnlyList<MacroStep> steps, string label, IReadOnlySet<Key>? keepHeld = null)
+    public Task<bool> Enqueue(IReadOnlyList<MacroStep> steps, string label, IReadOnlySet<Key>? keepHeld = null, IReadOnlySet<Key>? guard = null)
     {
         if (_queue.IsAddingCompleted) return Task.FromResult(false);
         Interlocked.Increment(ref _pending);
-        return Add(steps, label, keepHeld);
+        return Add(steps, label, keepHeld, guard);
     }
 
-    private Task<bool> Add(IReadOnlyList<MacroStep> steps, string label, IReadOnlySet<Key>? keepHeld)
+    private Task<bool> Add(IReadOnlyList<MacroStep> steps, string label, IReadOnlySet<Key>? keepHeld, IReadOnlySet<Key>? guard)
     {
-        var job = new Job(steps, label, keepHeld ?? new HashSet<Key>(), Volatile.Read(ref _generation),
+        var job = new Job(steps, label, keepHeld ?? new HashSet<Key>(), guard ?? new HashSet<Key>(), Volatile.Read(ref _generation),
             new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously));
         try { _queue.Add(job); }
         catch (InvalidOperationException)
@@ -159,16 +161,26 @@ public sealed class MacroRunner : IDisposable
     private bool Execute(Job job, CancellationToken ct)
     {
         var used = job.Steps.OfType<MacroStep.Press>().Select(p => p.Key).ToHashSet();
+        used.UnionWith(job.Guard);
         var pressed = new HashSet<Key>();
         var completed = false;
         _busyKeys = used;
         using var precision = _timer?.HighResolution();
         try
         {
-            // A key the player holds (W for walking) is first released, so our press is a real new press.
+            // A key the player holds (W for walking) is first released, so our press is a real new press
+            // (and a guarded walking key does not reach the open list as an arrow).
             foreach (var key in used.Where(_physical.IsDown)) _output.Send(key, false);
 
             foreach (var step in job.Steps)
+            {
+                if (!Step(step)) return false;
+            }
+            completed = true;
+            return true;
+
+            // False: stop the job here (cancelled, or a Decide chose other steps).
+            bool Step(MacroStep step)
             {
                 if (ct.IsCancellationRequested) return false;
                 switch (step)
@@ -192,10 +204,18 @@ public sealed class MacroRunner : IDisposable
                         foreach (var key in _held) _output.Send(key, false);
                         _held.Clear();
                         break;
+                    case MacroStep.Forget f:
+                        _held.Remove(f.Key);
+                        pressed.Remove(f.Key);
+                        break;
+                    case MacroStep.Decide d:
+                        if (d.Instead() is not { } instead) break;
+                        foreach (var other in instead)
+                            if (other is not MacroStep.Decide && !Step(other)) return false;
+                        return false;
                 }
+                return true;
             }
-            completed = true;
-            return true;
         }
         finally
         {

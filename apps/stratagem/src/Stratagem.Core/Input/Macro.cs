@@ -46,14 +46,24 @@ public abstract record MacroStep
     public sealed record Run(Action Action) : MacroStep;
     /// <summary>Releases keys an earlier job kept held.</summary>
     public sealed record ReleaseHeld : MacroStep;
+    /// <summary>
+    /// Decides on the macro thread, when it is reached, whether the rest of the job runs: null = go on; otherwise
+    /// these steps run instead (e.g. close the list) and the job ends there, as not completed.
+    /// </summary>
+    public sealed record Decide(Func<IReadOnlyList<MacroStep>?> Instead) : MacroStep;
+    /// <summary>
+    /// A key an earlier job kept held now belongs to the player (they hold it themselves): forget it without
+    /// releasing it, so it is neither released under their finger nor pressed again later.
+    /// </summary>
+    public sealed record Forget(Key Key) : MacroStep;
 }
 
 public static class MacroPlanner
 {
     /// <summary>
     /// Builds the key sequence for one stratagem.
-    /// <paramref name="menuAlreadyOpen"/>: <see cref="OpenMenu"/> opened the list before (to read it); in hold mode
-    /// the list key is still held and is released after the code.
+    /// <paramref name="menuAlreadyOpen"/>: the list was opened before (to read it); in hold mode the list key is
+    /// still held and is released after the code.
     /// </summary>
     public static IReadOnlyList<MacroStep> Plan(StratagemCode code, GameBindings bindings, MacroTiming timing, bool menuAlreadyOpen = false)
     {
@@ -85,31 +95,7 @@ public static class MacroPlanner
         return steps;
     }
 
-    /// <summary>
-    /// Opens the stratagem list and runs <paramref name="whenOpen"/> once it is on screen (to read it).
-    /// In hold mode the list key stays pressed afterwards: run the job with <see cref="KeepHeld"/>.
-    /// </summary>
-    public static IReadOnlyList<MacroStep> OpenMenu(GameBindings bindings, MacroTiming timing, int readDelayMs, Action whenOpen)
-    {
-        var t = timing.Clamped();
-        var steps = new List<MacroStep> { new MacroStep.Press(bindings.Menu) };
-        if (bindings.MenuMode == MenuMode.Press)
-        {
-            steps.Add(new MacroStep.Wait(t.KeyHoldMs));
-            steps.Add(new MacroStep.Release(bindings.Menu));
-        }
-        steps.Add(new MacroStep.Wait(Math.Max(t.MenuOpenMs, readDelayMs)));
-        steps.Add(new MacroStep.Run(whenOpen));
-        return steps;
-    }
-
-    /// <summary>Keys <see cref="OpenMenu"/> leaves pressed.</summary>
+    /// <summary>Keys left pressed after opening the list (hold mode: the list key).</summary>
     public static IReadOnlySet<Key> KeepHeld(GameBindings bindings) =>
         bindings.MenuMode == MenuMode.Hold ? new HashSet<Key> { bindings.Menu } : new HashSet<Key>();
-
-    /// <summary>Closes a list opened by <see cref="OpenMenu"/> without entering a code.</summary>
-    public static IReadOnlyList<MacroStep> CloseMenu(GameBindings bindings, MacroTiming timing) =>
-        bindings.MenuMode == MenuMode.Hold
-            ? [new MacroStep.Release(bindings.Menu)]
-            : [new MacroStep.Press(bindings.Menu), new MacroStep.Wait(timing.Clamped().KeyHoldMs), new MacroStep.Release(bindings.Menu)];
 }

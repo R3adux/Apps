@@ -137,6 +137,8 @@ internal static class Program
             toldBackground = true;
             tray.Notify("Stratagem läuft im Hintergrund weiter. Öffnen: Symbol unten rechts in der Taskleiste.");
         };
+        // Problems the player must know while playing (the settings window is closed then).
+        service.Notice += text => ui.Post(_ => tray.Notify(text), null);
         // Tray and overlay follow the service, but only touch Windows when something they show changed,
         // and many changes in a row (a macro, a burst of log lines) become one update on the UI thread.
         var uiPending = 0;

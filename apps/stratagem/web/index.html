@@ -30,6 +30,16 @@
   </header>
 
   <p id="offline" class="banner error" hidden>Keine Verbindung zu Stratagem. Läuft das Programm noch?</p>
+  <section id="howto" class="howto" hidden>
+    <h2>So geht's</h2>
+    <ol>
+      <li>Helldivers 2 im <strong>Randlos-Modus</strong> spielen (Optionen → Anzeige).</li>
+      <li>Im Spiel <strong>Strg halten</strong>, die Maus in Richtung eines Stratagems schieben, <strong>loslassen</strong>.</li>
+      <li>Fertig. Stratagem liest deine Stratagems selbst aus dem Spiel, jede Mission neu.</li>
+    </ol>
+    <p class="muted small">Dieses Fenster kann zu – Stratagem läuft im Hintergrund weiter (Symbol unten rechts).</p>
+    <button id="howto-close" type="button" class="btn small">Verstanden</button>
+  </section>
   <p id="inactive-hint" class="banner" hidden></p>
 
   <main class="grid">
@@ -37,8 +47,8 @@
       <div class="card-head">
         <h2>Stratagems</h2>
         <select id="source" aria-label="Quelle der Liste">
+          <option value="Screen">Aus dem Spiel lesen</option>
           <option value="Manual">Eigene Liste</option>
-          <option value="Screen">Aus dem Spiel lesen (experimentell)</option>
         </select>
       </div>
       <p id="list-problem" class="muted small" hidden></p>
@@ -58,12 +68,11 @@
       </form>
       <p class="muted small" id="manual-tip">Tipp: Name aus der Liste wählen füllt den Code aus. Pfeiltasten der Tastatur funktionieren im Code-Feld auch.</p>
       <div id="screen-settings" hidden>
-        <p class="muted small">Beim Öffnen des Radialmenüs öffnet Stratagem kurz die Stratagem-Liste im Spiel, liest sie und merkt sich
-          jedes Icon mit seinem Code. Jedes Stratagem behält seine Richtung im Kreis. Das Spiel muss im Randlos-Modus laufen.</p>
+        <p class="muted small">Mit dem Radialmenü geht wie gewohnt die Stratagem-Liste im Spiel auf. Stratagem liest sie, merkt sich
+          jedes Icon mit seinem Code und tippt nur, was dort gerade aufrufbar ist. Jedes Stratagem behält seine Richtung im Kreis.
+          Auflösung und HUD-Größe erkennt Stratagem selbst; das Spiel muss im Randlos-Modus laufen.</p>
         <label class="field">Plätze im Radialmenü <span class="val" id="slots-val"></span>
           <input id="screen-slots" type="range" min="0" max="12" step="1"></label>
-        <label class="field">HUD-Größe im Spiel <span class="val" id="scale-val"></span>
-          <input id="screen-scale" type="range" min="0.5" max="2" step="0.05"></label>
       </div>
       <details class="readtest">
         <summary>Erkennung mit einem Bildschirmfoto testen</summary>

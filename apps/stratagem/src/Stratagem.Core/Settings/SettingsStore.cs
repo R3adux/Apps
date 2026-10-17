@@ -44,7 +44,9 @@ public sealed class SettingsStore(string path, Action<string>? log = null)
                 _log($"Einstellungen nicht lesbar ({e.Message}), gesichert als {broken}. Standardwerte werden verwendet.");
                 settings = new AppSettings();
             }
-            foreach (var fix in settings.Normalize()) _log($"Einstellung korrigiert: {fix}");
+            var fixes = settings.Normalize();
+            foreach (var fix in fixes) _log($"Einstellung korrigiert: {fix}");
+            if (fixes.Count > 0) SaveLocked(settings); // repaired and migrated once, not on every start
             return settings;
         }
     }
