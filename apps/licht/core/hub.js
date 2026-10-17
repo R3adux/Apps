@@ -153,6 +153,18 @@ export class LightHub {
    * force: also renew connections that look fine – e.g. after the phone app was in the
    * background, when connections may be stale without anyone having noticed yet.
    */
+  /**
+   * Back in the foreground (phone app resumed): checks right away whether the lamps still answer –
+   * one short read each – and reconnects only those that do not. Much lighter than reconnecting
+   * everything, which re-reads all lamp data and keeps a phone busy just when the user taps.
+   */
+  refresh() {
+    for (const lamp of this.#lamps.values()) {
+      if (lamp.ready && !lamp.probing && lamp.node.connectionState === NodeStates.Connected) this.#probe(lamp);
+    }
+    this.wake();
+  }
+
   wake({ force = false, ids } = {}) {
     const now = Date.now();
     for (const lamp of this.#lamps.values()) {

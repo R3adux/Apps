@@ -1,2 +1,4 @@
 node_modules/
 dist/
+desktop/bin/
+desktop/obj/

@@ -5,9 +5,10 @@
 //
 // The executable is a copy of the running node binary with the bundled app injected,
 // so build on the platform you want to run it on (CI builds the Windows .exe).
+// On Windows the window program (desktop/, needs the .NET SDK) is built and embedded too.
 
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as esbuild from 'esbuild';
@@ -37,6 +38,27 @@ const webFilesPlugin = {
   },
 };
 
+// Window program (tray icon + Licht window), see desktop/. Built here so one command builds everything;
+// its files go into Licht.exe and are unpacked on first start (server/desktop.js).
+const isWindows = process.platform === 'win32';
+const desktopDir = join(root, 'desktop');
+const desktopOut = join(desktopDir, 'bin', 'Release', 'net48');
+const DESKTOP_FILES = [
+  'LichtFenster.exe', 'LichtFenster.exe.config',
+  'Microsoft.Web.WebView2.Core.dll', 'Microsoft.Web.WebView2.WinForms.dll',
+];
+const LOADER = join('runtimes', 'win-x64', 'native', 'WebView2Loader.dll');
+let desktopFiles = [];
+if (!onlyBundle && (isWindows || process.argv.includes('--desktop'))) {
+  execFileSync('dotnet', ['build', desktopDir, '-c', 'Release', '-nologo', '-v', 'quiet'], { stdio: 'inherit' });
+  // The loader next to the program (found first), and where the WebView2 library looks for it.
+  copyFileSync(join(desktopOut, LOADER), join(desktopOut, 'WebView2Loader.dll'));
+  desktopFiles = [...DESKTOP_FILES, 'WebView2Loader.dll', LOADER.replaceAll('\\', '/')];
+  for (const name of desktopFiles) {
+    if (!existsSync(join(desktopOut, name))) throw new Error(`Window program incomplete: ${name} missing`);
+  }
+}
+
 const bundle = join(dist, 'licht.cjs');
 await esbuild.build({
   entryPoints: [join(root, 'server/exe.js')],
@@ -47,9 +69,8 @@ await esbuild.build({
   outfile: bundle,
   external: ['@matter/nodejs-ble', 'bun:sqlite'], // Bluetooth (native) and Bun-only code, not used by the .exe
   plugins: [webFilesPlugin],
-  loader: { '.ps1': 'text' },
   // matter.js reads import.meta.url in a few places; give it a sensible value in CommonJS.
-  define: { 'import.meta.url': 'importMetaUrl' },
+  define: { 'import.meta.url': 'importMetaUrl', LICHT_DESKTOP_FILES: JSON.stringify(desktopFiles) },
   banner: { js: 'const importMetaUrl = require("node:url").pathToFileURL(__filename).href;' },
   logLevel: 'warning',
 });
@@ -64,19 +85,17 @@ writeFileSync(seaConfig, JSON.stringify({
   disableExperimentalSEAWarning: true,
   useCodeCache: false,
   useSnapshot: false,
+  assets: Object.fromEntries(desktopFiles.map((name) => [`fenster/${name}`, join(desktopOut, name)])),
 }));
 execFileSync(process.execPath, ['--experimental-sea-config', seaConfig], { stdio: 'inherit' });
 
-const isWindows = process.platform === 'win32';
 const exe = join(dist, isWindows ? 'Licht.exe' : 'licht');
 copyFileSync(process.execPath, exe);
 
 // Windows: lamp icon and file description instead of Node's (must happen before injecting).
 if (isWindows) {
-  const { default: pngToIco } = await import('png-to-ico');
   const { rcedit } = await import('rcedit');
-  const icon = join(dist, 'licht.ico');
-  writeFileSync(icon, await pngToIco(join(root, 'scripts', 'icon-256.png')));
+  const icon = join(desktopDir, 'licht.ico'); // the same icon as the window and the tray
   const version = '1.0.0';
   await rcedit(exe, {
     icon,
@@ -98,7 +117,7 @@ if (process.platform === 'darwin') args.push('--macho-segment-name', 'NODE_SEA')
 execFileSync(process.execPath, args, { stdio: 'inherit' });
 
 // Windows: mark the program as a window program ("GUI subsystem") instead of a console
-// program, so no black console window opens. Licht shows a tray icon instead.
+// program, so no black console window opens. Licht shows its tray icon and window instead.
 if (isWindows) {
   const image = readFileSync(exe);
   const pe = image.readUInt32LE(0x3c);

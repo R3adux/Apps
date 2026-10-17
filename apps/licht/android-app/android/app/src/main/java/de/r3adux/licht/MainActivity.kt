@@ -2,6 +2,7 @@ package de.r3adux.licht
 
 import android.content.Context
 import android.net.wifi.WifiManager
+import android.os.Build
 import android.os.Bundle
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -13,6 +14,11 @@ class MainActivity : ReactActivity() {
   // Android drops multicast packets unless an app holds this lock. Matter needs them (mDNS)
   // to find lamps and to reconnect to them.
   private var multicastLock: WifiManager.MulticastLock? = null
+
+  // While Licht is on screen, the WLAN must not doze between packets: in power-save mode the phone
+  // picks up the lamp's answers only every few hundred milliseconds, which makes Licht feel slow.
+  // Held only while the app is visible, so it costs no battery otherwise.
+  private var lowLatencyLock: WifiManager.WifiLock? = null
 
   override fun getMainComponentName(): String = "Licht"
 
@@ -26,10 +32,25 @@ class MainActivity : ReactActivity() {
       setReferenceCounted(false)
       acquire()
     }
+    @Suppress("DEPRECATION")
+    val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+               else WifiManager.WIFI_MODE_FULL_HIGH_PERF
+    lowLatencyLock = wifi.createWifiLock(mode, "licht-fast").apply { setReferenceCounted(false) }
+  }
+
+  override fun onResume() {
+    super.onResume()
+    lowLatencyLock?.acquire()
+  }
+
+  override fun onPause() {
+    lowLatencyLock?.takeIf { it.isHeld }?.release()
+    super.onPause()
   }
 
   override fun onDestroy() {
     multicastLock?.takeIf { it.isHeld }?.release()
+    lowLatencyLock?.takeIf { it.isHeld }?.release()
     super.onDestroy()
   }
 }

@@ -12,6 +12,7 @@
 //   GET    /api/info                 { ble, desktop? }
 //   POST   /api/quit                 end Licht.exe        (PC only: from this computer)
 //   POST   /api/autostart            { enabled }          (PC only: from this computer)
+//   POST   /api/show                 show the Licht window (PC only: from this computer)
 
 import { createServer } from 'node:http';
 import { parsePairingCode } from '../core/pairing.js';
@@ -124,10 +125,15 @@ async function api(hub, req, res, path, options) {
     setTimeout(() => desktop.quit(), 100);
     return undefined;
   }
+  if (path === '/api/show' && method === 'POST' && desktop) {
+    desktop.show();
+    return send(res, 200, { ok: true });
+  }
   if (path === '/api/autostart' && method === 'POST' && desktop) {
     const { enabled } = await readJson(req);
     return send(res, 200, { autostart: await desktop.autostart.set(Boolean(enabled)) });
   }
+  await options.ready; // everything below needs the lamps
   if (path === '/api/events' && method === 'GET') return events(hub, req, res);
   if (path === '/api/lights' && method === 'GET') return send(res, 200, { lights: hub.lights() });
   if (path === '/api/wake' && method === 'POST') {
@@ -178,15 +184,16 @@ async function staticFile(res, web, path) {
 
 /**
  * webDir: folder with the web app, or webFiles: { '/index.html': Buffer, … }
- * desktop (Licht.exe): { quit(), autostart: { get(), set(enabled) } }
+ * desktop (Licht.exe): { quit(), show(), autostart: { get(), set(enabled) } }
+ * ready: promise, resolved once the hub has loaded its lamps (lamp requests wait for it)
  */
-export function createHttpServer(hub, { webDir, webFiles, ble = false, desktop, log = console } = {}) {
+export function createHttpServer(hub, { webDir, webFiles, ble = false, desktop, ready, log = console } = {}) {
   const web = webFiles ? { files: webFiles } : { dir: resolve(webDir) };
   return createServer(async (req, res) => {
     const { pathname } = new URL(req.url, 'http://localhost');
     try {
       if (pathname.startsWith('/api/') && fromForeignSite(req)) send(res, 403, { error: 'Verboten.' });
-      else if (pathname.startsWith('/api/')) await api(hub, req, res, pathname, { ble, desktop });
+      else if (pathname.startsWith('/api/')) await api(hub, req, res, pathname, { ble, desktop, ready });
       else if (req.method === 'GET' || req.method === 'HEAD') await staticFile(res, web, pathname);
       else send(res, 405, { error: 'Methode nicht erlaubt.' });
     } catch (err) {
