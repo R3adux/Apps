@@ -49,18 +49,21 @@ schwarzen Tuschespritzern. **Manga:** Schwarz-Weiß mit viel Schwarzfläche; Sch
   **Lange weiße Handschuhe**; ein Ring am Finger.
 - **Light Novel:** Haar mit kräftigen **blau-violetten** Strähnen, Flügel blaugrau, Handschuhe als **metallische Panzerhandschuhe**;
   sie hält eine **schwarze Kugel**.
-- **Kampfausrüstung:** Rüstung **Hermes Trismegistus** – dunkle Vollrüstung in violetten Tönen; führt eine **Axt** (◇ Bardiche).
+- **Kampfausrüstung:** Rüstung **Hermes Trismegistus** – schwarze Vollrüstung (Figuren zeigen violette Töne) mit eigenem Helm;
+  Waffe **3F**, die sich zwischen Riesenaxt und Hellebarde verwandeln kann.
 
 ### Shalltear Bloodfallen
 - **Silberweißes Haar** mit leichtem Lila-Stich (`#E7D8EA`) als **langer, gelockter Pferdeschwanz**; **rote Augen**, Vampirzähne,
-  blasse Haut; kindlich-zierlich ◇ mit ausgestopfter Brust.
+  blasse Haut; kindlich-zierlich, 140 cm; die Brust ist mit Unmengen Polstern ausgestopft (in Wahrheit flach).
 - Auf dem Kopf eine **Haube mit großer, schwarz-rot gestreifter Schleife** – die Schleife sitzt an der Haube, nicht am Zopf.
 - **Ballkleid in Dunkelviolett** (`#341637`), **nicht schwarz**, mit riesigem, fast **kugelrundem Rock**, Puffärmeln, Rüschen,
   weißen Spitzenvolants am Saum und einer **großen karmesinroten Schärpe mit Schleife** an der Seite (`#960E46`).
 - Trägt einen **geschlossenen schwarzen Sonnenschirm** mit roter Schleife.
 - **Light Novel:** gleiche Form; Kleid dunkel marineblau-violett, Schleife und Rüschen in kräftigem **Pink/Magenta**.
-- ◇ **Kampfform:** rote Vollrüstung mit der Lanze **Spuit Lance**; in Raserei eine monströse Vampirgestalt mit riesigem Maul
-  (Cover Bd. 3 zeigt diese Gestalt in Rot).
+- **Kampfausrüstung:** **blutrote Vollrüstung**, Brust und Schultern wie Flügel geformt, **Helm in Schwanenform** mit Federbüschen
+  (nur das blasse Gesicht bleibt frei), roter Panzerrock; dazu die Lanze **Spuit Lance**.
+- **Wahre Vampirgestalt:** Der Mund wird zu einem **runden Schlund wie bei einem Neunauge** mit langer Zunge, die Augen glühen
+  unmenschlich, der Körper krümmt sich affenartig (Cover Bd. 3 zeigt diese Gestalt in Rot).
 
 ### Cocytus
 - Etwa **2,5 m**, Mischung aus Insekt und Krieger: **vier Arme**, große Kiefer, langer gegliederter **Schwanz mit Eisstacheln**,
@@ -88,12 +91,14 @@ schwarzen Tuschespritzern. **Manga:** Schwarz-Weiß mit viel Schwarzfläche; Sch
 
 ### Demiurge
 - Groß und schlank; **schwarzes, nach hinten gekämmtes Haar**; **spitze, lange Ohren** mit
-  Ohrring; **kleine runde Brille**, Augen dahinter schmal (◇ Edelsteine statt Augäpfel).
+  Ohrring; **dunkle Haut** (Wiki; Anime und Manga Teil 2 zeigen sie leicht gebräunt), ostasiatische Gesichtszüge (jap. Wikipedia);
+  **kleine runde Brille**, die Augen dahinter so schmal, dass man sie kaum sieht – statt Augäpfeln **geschliffene Edelsteine**.
 - **Anzug in leuchtendem Orangerot mit Nadelstreifen** (`#C53B25`): Zweireiher, weißes Hemd, **rote Krawatte**, weißes
   Einstecktuch, **schwarze Handschuhe**, schwarze Schuhe.
 - **Silbern-lilagrauer Schwanz** (`#746289`) aus **gegliederten Metallplatten**, am Ende mit **Stacheln**.
 - **Light Novel:** gleiche Farben, Figur stark in die Länge gezogen; hält eine Teetasse.
-- ◇ Als „Jaldabaoth“ trägt er eine Maske.
+- Als „Jaldabaoth“ trägt er eine **Maske**. In seiner **Halbdämonen-Gestalt** wird alles an ihm froschartig, mit monströsem Gesicht
+  und großen schwarzen Lederflügeln (Jircniv hält ihn für einen Krötenmenschen-König).
 
 ### Sebas Tian
 - **Weißes Haar** (`#E2DCD8`), zurückgekämmt, **weißer Vollbart mit Schnurrbart**, Falten, kräftige, aufrechte Statur.
@@ -112,14 +117,18 @@ schwarzen Tuschespritzern. **Manga:** Schwarz-Weiß mit viel Schwarzfläche; Sch
 
 ### Victim
 - Ein **rosa-magentafarbener, embryoartiger Körper** (`#DE499E`) mit riesigem Kopf, einem großen Auge und kleinen Gliedmaßen.
-- Statt Federflügeln wachsen ihm **zwei kahle, schwarze Äste mit winzigen Blättern** aus dem Rücken; im Manga schwebt ein
-  **Heiligenschein** darüber.
+- Statt Federflügeln wachsen ihm **zwei kahle, schwarze Äste mit winzigen Blättern** aus dem Rücken (Wiki: „federlose,
+  stockartige Flügel“). Laut Wiki trägt er einen **Heiligenschein**; auf den geprüften Bildern ist er nur im Manga zu sehen.
+- **Ohne Hals:** Um sich umzusehen, muss er den ganzen Körper drehen.
 - **Light Novel:** eher lachsrot mit sichtbaren Adern.
 
 ### Gargantua
-- **Riesiger Steingolem** aus kantigen, oliv-graugrünen Felsbrocken, gebeugte Haltung mit gewaltigen Armen,
-  **rote Augen** und **rot glühende Risse** auf der Brust (Light Novel); im Manga ein turmhoher Felskörper neben dem winzigen Ainz.
-- ⚠ Das Anime-Design ist nicht geprüft; ob der gehörnte Bronze-Riese auf dem Plakat zu Staffel 4 Gargantua ist, ist offen.
+- **Über 30 m hoher Steingolem** („strategischer Belagerungsgolem“) aus kantigen Felsbrocken, plumpe Arme und Beine – „fast
+  niedlich, wenn man die Größe vergisst“; **runde Augenhöhlen** und **rot glühende Linien** auf der Brust wie ein Herz.
+- **Anime** (Staffel 2, Folge 4): kantige Steinblöcke in **Oliv-Ocker** (`#786A3C`, im Bild abgedunkelt) mit schwarzen Konturen,
+  **rot glühende Augen** (`#B5403D`); trägt einen riesigen Felsblock. **Light Novel:** oliv-graugrün mit roten Rissen.
+  **Manga:** turmhoher Felskörper neben dem winzigen Ainz. Der gehörnte Bronze-Riese auf dem Plakat zu Staffel 4 ist **nicht**
+  Gargantua.
 
 ## Die Plejaden
 
@@ -127,7 +136,7 @@ Alle tragen **Kampfzofen-Uniformen**: Zofenkleid mit Häubchen und Schürze, kom
 
 | Zofe | Haare / Augen | Uniform und Erkennungszeichen |
 |---|---|---|
-| **Yuri Alpha** | **schwarz**, **Haarknoten am Hinterkopf**, zwei kleine Zöpfe | **Brille**; **blaues Halsband mit Nieten** (hält als Dullahan ihren Kopf); blaue Schleife; Silberpanzer mit gezackter Schulterplatte; **blaue Schärpe mit goldenem Kreuz**; langer schwarzer Rock; **riesige grüne Stachel-Panzerfäuste** |
+| **Yuri Alpha** | **schwarz**, **hochgesteckter Knoten** (jap. *yakai-maki*, „French Twist“), zwei kleine Zöpfe | **Brille ohne Sehstärke** (reiner Schmuck, jap. Wikipedia); **blaues Halsband mit Nieten** (hält als Dullahan ihren Kopf); blaue Schleife; Silberpanzer mit gezackter Schulterplatte; **blaue Schärpe mit goldenem Kreuz**; langer schwarzer Rock; **riesige grüne Stachel-Panzerfäuste** |
 | **Lupusregina Beta** | **rot**, **zwei lange Zöpfe**; **goldgelbe Augen**; **dunkle Haut** | **schwarze Nonnenhaube mit Ohrenspitzen** und weißem Band; schwarzes Kleid mit Schnürmieder, goldgelbes Tuch an der Taille, **weißer Fellsaum**, hoher Beinschlitz; Waffe (LN): ein **riesiges, radförmiges Heiligensymbol** |
 | **Narberal Gamma** | **schwarz**, glatt, **hoher Pferdeschwanz**, gerader Pony | Silberner Brustpanzer, **goldene Akzente** an Schultern und Hüfte, **ausladender schwarzer Glockenrock mit senkrechten Silberplatten**, Panzerstiefel; Waffe (LN): langer **Stab** |
 | **Solution Epsilon** | **blond**, **Korkenzieherlocken**; **blaue Augen** | Kurzes schwarzes Zofenkleid mit tiefem Ausschnitt, weiße Schürze mit Blattmuster, silberner Gürtel, schwarze Handschuhe, **silberne Overknee-Panzerstiefel** |
@@ -150,3 +159,4 @@ Alle tragen **Kampfzofen-Uniformen**: Zofenkleid mit Häubchen und Schürze, kom
 
 - **Bilder:** Infobox-Bilder (Anime / Light Novel / Manga) der Wiki-Seiten zu jeder genannten Figur auf [overlordmaruyama.fandom.com](https://overlordmaruyama.fandom.com/wiki/Overlord_Wiki), außerdem [Anime Momon and Nabe](https://overlordmaruyama.fandom.com/wiki/File:Anime_Momon_and_Nabe.jpg), [Darkness LN](https://overlordmaruyama.fandom.com/wiki/File:Darkness_LN.png), [Staff Databook](https://overlordmaruyama.fandom.com/wiki/File:Staff_of_Ainz_Ooal_Gown_Databook.png), [Overlord EP01 060](https://overlordmaruyama.fandom.com/wiki/File:Overlord_EP01_060.png), [Plakat Staffel 4](https://overlordmaruyama.fandom.com/wiki/File:Overlord_IV_Key_Visual_December_2021.jpg), [AOGSK](https://overlordmaruyama.fandom.com/wiki/File:AOGSK.png). Die Bilder liegen **nicht** im Repo (Bildrechte).
 - **Texte:** Overlord-Wiki [Ainz Ooal Gown](https://overlordmaruyama.fandom.com/wiki/Ainz_Ooal_Gown) (Größe 177 cm mit Beleg auf Maruyamas X-Konto), [Staff of Ainz Ooal Gown](https://overlordmaruyama.fandom.com/wiki/Staff_of_Ainz_Ooal_Gown) (sieben Schlangen, Bd. 1 Kap. 3; Aureole Omega, Bd. 4 Kap. 5), [Albedo](https://overlordmaruyama.fandom.com/wiki/Albedo), [Shalltear Bloodfallen](https://overlordmaruyama.fandom.com/wiki/Shalltear_Bloodfallen), [Cocytus](https://overlordmaruyama.fandom.com/wiki/Cocytus), [Sebas Tian](https://overlordmaruyama.fandom.com/wiki/Sebas_Tian), [Entoma](https://overlordmaruyama.fandom.com/wiki/Entoma_Vasilissa_Zeta), [Yuri Alpha](https://overlordmaruyama.fandom.com/wiki/Yuri_Alpha), [Lupusregina Beta](https://overlordmaruyama.fandom.com/wiki/Lupusregina_Beta), [Solution Epsilon](https://overlordmaruyama.fandom.com/wiki/Solution_Epsilon), [CZ2128 Delta](https://overlordmaruyama.fandom.com/wiki/CZ2128_Delta), [NamuWiki – Momon](https://en.namu.wiki/w/%EB%AA%A8%EB%AA%AC(%EC%98%A4%EB%B2%84%EB%A1%9C%EB%93%9C)), [MAL – Aura](https://myanimelist.net/character/116311), [MAL – Mare](https://myanimelist.net/character/116313)
+- **Offene Punkte 19.10.2026 (Aufgabe 05):** Overlord-Wiki [Victim](https://overlordmaruyama.fandom.com/wiki/Victim), [Gargantua](https://overlordmaruyama.fandom.com/wiki/Gargantua), [Albedo](https://overlordmaruyama.fandom.com/wiki/Albedo), [Shalltear Bloodfallen](https://overlordmaruyama.fandom.com/wiki/Shalltear_Bloodfallen), [Demiurge](https://overlordmaruyama.fandom.com/wiki/Demiurge), [Yuri Alpha](https://overlordmaruyama.fandom.com/wiki/Yuri_Alpha)

@@ -35,9 +35,11 @@ Der Zeichenstil liegt getrennt unter [`../zeichenstil/`](../zeichenstil/).
 2. **Faktenprüfung an den Quellen selbst** (Aufgabe 04, 19.10.2026): Nachdem der Netzzugriff freigegeben war, wurden alle mit ◇
    oder ⚠ markierten Angaben **direkt im Text** des Overlord-Wikis (63 Artikel inkl. Bandzusammenfassungen) und der englischen,
    deutschen und japanischen Wikipedia nachgelesen. Ergebnis: die meisten Angaben bestätigt, **mehrere korrigiert** (siehe unten).
+3. **Offene Punkte geschlossen** (Aufgabe 05, 19.10.2026): deutscher Stand über die Datenbank von manga-passion und die
+   TOKYOPOP-Seiten, die letzten ◇-Angaben über Wiki und japanische Wikipedia, der Anime-Stab über die offiziellen Websites.
 - Das Overlord-Wiki (overlordmaruyama.fandom.com) ist gründlich und belegt viele Angaben mit Band und Kapitel, wird aber von Fans
   gepflegt. Angaben **nur** von dort sind, wo es darauf ankommt, mit „(Wiki)“ oder „laut Fan-Wiki“ markiert.
-- **◇** = aus Werkkenntnis, nirgends gegengeprüft (nur noch eine Handvoll Stellen). **⚠** = Quellen widersprechen sich oder
+- **◇** = aus Werkkenntnis, nirgends gegengeprüft (seit Aufgabe 05 keine Stelle mehr). **⚠** = Quellen widersprechen sich oder
   Angabe unsicher; die Abweichung steht jeweils dabei.
 - Die Bücher selbst lagen nicht vor. Inhalte aus dem Web-Roman sind nicht Kanon.
 
@@ -56,13 +58,17 @@ Der Zeichenstil liegt getrennt unter [`../zeichenstil/`](../zeichenstil/).
 | Stab: Ainz trägt ihn | Seit Bd. 4 verwahrt **Aureole Omega** den echten Stab; Ainz nutzt eine Nachbildung |
 | Rubedo: Ort unbekannt | wohnt im **8. Stock** |
 | „Lord of Nazarick“ ≈ 2024, Stand unklar | bilibili-Spiel, westlich Herbst 2024; laut Wiki Einstellung zum 29.12.2025 angekündigt |
+| Deutsche Bandtitel als Arbeitsübersetzungen (z. B. Bd. 9 „Der Magier der Vernichtung“, Bd. 10 „Der Herrscher der Intrigen“) | **TOKYOPOP-Titel** für Bd. 1–10 (z. B. „Der Magier der Zerstörung“, „Der Herrscher der Verschwörung“) |
+| „Großes Grab von Nazarick“ | „**Große Gruft von Nazarick**“ (so bei TOKYOPOP) |
+| Tote auf der Katze-Ebene: 180.000 | 180.000 laut Fan-Wiki, „etwa 200.000“ laut japanischer Wikipedia ⚠ |
+| Ainz übt Posen vor dem Spiegel; Untote brauchen weder Essen noch Schlaf (beides ◇) | Posen-Satz gestrichen (keine Quelle); Essen/Schlaf **bestätigt** und um die belegten Immunitäten und Schwächen der Untoten ergänzt |
+| Victim mit „verdorrt wirkenden Flügeln“ | **federlose, astartige Flügel** (Wiki) – passt zum Bild |
+| „Hundert-Jahre-Rhythmus“ (百年の揺り返し) als Begriff aus dem Werk | in keiner Quelle gefunden; laut Wiki nennt die Theokratie das Ereignis „Ankunft der Götter“ |
 
 ## Offene Punkte
 
 | Punkt | Warum offen |
 |---|---|
-| Deutscher Stand der Light Novel (letzter Band bei TOKYOPOP) und deutsche Bandtitel | nur Bd. 1, 5, 8 und „seit August 2021“ belegt |
 | Vollständige Liste der 41 Gildenmitglieder | im Werk nicht vollständig genannt; das Wiki kennt 32 Namen |
 | Erschaffer von Aureole Omega | im Werk unbekannt |
 | Band 17: Erscheinungstermin | nicht angekündigt |
-| Cocytus' Katakana-Sprechweise, Ainz übt Posen, Untote brauchen weder Essen noch Schlaf | Werkkenntnis ◇, keine Quelle gefunden |

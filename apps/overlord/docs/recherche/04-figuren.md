@@ -31,14 +31,18 @@ Zeichen: ◇ = aus Werkkenntnis, im Netz nicht gegengeprüft · ⚠ = Quellen wi
 - **Bekannte Zauber und Fähigkeiten:** *Grasp Heart* (Herz zerdrücken), *Time Stop*, *Delay Magic: True Death* (so tötet er
   Gazef, Bd. 9), Überstufen-Zauber *Iä Shub-Niggurath* (Bd. 9), Spezialfähigkeit ***The Goal of All Life Is Death*** (Klasse
   Eclipse), Beschwörung von Untoten (Todesritter, Seelenfresser …).
-- **Untot:** ◇ braucht weder Essen noch Schlaf, ist gegen viele Effekte immun.
+- **Untot:** Muss **weder essen, trinken, atmen noch schlafen**; immun gegen Gift, Krankheit, Lähmung, kritische Treffer und
+  geistige Beeinflussung, sieht im Dunkeln. Schwach gegen **Feuer** (doppelter Schaden), **Heiliges/Licht** und **Wuchtwaffen**
+  (Grundeigenschaften der Untoten-Rassen laut Wiki); seine Magie hängt ganz am Mana. Der Autor machte ihn bewusst untot, weil
+  ein Mensch vergiftet oder im Schlaf ermordet werden könnte (Interview).
+- **Sprache:** Im Japanischen sagt er „watashi“ (ich, förmlich); denkt er als Satoru oder wird wütend, wird daraus „ore“.
 
 ### Wesen
 
 - **Gefühlsdämpfung:** Starke Gefühle (Wut, Panik, Freude) werden durch seine untote Natur sofort **unterdrückt**. Im **Anime**
   zeigt das ein **grünes Aufleuchten** – in der Light Novel leuchtet nichts, das ist eine reine Anime-Erfindung.
 - **Innen Angestellter, außen Gottkönig:** Er spielt den allmächtigen Herrscher, hat aber Angst, seine NPCs zu enttäuschen.
-  Heimlich liest er Bücher über Menschenführung aus der Bibliothek Ashurbanipal, ◇ übt Posen vor dem Spiegel und versteht Demiurges und Albedos Pläne oft nicht – die beiden
+  Heimlich liest er Bücher über Menschenführung aus der Bibliothek Ashurbanipal und versteht Demiurges und Albedos Pläne oft nicht – die beiden
   halten ihn aber für ein Genie, das alles vorausgesehen hat. Daraus entsteht der wiederkehrende Witz der Reihe.
 - **Bindung an die Gilde:** Nazarick und die NPCs sind für ihn das Erbe seiner Freunde. Er ist **Menschen gegenüber
   zunehmend gleichgültig** – Mitleid und Schuld fühlt er kaum noch; Reste seiner Menschlichkeit tauchen aber immer wieder auf.
@@ -49,7 +53,7 @@ Zeichen: ◇ = aus Werkkenntnis, im Netz nicht gegengeprüft · ⚠ = Quellen wi
 | Figur | Wer | Schicksal / Wichtiges |
 |---|---|---|
 | **Gazef Stronoff** (ガゼフ・ストロノーフ) | Kriegerhauptmann des Königs, aus dem einfachen Volk | Von Ainz in Bd. 1 gerettet. Führt das Schwert **Razor Edge** (Schatz des Königs). Trug den **Ring Rigrits** (Artefakt der Dreizehn Helden, +5 Stufen auf Zeit). Stirbt in Bd. 9 im Duell gegen Ainz – Ainz hält die Zeit an und tötet ihn mit einem verzögerten Todeszauber; Ainz fängt den Fallenden auf |
-| **Brain Unglaus** (ブレイン・アングラウス) | Schwertkämpfer, früher Rivale Gazefs | Wird in Bd. 3 von Shalltear gebrochen (sie wehrt seinen besten Hieb mit dem Fingernagel ab; später durchtrennt er diesen Nagel), findet neuen Mut. Stirbt in Bd. 14 im Kampf gegen **Cocytus**, der seinen Leichnam aus Respekt **einfriert** |
+| **Brain Unglaus** (ブレイン・アングラウス) | Schwertkämpfer, früher Rivale Gazefs | Wird in Bd. 3 von Shalltear gebrochen (sie wehrt seinen besten Hieb mit dem Fingernagel ab; später durchtrennt er diesen Nagel), findet neuen Mut. Stirbt in Bd. 14 im Zweikampf gegen **Cocytus**; aus Achtung lässt Cocytus den Leichnam einfrieren und nimmt sein Schwert als Trophäe |
 | **Climb** (クライム) | Ritter und Leibwächter Prinzessin Renners; als halbverhungertes Straßenkind von ihr aufgelesen | Greift in Bd. 14 Ainz an und wird getötet; wiederbelebt – und wird wie Renner zum Dämon |
 | **Renner Theiere Chardelon Ryle Vaiself** (ラナー) | dritte Prinzessin, „Goldene Prinzessin“ | Nach außen engelsgleich; in Wahrheit hochintelligent, gefühlskalt und besessen von Climb („Yandere“). Arbeitet heimlich mit Demiurge zusammen; tötet in Bd. 14 ihren Vater mit Razor Edge und wird durch einen **„Fallen Seed“** zum **Dämon (Imp)** – um Climb für immer zu behalten |
 | **Ramposa III.** | König | Alt, gutmütig, aber unentschlossen; wird in Bd. 14 von seiner Tochter Renner getötet |
@@ -97,7 +101,7 @@ Zeichen: ◇ = aus Werkkenntnis, im Netz nicht gegengeprüft · ⚠ = Quellen wi
 | Figur | Wer | Wichtiges |
 |---|---|---|
 | **Zaryusu Shasha** | Echsenmensch, Reisender | Führt die Waffe **Frost Pain**, baut eine Fischzucht. Fällt in Bd. 4 und wird von Ainz **wiederbelebt** |
-| **Crusch Lulu** | Albino-Priesterin, Stamm „Red Eye“ | Zaryusus Geliebte |
+| **Crusch Lulu** | Albino-Priesterin, Stamm „Red Eye“ | Heiratet Zaryusu; ihr Kind ist ebenfalls Albino. Überwacht als Gegenleistung für Zaryusus Wiederbelebung heimlich die Treue der Echsenmenschen |
 | **Shasuryu Shasha** | Häuptling „Green Claw“ | Zaryusus älterer Bruder |
 | **Zenberu Gugu** | Häuptling „Dragon Tusk“ | Kämpft im Zweikampf gegen Zaryusu, wird sein Verbündeter |
 | **Gondo Firebeard** | Zwerg, Runenschmied | Führt Ainz durch die alte Hauptstadt (Bd. 11), will das Runenhandwerk retten |
@@ -114,3 +118,4 @@ Zeichen: ◇ = aus Werkkenntnis, im Netz nicht gegengeprüft · ⚠ = Quellen wi
 - Datenbanken: [MAL – Zesshi/Antilene](https://myanimelist.net/character/157611/Antilene_Heran_Fouche), [anibase – Antilene](https://anibase.net/en/character/1bd6Q/Antilene-Heran-Fouche), [anibase – Evileye](https://anibase.net/de/character/1XOMQ/Evileye), [anibase – Rigrit](https://anibase.net/en/character/1bdXX/Rigrit-Bers-Caurau), [anibase – Caspond](https://anibase.net/en/character/4nvoz/Caspond-Bessarez), [anibase – Peter Mauk](https://anibase.net/en/character/lNJM9/Peter-Mauk), [MAL – Shasuryu](https://myanimelist.net/character/132823), [Baidu – Zesshi](https://baike.baidu.com/en/item/Zesshi%20Zetsumei/1413749)
 - Weitere: [epicstream – grünes Leuchten](https://epicstream.com/article/why-does-ainz-glow-green-in-overlord), [NamuWiki – Ainz' Fähigkeiten](https://en.namu.wiki/w/%EC%95%84%EC%9D%B8%EC%A6%88%20%EC%9A%B8%20%EA%B3%A0%EC%9A%B4/%EB%8A%A5%EB%A0%A5), [TV Tropes – Ainz](https://tvtropes.org/pmwiki/pmwiki.php/Characters/Overlord2012AinzOoalGown), [Fandompost – S3E13](https://www.fandompost.com/2018/10/06/overlord-iii-episode-13-anime-review-season-finale/), [Animeoshi – S4E12](https://www.animeoshi.com/anime/overlord-iv/episode/12), [Wikipedia – Charakterliste](https://en.wikipedia.org/wiki/List_of_Overlord_characters), [epicstream – Renner](https://epicstream.com/article/is-princess-renner-evil-in-overlord)
 - **Faktenprüfung 19.10.2026 (Text direkt gelesen):** Overlord-Wiki [Ainz Ooal Gown/Abilities and Powers](https://overlordmaruyama.fandom.com/wiki/Ainz_Ooal_Gown/Abilities_and_Powers), [Gazef Stronoff](https://overlordmaruyama.fandom.com/wiki/Gazef_Stronoff), [Brain Unglaus](https://overlordmaruyama.fandom.com/wiki/Brain_Unglaus), [Climb](https://overlordmaruyama.fandom.com/wiki/Climb), [Renner Theiere Chardelon Ryle Vaiself](https://overlordmaruyama.fandom.com/wiki/Renner_Theiere_Chardelon_Ryle_Vaiself), [Ramposa III](https://overlordmaruyama.fandom.com/wiki/Ramposa_III), [Elias Brandt Dale Raeven](https://overlordmaruyama.fandom.com/wiki/Elias_Brandt_Dale_Raeven), [Lakyus Alvein Dale Aindra](https://overlordmaruyama.fandom.com/wiki/Lakyus_Alvein_Dale_Aindra), [Tia](https://overlordmaruyama.fandom.com/wiki/Tia), [Evileye](https://overlordmaruyama.fandom.com/wiki/Evileye), [Nfirea Bareare](https://overlordmaruyama.fandom.com/wiki/Nfirea_Bareare), [Clementine](https://overlordmaruyama.fandom.com/wiki/Clementine), [Nigun Grid Luin](https://overlordmaruyama.fandom.com/wiki/Nigun_Grid_Luin), [Jircniv Rune Farlord El-Nix](https://overlordmaruyama.fandom.com/wiki/Jircniv_Rune_Farlord_El-Nix), [Fluder Paradyne](https://overlordmaruyama.fandom.com/wiki/Fluder_Paradyne), [Nazami Enec](https://overlordmaruyama.fandom.com/wiki/Nazami_Enec), [Go Gin](https://overlordmaruyama.fandom.com/wiki/Go_Gin), [Neia Baraja](https://overlordmaruyama.fandom.com/wiki/Neia_Baraja), [Remedios Custodio](https://overlordmaruyama.fandom.com/wiki/Remedios_Custodio), [Captain of the Black Scripture](https://overlordmaruyama.fandom.com/wiki/Captain_of_the_Black_Scripture), [Kaire](https://overlordmaruyama.fandom.com/wiki/Kaire), [Rigrit Bers Caurau](https://overlordmaruyama.fandom.com/wiki/Rigrit_Bers_Caurau), [Overlord Volume 16](https://overlordmaruyama.fandom.com/wiki/Overlord_Volume_16)
+- **Offene Punkte 19.10.2026 (Aufgabe 05):** Overlord-Wiki [Undead](https://overlordmaruyama.fandom.com/wiki/Undead) (Grundeigenschaften der Untoten), [Brain Unglaus](https://overlordmaruyama.fandom.com/wiki/Brain_Unglaus), [Crusch Lulu](https://overlordmaruyama.fandom.com/wiki/Crusch_Lulu); [JA-Wikipedia – Light Novel](https://ja.wikipedia.org/wiki/オーバーロード_(小説))

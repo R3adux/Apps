@@ -52,6 +52,7 @@ Lichteffekte verschieben einzelne Werte leicht. Die Messskripte liegen nicht im 
 | Momon – Goldlinien | `#9F8A38` | `#C0AB42` | `#DDCA54` |
 | Momon – Umhang | `#7B2812` | `#95321C` | `#A94431` |
 | Thronsaal-Banner – Stoff | `#1E1724` | `#241B2C` | `#2B1F31` |
+| Gargantua – Stein (Anime, abgedunkelt) | `#6F653B` | `#786A3C` | `#7E713E` |
 
 **so-bin weicht ab:** Ainz' Robe ist in der Light Novel **sattes Ultramarin** (`#020358`, Licht `#200FC2`), sein Gold
 **grünlich-gelb** (`#9CAF42`). Für ein Projekt im so-bin-Stil diese Werte verwenden, nicht die Anime-Werte.
@@ -62,7 +63,8 @@ Lichteffekte verschieben einzelne Werte leicht. Die Messskripte liegen nicht im 
   reines Schwarz. Dazu **Violett**, **Gold** und leuchtendes **Rot** als Akzent.
 - **Jede Figur hat eine Signalfarbe:** Albedo Weiß, Shalltear Violett + Karmesin, Cocytus Eisblau, Aura Rot, Mare Blau + Grün,
   Demiurge Orangerot, Sebas Schwarz-Weiß, Pandora's Actor Senfgelb, Momon Blauschwarz + Rot.
-- **Die Neue Welt** ist heller und bunter als Nazarick (Rezensionen). ◇ Erdige, natürliche Töne.
+- **Die Neue Welt** ist heller und bunter als Nazarick (Rezensionen) – im Anime z. B. E-Rantel: helles Tageslicht, beige Plätze,
+  braune Dächer, sattes Grün.
 - **Grün** als Effekt nur für Ainz' Gefühlsdämpfung – und das nur im Anime-Stil.
 
 ## 2. Licht und Stimmung
@@ -83,8 +85,11 @@ Lichteffekte verschieben einzelne Werte leicht. Die Messskripte liegen nicht im 
 - **Im Anime (Thronsaal):** riesiges **dunkelviolettes Stoffbanner** (`#241B2C`) hinter dem Thron, das Wappen in
   **blassem Silbergrau mit Lila-Stich** gestickt. Dazu hängen **41 Banner** im Thronsaal – je eines pro Mitglied mit eigenem
   Wappen (Bd. 1). Laut Wiki dient die Flagge später auch als **Staatsflagge** des Zauberer-Königreichs (Bd. 12).
-- **Rot-schwarze Fassung:** Im Wiki gibt es eine Nachzeichnung mit **schwarzem Wappen auf dunkelrotem Grund** (`#872325`). ⚠ Woher
-  diese Farbfassung stammt, ist nicht belegt – für das Projekt die **Anime-Fassung (Violett + Silber)** verwenden.
+- **Rot-schwarze Fassung:** Die Nachzeichnung mit **schwarzem Wappen auf dunkelrotem Grund** (`#872325`) ist ein **Symbolbild des
+  Wikis** (2018 von einem Wiki-Nutzer hochgeladen, ohne Quellenangabe, dort als Zugehörigkeits-Symbol benutzt) – **kein
+  offizielles Motiv**. Belegt ist nur: Auf dem Cover von Bd. 9 führt Ainz' Heer ein **großes rotes Banner** (Wappen nicht
+  erkennbar), und auf dem Cover von *Fushisha no Oh!* Bd. 1 steht das Wappen in Weiß. Für das Projekt die **Anime-Fassung
+  (Violett + Silber)** verwenden.
 - **Das Wappen ist geschützt.** Für eigene Bilder ein **eigenes**, ähnlich aufgebautes Symbol entwerfen (symmetrisch, Klinge,
   Bögen, Dornen) statt das Original abzuzeichnen.
 
@@ -115,8 +120,8 @@ Alle 16 Cover wurden angesehen und vermessen (nur der Bildbereich, ohne Rahmen u
 |---|---|
 | **Gildenwappen** | Banner hinter dem Thron, Westen der Zwillinge (rundes Abzeichen), Mütze von Pandora's Actor |
 | **41 Banner** im Thronsaal | eines pro Gildenmitglied |
-| **Thron auf erhöhter Stufe**, Ainz von unten gesehen | Macht-Inszenierung ◇ |
-| **Knien in Reihe** vor Ainz | die Wächter-Versammlungen ◇ |
+| **Thron auf hohem Stufenpodest** unter gotischem Gewölbe, flankiert von riesigen dunklen Skulpturen | Anime Folge 1: Ainz oben, Albedo kniet darunter, Sebas und die Plejaden knien in einer Reihe am Fuß der Treppe |
+| **Gruppenbild als Pyramide**: Ainz auf dem Thron oben, die Wächter darunter | offizielle Plakate und Farbtafeln |
 | **Stab mit sieben Schlangen und Juwelen** | Ainz' Herrschaftszeichen |
 | **Silhouette: Kapuze + Hornspitzen an den Schultern + rote Augen** | Ainz – auch als Schattenriss sofort erkennbar |
 | **Gruppenbild der Wächter um Ainz** | Standard-Aufbau der Anime-Plakate und vieler Farbtafeln |
@@ -144,21 +149,24 @@ Alle 16 Cover wurden angesehen und vermessen (nur der Bildbereich, ohne Rahmen u
 16. **Pandora's Actor**: keine realen historischen Abzeichen oder Symbole auf der Uniform.
 17. **Massen-Szenen** in **derselben Technik** wie die Figuren – sichtbar andere CG ist der meistkritisierte Fehler des Anime.
 18. **Bildrechte:** Keine Original-Illustrationen, Anime-Bilder, Wappen oder Logos ins Repo oder ins Projekt kopieren. Eigene Bilder
-    „im Stil von“ ja, Abpausen nein. Vor einer Veröffentlichung die Fan-Werk-Regeln von KADOKAWA prüfen ⚠ (nicht geklärt).
+    „im Stil von“ ja, Abpausen nein. Eine allgemeine Fan-Werk-Richtlinie für *Overlord* gibt es laut Recherche nicht (Stand
+    10/2026); KADOKAWA regelt das je Werk (2016 wurde z. B. Overlord-Fanfiction nur auf der Plattform Kakuyomu freigegeben).
+    Darum: privat und nicht-kommerziell bleiben und **vor jeder Veröffentlichung bei KADOKAWA nachfragen**.
 
 ## 8. Bildprüfung – Ergebnis
 
 | Prüfung | Ergebnis |
 |---|---|
 | Farben messen | **Erledigt** für 11 Figuren, Momon und das Thronbanner (Tabelle oben) sowie alle 16 Cover |
-| Gildenwappen | **Erledigt** – Form beschrieben, Anime-Fassung Violett + Silber; Herkunft der rot-schwarzen Fassung offen ⚠ |
+| Gildenwappen | **Erledigt** – Form beschrieben, Anime-Fassung Violett + Silber; rot-schwarze Fassung ist ein Wiki-Symbolbild |
 | Ainz' Kragen/Schultern | **Geklärt:** Kapuze, goldener Kragen, weiße Panzer mit roten Kugeln und je zwei gebogenen Hornspitzen |
 | Augenseiten Aura/Mare | **Bestätigt** (Anime, Light Novel und Farbtafel stimmen überein) |
 | Demiurge | **Geklärt:** orangeroter Nadelstreifenanzug, spitze Ohren, silbriger Plattenschwanz mit Stacheln |
 | Plejaden-Uniformen | **Erledigt** (Tabelle in [02-figurenaussehen.md](02-figurenaussehen.md#die-plejaden)) |
 | so-bin vs. Anime vs. Manga | **Erledigt** für 20 Figuren (siehe [01](01-stile-im-vergleich.md) und [02](02-figurenaussehen.md)) |
 | Logo | **Erledigt** (Abschnitt 5) |
-| Noch offen | Anime-Design von Gargantua; Herkunft der rot-schwarzen Flagge; Matsukis Manga-Stil (Teil 2) |
+| Gargantua, Matsuki, Chibi-Stile, Thronsaal | **Erledigt** (Aufgabe 05) |
+| Noch offen | Wer der gehörnte Bronze-Riese auf dem Plakat zu Staffel 4 ist |
 
 ---
 
@@ -166,3 +174,4 @@ Alle 16 Cover wurden angesehen und vermessen (nur der Bildbereich, ohne Rahmen u
 
 - **Bilder (nur angesehen und vermessen, nicht im Repo):** Infobox-Bilder der Figuren-Seiten im [Overlord-Wiki](https://overlordmaruyama.fandom.com/wiki/Overlord_Wiki); [AOG Banner](https://overlordmaruyama.fandom.com/wiki/File:AOG_Banner.png), [AOG Flag](https://overlordmaruyama.fandom.com/wiki/File:AOG_Flag.png); Cover: Wiki-Seiten [Overlord Volume 01](https://overlordmaruyama.fandom.com/wiki/Overlord_Volume_01) bis [Overlord Volume 16](https://overlordmaruyama.fandom.com/wiki/Overlord_Volume_16); Logos [II](https://overlordmaruyama.fandom.com/wiki/File:Overlord_II_(Logo).png), [III](https://overlordmaruyama.fandom.com/wiki/File:Overlord_III_Logo.png), [IV](https://overlordmaruyama.fandom.com/wiki/File:Overlord_IV_Logo.png); [Plakat Staffel 4](https://overlordmaruyama.fandom.com/wiki/File:Overlord_IV_Key_Visual_December_2021.jpg)
 - **Texte:** [Flag of Ainz Ooal Gown](https://overlordmaruyama.fandom.com/wiki/Flag_of_Ainz_Ooal_Gown), [Overlord Volume 01](https://overlordmaruyama.fandom.com/wiki/Overlord_Volume_01) (41 Banner), [michaelyearby.com – Rezension](https://www.michaelyearby.com/post/in-depth-review-of-the-overlord-anime-and-manga-series), [epicstream – grünes Leuchten](https://epicstream.com/article/why-does-ainz-glow-green-in-overlord), [letsweaboo – CG der Dunklen Jungen](https://letsweaboo.com/news/one-overlord-season-3-scene-was-such-a-wasted-potential-fans-still-bitter-about-it_a144)
+- **Fan-Werke:** [kai-you.net – KADOKAWA-Fanfiction auf Kakuyomu](https://kai-you.net/article/21788), [inside-games.jp – Kakuyomu-Freigabe 2016](https://www.inside-games.jp/article/2016/02/29/96399.html)

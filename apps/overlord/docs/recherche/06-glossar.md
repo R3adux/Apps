@@ -4,8 +4,8 @@ Begriffe und Namen in Japanisch, Englisch (Yen Press / Anime-Untertitel) und Deu
 **Eigennamen wie im Original** (Ainz Ooal Gown, Nazarick, Albedo …), **Fachbegriffe auf Deutsch**, wo es eine klare
 deutsche Entsprechung gibt.
 
-Die deutschen Begriffe sind Arbeitsübersetzungen dieses Projekts, sofern nicht als „TOKYOPOP“ oder „KSM“ gekennzeichnet –
-die offiziellen deutschen Übersetzungen lagen für diese Recherche nicht vollständig vor. ⚠ Vor einer Veröffentlichung mit den
+Die deutschen Begriffe sind Arbeitsübersetzungen dieses Projekts, sofern nicht als „TOKYOPOP“ gekennzeichnet – die deutsche
+Light Novel lag nicht vor, belegt sind ihre Bandtitel und Klappentexte. ⚠ Vor einer Veröffentlichung mit den
 deutschen Ausgaben abgleichen.
 
 ## Begriffe
@@ -16,7 +16,7 @@ deutschen Ausgaben abgleichen.
 | 異世界 | isekai | New World / another world | Neue Welt | Die Welt, in die Nazarick versetzt wird |
 | ユグドラシル | Yugudorashiru | YGGDRASIL | YGGDRASIL | Das Online-Spiel |
 | DMMO-RPG | – | DMMO-RPG | DMMO-RPG | Spiel mit vollem Eintauchen per Gehirn-Schnittstelle |
-| ナザリック地下大墳墓 | Nazarikku chika daifunbo | Great Tomb of Nazarick | Großes Grab von Nazarick | Gildenbasis |
+| ナザリック地下大墳墓 | Nazarikku chika daifunbo | Great Tomb of Nazarick | **Große Gruft von Nazarick** (TOKYOPOP) | Gildenbasis |
 | 至高の御方 / 至高の41人 | shikō no onkata | Supreme Beings / the 41 Supreme Beings | die Höchsten Wesen / die 41 Höchsten | So nennen die NPCs die Gildenmitglieder |
 | 階層守護者 | kaisō shugosha | Floor Guardian | Stockwerkswächter | Wächter eines Stockwerks |
 | 守護者統括 | shugosha tōkatsu | Guardian Overseer | Wächter-Oberaufseherin | Albedos Amt |

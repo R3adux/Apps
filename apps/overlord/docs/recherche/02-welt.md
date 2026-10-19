@@ -49,8 +49,10 @@ gebracht haben. Grundsätzlich **nicht** übertragbar sind aber: Kampfkünste, a
 | ≈ 200 Jahre | Die **Dreizehn Helden** (十三英雄) kämpfen gegen die **Bösen Gottheiten / Dämonengötter** (魔神) – mit Gegenständen der Gier-Könige. Dabei: **Rigrit Bers Caurau**, **Evileye** (damals schon Vampirin), und der Platin-Drachenkönig über eine ferngesteuerte Rüstung. Mindestens zwei Mitglieder waren Spieler (Wiki) |
 | Gegenwart | Nazarick erscheint; Beginn der Handlung |
 
-- Spieler tauchen laut Wiki **etwa einmal pro Jahrhundert** auf und verändern die Geschichte der Neuen Welt; Fans sprechen vom
-  „Hundert-Jahre-Rhythmus“ (百年の揺り返し). ⚠ Ob der Begriff so im Original steht, ist nicht geprüft.
+- Spieler tauchen laut Wiki **etwa einmal pro Jahrhundert** auf und verändern die Geschichte der Neuen Welt. Die
+  Slane-Theokratie nennt dieses Ereignis laut Wiki (Bd. 10) „**Ankunft der Götter**“ (engl. „The Advent of the Gods“). Ein
+  im Netz manchmal genannter japanischer Begriff dafür (百年の揺り返し, „Hundert-Jahre-Rückschwung“) ließ sich in keiner
+  Quelle finden und wird im Projekt nicht verwendet.
 - **Gottmenschen** (神人): Nachfahren von Spielern, bei denen das Spielerblut „erwacht“ ist – weit stärker als normale Menschen
   (z. B. Zesshi Zetsumei, der Kapitän der Schwarzen Schrift).
 
@@ -61,15 +63,17 @@ gebracht haben. Grundsätzlich **nicht** übertragbar sind aber: Kampfkünste, a
 | **Königreich Re-Estize** (リ・エスティーゼ王国) | König **Ramposa III.**; Prinzen **Barbro** (älterer, Adelspartei) und **Zanac** (jüngerer, später Regent); Prinzessin **Renner**; Kriegerhauptmann **Gazef Stronoff** | Feudalreich, zerrissen zwischen Königspartei und Adelspartei; **sechs Großadlige** (u. a. Markgraf **Raeven** – heimlicher Kopf der Königstreuen, Markgraf **Boullope** – Kopf der Adelspartei, **Blumrush** – Verräter). Hauptstadt Re-Estize, Festungsstadt **E-Rantel**, Dorf **Carne**. Untergang in Bd. 14 |
 | **Baharuth-Kaiserreich** (バハルス帝国) | Kaiser **Jircniv Rune Farlord El-Nix** („Blutkaiser“); Hofmagier **Fluder Paradyne**; die **Vier Ritter**: Baziwood Peshmel, Nimble Arc Dale Anoch, Leinas Rockbruise, Nazami Enec | Modernes, zentralistisches Reich mit Berufsheer und Magie-Ministerium; Hauptstadt **Arwintar**. Wird Vasall des Zauberer-Königreichs |
 | **Slane-Theokratie** (スレイン法国) | Kardinäle; Spezialtruppen der **Sechs Schriften** | Menschliche Vormacht, verehrt die Sechs Götter, hält die Menschheit mit allen Mitteln am Leben; Hintermann der Gehirnwäsche Shalltears (Bd. 3, aufgedeckt Bd. 16) |
-| **Heiliges Königreich Roble** (ローブル聖王国) | Heilige Königin **Calca Bessarez**; Paladin-Hauptfrau **Remedios Custodio** | Durch eine **Große Mauer** gegen die Halbmenschen der **Abelion-Hügel** geschützt; Schauplatz Bd. 12–13 |
-| **Rat von Argland** (アーグランド評議国) | **Tsaindorcus Vaision**, der **Platin-Drachenkönig**, einer von fünf Drachen-Ratsherren | Halbmenschen-Staat nordwestlich von Re-Estize; Tsa steuert eine leere weiße Rüstung aus der Ferne |
-| **Zwergenkönigreich** | Regierungsrat; Runenschmied **Gondo Firebeard** | Im **Azerlisia-Gebirge**; alte Hauptstadt **Feo Berkana** an Quagoa und Frostdrachen verloren; Stadt **Feo Jera**. Bd. 11 |
+| **Heiliges Königreich Roble** (ローブル聖王国) | Heilige Königin **Calca Bessarez**; Paladin-Hauptfrau **Remedios Custodio** | Kleines Land südwestlich von Re-Estize, durch eine **Große Mauer** gegen die Halbmenschen der **Abelion-Hügel** geschützt; Schauplatz Bd. 12–13. Danach droht die Spaltung: der Norden für, der Süden gegen das Zauberer-Königreich |
+| **Rat von Argland** (アーグランド評議国) | **Tsaindorcus Vaision**, der **Platin-Drachenkönig**, einer von fünf Drachen-Ratsherren | Halbmenschen-Staat nordwestlich von Re-Estize, mit der menschenzentrierten Theokratie unvereinbar; nach außen bekannt sind die fünf Drachen im Rat; Tsa steuert eine leere weiße Rüstung aus der Ferne |
+| **Zwergenkönigreich** | Regierungsrat; Runenschmied **Gondo Firebeard** | Im **Azerlisia-Gebirge**; regiert von einem achtköpfigen **Regentschaftsrat**. Alte Hauptstadt **Feo Berkana** vor 200 Jahren nach einem Angriff der Bösen Gottheiten aufgegeben, später von Quagoa und Frostdrachen besetzt; heutige Hauptstadt **Feo Jera**. Bd. 11 – danach Runenschmiede im Zauberer-Königreich (Dorf Carne) |
 | **Elfenland** | Elfenkönig **Decem Hougan** | Im Krieg mit der Theokratie; Schauplatz Bd. 15–16 |
-| **Drachenkönigreich** (竜王国) | Drachenkönigin **Draudillon Oriculus**, Urenkelin des Leuchtenden Drachenkönigs (Brightness Dragon Lord), der das Reich gründete | Südlich des Kaiserreichs, östlich der Theokratie; von den Tiermenschen bedrängt, bittet Kaiserreich und Theokratie um Hilfe |
+| **Drachenkönigreich** (竜王国) | Drachenkönigin **Draudillon Oriculus**, Urenkelin des Leuchtenden Drachenkönigs (Brightness Dragon Lord), der das Reich gründete | Südlich des Kaiserreichs, östlich der Theokratie; von den Tiermenschen bedrängt, bittet Kaiserreich und Theokratie um Hilfe; laut japanischer Wikipedia erhält es später Untote als Hilfe vom Zauberer-Königreich |
 | **Zauberer-Königreich** (魔導国; Yen-Press-LN: „Nation of Darkness“) | **Ainz Ooal Gown** als **Zauberer-König** (魔導王) | Gegründet Bd. 9 mit E-Rantel als Hauptstadt; wächst danach stetig |
 
-Weitere Schauplätze: **Großer Wald von Tob** (Heimat von Hamsuke), **Katze-Ebene** (Nebel, Untote; Schlachtfeld Bd. 9),
-**Abelion-Hügel**, **Azerlisia-Gebirge**, Sumpf der Echsenmenschen.
+Weitere Schauplätze: **Großer Wald von Tob** (Heimat von Hamsuke), **Katze-Ebene** (Nebel, Untote; jährliches Schlachtfeld
+zwischen Königreich und Kaiserreich, Bd. 9), **Abelion-Hügel** (Halbmenschen-Stämme; dort betreibt Demiurge seine „Farm“ für
+Schriftrollen-Pergament), **Azerlisia-Gebirge**, Sumpf der Echsenmenschen, **Städtebund Karsanas** (12 Stadtstaaten nordöstlich
+des Kaiserreichs).
 
 ### 3.3 Organisationen
 
@@ -114,3 +118,4 @@ Gildenschutz (z. B. „Foresight“, Bd. 7).
 - Charakter-Datenbanken: [MAL – Raeven](https://myanimelist.net/character/132829), [anibase – Boullope](https://anibase.net/en/character/1vL6P/Marquis-Boullope), [MAL – Baziwood](https://myanimelist.net/character/163992), [MAL – Nimble](https://myanimelist.net/character/163990/Nimble_Arc_Dale_Anoch), [MAL – Leinas](https://myanimelist.net/character/163991), [anibase – Tsaindorcus](https://anibase.net/en/character/lB0Xg/Tsaindorcus-Vaision), [MAL – Succulent](https://myanimelist.net/character/159429), [MAL – Davernoch](https://myanimelist.net/character/159741), [MAL – Malmvist](https://myanimelist.net/character/159740), [MAL – Peshurian](https://myanimelist.net/character/159742)
 - Yen Press Bd. 15 (Begriff „Nation of Darkness“): [yenpress.com](https://yenpress.com/titles/9781975360566-overlord-vol-15-light-novel)
 - **Faktenprüfung 19.10.2026 (Text direkt gelesen):** Overlord-Wiki [World of 2138](https://overlordmaruyama.fandom.com/wiki/World_of_2138), [World Item](https://overlordmaruyama.fandom.com/wiki/World_Item), [Guild Weapon](https://overlordmaruyama.fandom.com/wiki/Guild_Weapon), [Dragon Kingdom](https://overlordmaruyama.fandom.com/wiki/Dragon_Kingdom), [Player](https://overlordmaruyama.fandom.com/wiki/Player), [Yamaiko](https://overlordmaruyama.fandom.com/wiki/Yamaiko), [Bukubukuchagama](https://overlordmaruyama.fandom.com/wiki/Bukubukuchagama), [Herohero](https://overlordmaruyama.fandom.com/wiki/Herohero), [Touch Me](https://overlordmaruyama.fandom.com/wiki/Touch_Me), [Ulbert Alain Odle](https://overlordmaruyama.fandom.com/wiki/Ulbert_Alain_Odle)
+- **Offene Punkte 19.10.2026 (Aufgabe 05):** [JA-Wikipedia – Light Novel](https://ja.wikipedia.org/wiki/オーバーロード_(小説)) (Länder, Drachenkönigreich, Städtebund); Overlord-Wiki [Sorcerer Kingdom](https://overlordmaruyama.fandom.com/wiki/Sorcerer_Kingdom), [Player](https://overlordmaruyama.fandom.com/wiki/Player), [Overlord Volume 10](https://overlordmaruyama.fandom.com/wiki/Overlord_Volume_10) („Advent of the Gods“)

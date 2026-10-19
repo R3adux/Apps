@@ -48,19 +48,30 @@ Blickwinkel**, **raffinierte Lichtführung**.
 - Klassischer Schwarz-Weiß-Manga (an 20 Figurenseiten geprüft): **große Schwarzflächen**, **Rasterfolien** für Grautöne,
   **Speedlines**, große **handgezeichnete Lautmalerei** (Katakana) als Teil des Bildes, starke **Verkürzung** (Ainz' Krallenhand
   ragt zum Leser), sauber ausgearbeitete Rüstungen. Monster und Untote mit **aufgerissenen Mäulern**.
-- Matsukis Stil (Teil 2) ist noch nicht geprüft.
+- **Matsuki (Teil 2, *Overlord <Shin> Sekai-hen*)** – an Seiten und Farbtafeln geprüft: moderne, scharfe Digitallinie, feine
+  Schraffuren in Gesichtern (Jircniv), sehr detaillierte Bärte und Gesichter, Grautöne eher als weiche Digitalverläufe als als
+  Punktraster. **Farbseiten:** satte, glänzende Digitalkoloration vor tief **violetten** Hintergründen mit Glanz- und
+  Sterneffekten; die Figuren folgen eng dem Anime-Design. Titelschrift „オーバーロード 新 世界編“ mit „New World“ klein darunter.
 
 ## 3. Anime – Madhouse
 
 ### Wer ist für das Aussehen verantwortlich?
 
-| Funktion | Staffel 1 (2015) | Staffel 2–3 (2018) | Staffel 4 (2022) |
-|---|---|---|---|
-| Original-Figurendesign | so-bin | so-bin | so-bin |
-| Figurendesign | **Takahiro Yoshimatsu** (吉松孝博), zugleich Chef-Animationsregie | **Satoshi Tasaki** (田﨑聡) und Takahiro Yoshimatsu | **Satoshi Tasaki** |
-| Hintergründe (Art Director) | **Shigemi Ikeda** und **Yukiko Maruyama** (Atelier Musa) | dieselben | ⚠ nicht geprüft |
-| Farbdesign | Yukie Noguchi (nur laut Baidu) | ⚠ | ⚠ |
-| 3D-Leitung | Shūhei Suda (nur laut Baidu) | ⚠ | ⚠ |
+| Funktion | Staffel 1 (2015) | Staffel 2–3 (2018) | Staffel 4 (2022) | Film *The Sacred Kingdom* (2024) |
+|---|---|---|---|---|
+| Regie | **Naoyuki Itō** (伊藤尚往) | dieselbe | dieselbe | dieselbe (auch Drehbuch) |
+| Original-Figurendesign | so-bin | so-bin | so-bin | so-bin; Monster-Vorlagen so-bin und ケースワベ |
+| Figurendesign | **Takahiro Yoshimatsu** (吉松孝博), zugleich Chef-Animationsregie | **Satoshi Tasaki** (田﨑聡) und Takahiro Yoshimatsu | **Satoshi Tasaki** | **Satoshi Tasaki**, zugleich Chef-Animationsregie |
+| Neben-, Monster- und Requisitendesign | 出雲重機, 前原桃子 | 今村大樹, 杉浦幸次, 出雲重機, 鈴木政彦, 前原桃子; in Staffel 3 dazu 高橋瑞香, 長澤礼子 | 今村大樹, 竹内杏子, 出雲重機, 杉浦幸次 | 杉浦幸次, 出雲重機, 中村佑美子, 竹内杏子 |
+| Hintergründe (Art Director) | **Shigemi Ikeda** (池田繁美) und **Yukiko Maruyama** (丸山由紀子), Atelier Musa | dieselben | dieselben | dieselben |
+| Farbdesign | **Yukie Noguchi** (野口幸恵) | **Yoshinori Horikawa** (堀川佳典) | Yukie Noguchi | Yukie Noguchi |
+| 3D-Leitung | **Shūhei Yabuta** (籔田修平) | **Yasutaka Tanaka** (田中康隆) | Yasutaka Tanaka | **Kazuya Ōya** (大矢和也), Graphinica |
+| Bildgestaltung (撮影監督) | 川下裕樹 | 継岡夢月 | 渡辺祥生 | 渡辺祥生 |
+
+Belegt durch die **Stablisten der offiziellen Websites** (Staffel 1, Staffel 3, Staffel 4, Film) und die japanische Wikipedia
+(einzige Quelle für Staffel 2, die dort mit Staffel 3 zusammen geführt wird). Die Namen stehen dort nur in Kanji; die
+lateinische Umschrift ist die übliche Lesung. Bei den Namen ohne Umschrift ist die Lesung nicht sicher. Die frühere Angabe
+„Shūhei Suda“ (Baidu) war eine falsche Lesung von 籔田修平.
 
 ### Merkmale
 
@@ -77,6 +88,11 @@ Blickwinkel**, **raffinierte Lichtführung**.
 - **Computergrafik (3DCG)** für **Massenszenen** (Heere, Untotenhorden, Monster). Das ist der **meistkritisierte Punkt** der
   Serie: Die CG wirkt neben der Handzeichnung steif; am bekanntesten sind die **Dunklen Jungen** in Staffel 3, die durch die CG
   weniger furchterregend wirken als gedacht.
+- **Mimik um Ainz herum:** Weil Ainz als Skelett weder Mund noch Gesicht bewegen kann, lässt Regisseur Itō die **Figuren um
+  ihn herum besonders ausdrucksstark spielen**. Dass der Schädel trotzdem Ausdruck zu haben scheint, verdankt er laut Itō der
+  Stimme von Satoshi Hino. Statt vieler Figuren im Bild setzt Itō darauf, dass die einzelnen Figuren interessant wirken;
+  Gesprächsszenen löst er vor allem über die **Anordnung der Figuren im Raum** (Interviews auf Aniko, 2015, wiedergegeben in der japanischen Wikipedia). Für die letzte
+  Folge von Staffel 1 hat er selbst Schlüsselzeichnungen (Genga) beigesteuert.
 - **Anime-eigene Zeichen:** Das **grüne Aufleuchten**, wenn Ainz' Gefühle unterdrückt werden, gibt es **nur im Anime**.
 - **Qualität schwankt** je nach Staffel; die mittleren Staffeln gelten als schwächer animiert.
 
@@ -91,9 +107,9 @@ Blickwinkel**, **raffinierte Lichtführung**.
 
 | Werk | Stil |
 |---|---|
-| *Ple Ple Pleiades* (Puyukai) | ◇ Super-Deformed: große Köpfe, kleine Körper, einfache Formen, helle Farben, Gag-Mimik |
+| *Ple Ple Pleiades* (Puyukai) | Geprüft an Standbildern: Super-Deformed – **Kopf etwa so groß wie der Körper**, einfache Formen, flache helle Farben; selbst Gargantua wird zum schlafenden, niedlichen Felsklotz |
 | *Isekai Quartet* (Puyukai, Figuren Minoru Takehara) | Geprüft an Ainz: **großer Kopf, gedrungener Körper**, dicke Konturen, **flache Farben ohne Verläufe**, alle Erkennungszeichen bleiben (Kapuze, Hornspitzen, rote Kugeln, violettes Band, Gold) – nur vereinfacht |
-| *Fushisha no Oh!* (Jūami) | ◇ Vierbild-Manga mit Chibi-Figuren |
+| *Fushisha no Oh!* (Jūami) | Geprüft am Cover von Bd. 1: Chibi-Figuren mit Gag-Gesichtern, knallige Farben, runde verspielte Titelschrift mit rotem „Oh!“; das Gildenwappen steht weiß auf dem Cover |
 
 ## 5. Empfehlung für das Projekt
 
@@ -113,6 +129,8 @@ Mischformen sind möglich (z. B. Anime-Figuren vor malerischen Hintergründen �
 - [Yen Press – Artist Showcase: The Art of so-bin](https://yenpress.com/news/artist-showcase-the-art-of-so-bin), [Overlord-Wiki – So-Bin](https://overlordmaruyama.fandom.com/wiki/So-Bin), [Overlord-Wiki – Hugin Miyama](https://overlordmaruyama.fandom.com/wiki/Hugin_Miyama)
 - [Dengeki Online – so-bin zur Jubiläums-Albedo (2024)](https://dengekionline.com/article/202406/8592), [toy-people – Albedo-Figur](https://www.toy-people.com/jp/?p=90868), [KADOKAWA – Anime II III Settei-Shiryōshū](https://www.kadokawa.co.jp/product/321808000243/), [KADOKAWA – Manga Bd. 19 mit Artbook](https://www.kadokawa.co.jp/product/322307001137/), [Yen Press – Complete Anime Artbook II III](https://yenpress.com/9781975314354/overlord-the-complete-anime-artbook-ii-iii)
 - [ANN – Stab Staffel 2](https://www.animenewsnetwork.com/news/2017-09-29/main-staff-visual-revealed-for-overlord-anime-2nd-season/.122032), [ComicBook – Staffel-4-Designs](https://comicbook.com/anime/news/overlord-season-4-first-character-designs/), [Famitsu 2018](https://www.famitsu.com/news/201808/01161716.html), [anime.eiga.com – Film 1](https://anime.eiga.com/program/105786/), [anime.eiga.com – Film 2](https://anime.eiga.com/program/105900/), [KADOKAWA – Blu-ray-Box](https://www.kadokawa.co.jp/product/video1475/), [Baidu – Anime](https://baike.baidu.com/en/item/Overlord/1520411)
+- Offizielle Stablisten: [Staffel 1](https://overlord-anime.com/_season1/staff_cast.html), [Staffel 3](https://overlord-anime.com/_season2/staffcast/), [Staffel 4](https://overlord-anime.com/_season4/), [Film](https://overlord-anime.com/); [JA-Wikipedia – Anime](https://ja.wikipedia.org/wiki/オーバーロード_(アニメ))
+- Regie-Interviews (Aniko, 2015; Seite nicht mehr erreichbar, Inhalt nach der JA-Wikipedia): [Teil 1](http://ani-ko.com/33-ito01), [Teil 2](http://ani-ko.com/34-ito02), [Teil 3](http://ani-ko.com/35-ito03)
 - [Parkablogs – Complete Anime Artbook](https://www.parkablogs.com/content/book-review-overlord-complete-anime-artbook), [The Outerhaven – Artbook](https://www.theouterhaven.net/?p=193083), [Anime UK News – Staffel 1](https://animeuknews.net/2017/06/overlord-complete-season-1-review/), [Anime-Planet – Rezension](https://www.anime-planet.com/users/Gzerble/reviews/25178), [michaelyearby.com – Rezension](https://www.michaelyearby.com/post/in-depth-review-of-the-overlord-anime-and-manga-series), [letsweaboo – Dark-Young-Szene](https://letsweaboo.com/news/one-overlord-season-3-scene-was-such-a-wasted-potential-fans-still-bitter-about-it_a144), [thereviewmonster – CGI](https://thereviewmonster.blog/2021/11/01/overlord-anime-review-how-to-take-over-the-world-unintentionally/), [epicstream – grünes Leuchten](https://epicstream.com/article/why-does-ainz-glow-green-in-overlord)
 - Film: [Screen Rant](https://screenrant.com/overlord-the-sacred-kingdom-review/), [Flixist](https://www.flixist.com/nycc-2024-review-overlord-the-sacred-kingdom/), [Cat with Monocle](https://catwithmonocle.com/news/2024/11/07/overlord-the-sacred-kingdom-review/), [Boston Bastard Brigade](http://www.bostonbastardbrigade.com/2024/11/overlord-the-sacred-kingdom-review/), [Rotten Tomatoes](https://www.rottentomatoes.com/m/overlord_the_sacred_kingdom)
 - **Bildprüfung (19.10.2026):** alle 16 Light-Novel-Cover, Anime-/Light-Novel-/Manga-Bilder von 20 Figuren, Anime-Logos II–IV, Plakat Staffel 4 und Isekai-Quartet-Ainz aus dem [Overlord-Wiki](https://overlordmaruyama.fandom.com/wiki/Overlord_Wiki) – angesehen und vermessen, nicht im Repo

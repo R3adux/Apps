@@ -1,6 +1,7 @@
 # 05 – Handlung Band für Band
 
 **Spoiler bis einschließlich Band 16.** Kanon ist die Light Novel; in Klammern, wo der Stoff im Anime steckt.
+Bandtitel Bd. 1–10 wie in der deutschen Ausgabe (TOKYOPOP), ab Bd. 11 Arbeitstitel dieses Projekts.
 
 Zeichen: ◇ = aus Werkkenntnis, im Netz nicht gegengeprüft · ⚠ = Quellen widersprechen sich oder Angabe unsicher ·
 (Wiki) = nur durch das Fan-Wiki belegt.
@@ -39,7 +40,7 @@ Zeichen: ◇ = aus Werkkenntnis, im Netz nicht gegengeprüft · ⚠ = Quellen wi
 
 ## Teil 2: Das Königreich (Bd. 4–6 · Staffel 2)
 
-### Band 4 – *Die Echsenmenschen-Helden* (蜥蜴人の勇者たち)
+### Band 4 – *Die Helden der Echsenmenschen* (蜥蜴人の勇者たち)
 - Nazarick erklärt den **Echsenmenschen** im großen Sumpf den Krieg – mit Ansage und Frist.
 - **Zaryusu Shasha** einigt die fünf übrigen Stämme (mit Crusch Lulu, Shasuryu, Zenberu).
 - **Cocytus** führt ein schwaches Untotenheer an und **verliert** wie von Ainz eingeplant – eine Lektion für die NPCs.
@@ -47,7 +48,7 @@ Zeichen: ◇ = aus Werkkenntnis, im Netz nicht gegengeprüft · ⚠ = Quellen wi
 - Cocytus bittet, die Echsenmenschen nicht auszulöschen, sondern zu **beherrschen**. Ainz testet an Zaryusu die
   **Wiederbelebung**. Cocytus wird Statthalter.
 
-### Band 5–6 – *Die Männer des Königreichs* (王国の漢たち 上・下)
+### Band 5–6 – *Die Männer des Königreichs Teil I/II* (王国の漢たち 上・下)
 - **Sebas** und **Solution** sind als Butler und reiche Kaufmannstochter in der Hauptstadt Re-Estize, um Informationen zu sammeln.
 - Sebas rettet die misshandelte **Tuare** aus einem Bordell der **Acht Finger** – gegen den Auftrag. Ainz prüft seine Treue
   (Sebas soll Tuare töten und schlägt ernsthaft zu, Cocytus fängt den Schlag ab; der „Ainz“ dabei ist Pandora's Actor in
@@ -61,7 +62,7 @@ Zeichen: ◇ = aus Werkkenntnis, im Netz nicht gegengeprüft · ⚠ = Quellen wi
 
 ## Teil 3: Ein Königreich entsteht (Bd. 7–9 · Staffel 3)
 
-### Band 7 – *Die Eindringlinge des großen Grabes* (大墳墓の侵入者)
+### Band 7 – *Eindringlinge in der Großen Gruft* (大墳墓の侵入者)
 - Kaiser **Jircniv** lässt über einen Strohmann **Worker** die „Ruine“ Nazarick erkunden – unter ihnen **Foresight**,
   „Heavy Masher“, das Team des Veteranen **Green Leaf** und die Schwertkämpfer von „Angel“.
 - Nazarick hat das selbst eingefädelt (Teil von Demiurges Plan): Auf Ainz' Befehl hat **Fluder** dem Kaiser die Ruine „gefunden“.
@@ -79,10 +80,11 @@ Zeichen: ◇ = aus Werkkenntnis, im Netz nicht gegengeprüft · ⚠ = Quellen wi
   schlägt die Angreifer in die Flucht. **Lupusregina** und 13 Elite-Goblins jagen Barbro danach; sein Ende ist düster.
 - Enri wird Dorfvorsteherin, Nfirea und sie kommen sich näher.
 
-### Band 9 – *Der Magier der Vernichtung* (破軍の魔法詠唱者)
+### Band 9 – *Der Magier der Zerstörung* (破軍の魔法詠唱者)
 - Ainz fordert mit dem Kaiserreich die Stadt **E-Rantel** vom Königreich. Schlacht auf der **Katze-Ebene**.
 - Ainz wirkt den Überstufen-Zauber **Iä Shub-Niggurath**: **70.000** Soldaten sterben allein durch das Zaubern, fünf **Dunkle
-  Junge** (Dark Young) zertrampeln das Heer – insgesamt rund **180.000** Tote (Wiki). Gazefs **Razor Edge** richtet gegen
+  Junge** (Dark Young) zertrampeln das Heer – insgesamt rund **180.000** Tote laut Fan-Wiki, „etwa 200.000“ laut japanischer
+  Wikipedia ⚠. Gazefs **Razor Edge** richtet gegen
   sie nichts aus.
 - **Gazef** fordert Ainz zum Duell; Ainz hält die Zeit an und tötet ihn mit einem verzögerten Todeszauber.
 - E-Rantel wird Hauptstadt des **Zauberer-Königreichs**, Ainz ist **Zauberer-König**. In einer inszenierten Szene mit Albedo
@@ -90,7 +92,7 @@ Zeichen: ◇ = aus Werkkenntnis, im Netz nicht gegengeprüft · ⚠ = Quellen wi
 
 ## Teil 4: Herrschaft (Bd. 10–11 · Staffel 4)
 
-### Band 10 – *Der Herrscher der Intrigen* (謀略の統治者)
+### Band 10 – *Der Herrscher der Verschwörung* (謀略の統治者)
 - Ainz regiert E-Rantel und beschließt, sein Reich zu einer „Utopie“ zu machen, vor der alle Völker knien. Erster Schritt: die
   **Abenteurergilde** stärken und Abenteurer zu Entdeckern des Unbekannten machen. Pandora's Actor spielt Momon; Ainz erkennt
   ihn als „Sohn“ an.
@@ -169,3 +171,4 @@ Zeichen: ◇ = aus Werkkenntnis, im Netz nicht gegengeprüft · ⚠ = Quellen wi
 - Verlagstexte Yen Press: [Bd. 12](https://yenpress.com/titles/9781975308063-overlord-vol-12-light-novel), [Bd. 15](https://yenpress.com/titles/9781975360566-overlord-vol-15-light-novel), [Bd. 16](https://yenpress.com/titles/9781975367800-overlord-vol-16-light-novel); [Goodreads Bd. 14](https://www.goodreads.com/book/show/60099325), [Goodreads Bd. 13](https://www.goodreads.com/book/show/55922117-overlord-vol-13-light-novel)
 - [Baidu – Zesshi](https://baike.baidu.com/en/item/Zesshi%20Zetsumei/1413749), [GameFAQs – Bd. 16](https://gamefaqs.gamespot.com/boards/2000121-anime-and-manga-other-titles/80172585), [Skythewood – Web-Roman-Unterschied Bd. 7](http://skythewood.blogspot.com/2015/09/O77.html), [Monster Wiki – Dark Young](https://monster.fandom.com/wiki/Dark_Young), [Fandompost – S3E13](https://www.fandompost.com/2018/10/06/overlord-iii-episode-13-anime-review-season-finale/), [Sportskeeda – S4E12](https://sportskeeda.com/anime/overlord-season-4-episode-12-cocytus-aura-begin-attack-royal-capital), [Wikipedia – Staffel 1](https://en.wikipedia.org/wiki/Overlord_season_1)
 - **Faktenprüfung 19.10.2026 (Text direkt gelesen):** Overlord-Wiki Bandzusammenfassungen [Overlord Volume 01](https://overlordmaruyama.fandom.com/wiki/Overlord_Volume_01), [Overlord Volume 03](https://overlordmaruyama.fandom.com/wiki/Overlord_Volume_03), [Overlord Volume 06](https://overlordmaruyama.fandom.com/wiki/Overlord_Volume_06), [Overlord Volume 07](https://overlordmaruyama.fandom.com/wiki/Overlord_Volume_07), [Overlord Volume 08](https://overlordmaruyama.fandom.com/wiki/Overlord_Volume_08), [Overlord Volume 09](https://overlordmaruyama.fandom.com/wiki/Overlord_Volume_09), [Overlord Volume 10](https://overlordmaruyama.fandom.com/wiki/Overlord_Volume_10), [Overlord Volume 11](https://overlordmaruyama.fandom.com/wiki/Overlord_Volume_11), [Overlord Volume 14](https://overlordmaruyama.fandom.com/wiki/Overlord_Volume_14), [Overlord Volume 15](https://overlordmaruyama.fandom.com/wiki/Overlord_Volume_15), [Overlord Volume 16](https://overlordmaruyama.fandom.com/wiki/Overlord_Volume_16); außerdem [Eight Fingers](https://overlordmaruyama.fandom.com/wiki/Eight_Fingers), [Jircniv Rune Farlord El-Nix](https://overlordmaruyama.fandom.com/wiki/Jircniv_Rune_Farlord_El-Nix), [Nazami Enec](https://overlordmaruyama.fandom.com/wiki/Nazami_Enec)
+- **Offene Punkte 19.10.2026 (Aufgabe 05):** [JA-Wikipedia – Light Novel](https://ja.wikipedia.org/wiki/オーバーロード_(小説)) (Opferzahl Katze-Ebene); deutsche Bandtitel: [TOKYOPOP – Serienseite](https://tokyopop.de/buecher/light-novel/overlord-light-novel/), [manga-passion – Light Novel](https://www.manga-passion.de/editions/1333)

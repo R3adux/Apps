@@ -33,36 +33,36 @@ Zeichen: ◇ = aus Werkkenntnis, im Netz nicht gegengeprüft · ⚠ = Quellen wi
 mit **Band 18 endet**. Band 17 ist bis heute **nicht erschienen** – ein kursierender Termin (11. September 2025) hat sich nicht
 bestätigt; Fan-Seiten melden für Ende 2025 einen fast fertigen Entwurf (unbestätigt).
 
-| Bd. | Japanischer Titel | Englischer Titel (Yen Press) | Erschienen JP | Erschienen EN |
-|---|---|---|---|---|
-| 1 | 不死者の王 | The Undead King | 30.07.2012 | 24.05.2016 |
-| 2 | 漆黒の戦士 | The Dark Warrior | 30.11.2012 | 27.09.2016 |
-| 3 | 鮮血の戦乙女 | The Bloody Valkyrie | 30.03.2013 | 24.01.2017 |
-| 4 | 蜥蜴人の勇者たち | The Lizardman Heroes | 31.07.2013 | 23.05.2017 |
-| 5 | 王国の漢たち 上 | The Men of the Kingdom Part I | 28.12.2013 | 19.09.2017 |
-| 6 | 王国の漢たち 下 | The Men of the Kingdom Part II | 31.01.2014 | 01.01.2018 |
-| 7 | 大墳墓の侵入者 | The Invaders of the Great Tomb | 30.08.2014 | 22.05.2018 |
-| 8 | 二人の指導者 | The Two Leaders | 26.12.2014 | 18.09.2018 |
-| 9 | 破軍の魔法詠唱者 | The Caster of Destruction | 29.06.2015 | 22.01.2019 |
-| 10 | 謀略の統治者 | The Ruler of Conspiracy | 30.05.2016 | 21.05.2019 |
-| 11 | 山小人の工匠 | The Dwarven Crafter | 30.09.2016 | 29.10.2019 |
-| 12 | 聖王国の聖騎士 上 | The Paladin of the Sacred Kingdom Part I | 30.09.2017 | 23.06.2020 |
-| 13 | 聖王国の聖騎士 下 | The Paladin of the Sacred Kingdom Part II | 27.04.2018 | 01.06.2021 |
-| 14 | 滅国の魔女 | The Witch of the Doomed Kingdom | 12.03.2020 | 28.06.2022 |
-| 15 | 半森妖精の神人 前 | The Half-Elf Demigod Part I | 30.06.2022 | 21.03.2023 |
-| 16 | 半森妖精の神人 後 | The Half-Elf Demigod Part II | 29.07.2022 | 18.07.2023 |
-| 17 | – | – | angekündigt, offen | – |
-| 18 | – (letzter Band) | – | angekündigt, offen | – |
+| Bd. | Japanischer Titel | Englischer Titel (Yen Press) | Erschienen JP | Erschienen EN | Deutscher Titel (TOKYOPOP) | Erschienen DE |
+|---|---|---|---|---|---|---|
+| 1 | 不死者の王 | The Undead King | 30.07.2012 | 24.05.2016 | Der untote König | 11.08.2021 |
+| 2 | 漆黒の戦士 | The Dark Warrior | 30.11.2012 | 27.09.2016 | Der dunkle Krieger | 25.10.2021 |
+| 3 | 鮮血の戦乙女 | The Bloody Valkyrie | 30.03.2013 | 24.01.2017 | Die blutige Walküre | 13.12.2023 |
+| 4 | 蜥蜴人の勇者たち | The Lizardman Heroes | 31.07.2013 | 23.05.2017 | Die Helden der Echsenmenschen | 10.04.2024 |
+| 5 | 王国の漢たち 上 | The Men of the Kingdom Part I | 28.12.2013 | 19.09.2017 | Die Männer des Königreichs Teil I | 13.11.2024 |
+| 6 | 王国の漢たち 下 | The Men of the Kingdom Part II | 31.01.2014 | 01.01.2018 | Die Männer des Königreichs Teil II | 11.12.2024 |
+| 7 | 大墳墓の侵入者 | The Invaders of the Great Tomb | 30.08.2014 | 22.05.2018 | Eindringlinge in der Großen Gruft | 14.05.2025 |
+| 8 | 二人の指導者 | The Two Leaders | 26.12.2014 | 18.09.2018 | Die zwei Anführer | 09.07.2025 |
+| 9 | 破軍の魔法詠唱者 | The Caster of Destruction | 29.06.2015 | 22.01.2019 | Der Magier der Zerstörung | 10.12.2025 |
+| 10 | 謀略の統治者 | The Ruler of Conspiracy | 30.05.2016 | 21.05.2019 | Der Herrscher der Verschwörung | 10.04.2026 |
+| 11 | 山小人の工匠 | The Dwarven Crafter | 30.09.2016 | 29.10.2019 | – (Titel nicht genannt) | 09.09.2026 |
+| 12 | 聖王国の聖騎士 上 | The Paladin of the Sacred Kingdom Part I | 30.09.2017 | 23.06.2020 | – | angekündigt 09.12.2026 |
+| 13 | 聖王国の聖騎士 下 | The Paladin of the Sacred Kingdom Part II | 27.04.2018 | 01.06.2021 | – | angekündigt ohne Datum |
+| 14 | 滅国の魔女 | The Witch of the Doomed Kingdom | 12.03.2020 | 28.06.2022 | – | angekündigt ohne Datum |
+| 15 | 半森妖精の神人 前 | The Half-Elf Demigod Part I | 30.06.2022 | 21.03.2023 | – | angekündigt ohne Datum |
+| 16 | 半森妖精の神人 後 | The Half-Elf Demigod Part II | 29.07.2022 | 18.07.2023 | – | angekündigt ohne Datum |
+| 17 | – | – | angekündigt, offen | – | – | – |
+| 18 | – (letzter Band) | – | angekündigt, offen | – | – | – |
 
 Englische Daten laut Wikipedia (mit Verlagsbelegen). Lizenz für Nordamerika: Yen Press seit Oktober 2015.
 
 **Auflage:** über **14 Millionen** Exemplare (Stand Januar 2024, Pressemitteilung zum Film). Zum Vergleich: 2018 rund 7 Mio.,
 Ende 2021 über 11 Mio.
 
-**Deutsch:** TOKYOPOP seit **11. August 2021** (Band 1 „Der untote König“), als Softcover und als Hardcover mit Farbschnitt.
-Bekannte deutsche Titel: Bd. 1 *Der untote König*, Bd. 5 *Die Männer des Königreichs Teil 1*, Bd. 8 *Die zwei Anführer*.
-Der Verlagsshop listet Bände bis mindestens **Band 11**. Übersetzung Bd. 1–2: Franziska Kammer, Bd. 3: René Ulmer.
-⚠ Der genaue deutsche Stand (welcher Band zuletzt) war über die Suche nicht sicher zu klären → bei tokyopop.de prüfen.
+**Deutsch:** TOKYOPOP seit **11. August 2021**, als Softcover (14,99 €, ab Bd. 10 16,00 €), als Hardcover mit Farbschnitt und
+als E-Book. Stand Oktober 2026: **11 Bände** erschienen, Bd. 12 für den 09.12.2026 angekündigt, Bd. 13–16 ohne Termin
+angekündigt (Daten und Titel: manga-passion.de, Bände 1–11 im Verlagsshop). Übersetzung Bd. 1–2: Franziska Kammer, ab Bd. 3:
+René Ulmer. Die deutsche Ausgabe nennt Nazarick **„Große Gruft von Nazarick“**.
 
 ## 4. Manga
 
@@ -75,7 +75,7 @@ Der Verlagsshop listet Bände bis mindestens **Band 11**. Übersetzung Bd. 1–2
 | Zeichnungen Teil 1 | **Hugin Miyama** – vom 26.11.2014 (Ausgabe 01/2015) bis 25.05.2023 (Ausgabe 07/2023): **78 Kapitel in 19 Bänden** (Bd. 1 am 26.06.2015, Bd. 19 am 26.12.2023). Ōshio schrieb das Drehbuch für Bd. 1–8 und wirkte bei Bd. 9–19 mit |
 | Zeichnungen Teil 2 | **Matsuki** – Fortsetzung unter dem Titel ***Overlord <Shin> Sekai-hen*** (オーバーロード＜新＞世界編, „Neue Welt“), seit 22.02.2024 auf *Comp Ace Comic Connect*; Bände: 25.09.2024, 25.03.2025, 23.10.2025, 26.03.2026 (4 Bände). Wikipedia zählt 23 Bände gesamt (19 + 4). Laut Fan-Wiki seit **7. Oktober 2026 pausiert**, weil Matsuki im Krankenhaus ist (⚠ nur Fan-Wiki/Animehunch) |
 | Englisch | Yen Press; Bd. 1 am 28.06.2016, Bd. 19 am 15.10.2024 |
-| Deutsch | **Carlsen**, seit Juli 2017; Bd. 18 am 30.04.2024 (8,00 €); 19 Bände (Stand März 2025) – Teil 1 damit auf Deutsch vollständig |
+| Deutsch | **Carlsen**: *Overlord*, **19 Bände, abgeschlossen** (Bd. 1 am 04.07.2017, Bd. 18 am 30.04.2024 für 8,00 €, Bd. 19 am 25.02.2025). Teil 2 als ***Overlord New World***: Bd. 1 am 09.01.2026, Bd. 2 am 30.06.2026, Bd. 3 für 11.01.2027 angekündigt |
 
 Miyamas Ausstieg verkündete Maruyama am 20.09.2023 auf X.
 
@@ -85,6 +85,11 @@ Miyamas Ausstieg verkündete Maruyama am 20.09.2023 auf X.
 - Text Maruyama, Zeichnungen **Jūami**. Ab Comp Ace 03/2017 (erschienen 26.01.2017); 16 Bände (Stand März 2026).
 - Der Titel spielt auf Band 1 / den ersten Kinofilm *Fushisha no Ō* („Der untote König“) an.
 - Englisch: *Overlord: The Undead King Oh!* (Yen Press, Bd. 1 am 12.11.2019).
+
+### Anthologie *OVERLORD Official Comic À La Carte Anthology*
+
+- Kurzgeschichten verschiedener Zeichner in der Welt von Overlord (nicht Kanon). Deutsch bei **Carlsen** in 3 Bänden
+  (24.12.2019, 30.06.2020, 27.10.2020).
 
 ## 5. Anime-Serie (Madhouse)
 
@@ -195,3 +200,4 @@ erschienen (anime2you).
 - Deutsch: [manga-passion – LN endet in zwei Bänden](https://www.manga-passion.de/news/6251/overlord-light-novel-endet-in-zwei-baenden), [manga-passion – Bd. 1](https://www.manga-passion.de/volumes/8285/overlord-light-novel-band-1-der-untote-koenig), [TOKYOPOP](https://tokyopop.de/buecher/light-novel/overlord-light-novel/), [Carlsen Bd. 18](https://www.carlsen.de/taschenbuch/overlord-18/978-3-551-80111-1), [anime2you – Staffel 4 Cast](https://www.anime2you.de/news/697408/overlord-staffel-4-deutscher-trailer/), [anime2you – Film-Trailer](https://www.anime2you.de/news/872945/overlord-sacred-kingdom-deutscher-trailer/), [AnimagiC – Uschi Hugo](https://animagic.de/animagic-2023/uschi-hugo/), [Synchronkartei](https://www.synchronkartei.de/serie/36522)
 - Sonstige: [Pressemitteilung 14 Mio. (ANN)](https://cdn02.animenewsnetwork.com/press-release/2024-02-27/overlord-the-sacred-kingdom-release-of-the-second-teaser-visual/.208071), [the-numbers – Film](https://www.the-numbers.com/movie/Overlord-The-Sacred-Kingdom-(2024-Japan)), [offizielle Filmseite](https://www.overlord-movie.com/), [Fandompost – Dub-Cast 2016](https://www.fandompost.com/2016/08/13/overlord-anime-dub-cast-announced/), [anime.eiga.com – Filmlieder](https://anime.eiga.com/news/103986/), [realsound – 10-Jahres-Album](https://realsound.jp/2025/03/post-1969636.html), [Steam – Escape from Nazarick](https://store.steampowered.com/app/1782150/OVERLORD_ESCAPE_FROM_NAZARICK/), [Animehunch – Manga-Pause](https://animehunch.com/overlord-new-world-chapter-24-release-delayed/), [otakuapex – Staffel-5-Stand](https://otakuapex.com/status/overlord/), [Lit Retreat – Bd. 17](https://litretreat.com/is-overlord-light-novel-finished/), [AniDB – Ple Ple Pleiades](https://anidb.net/anime/12147), [fandomwire – Maruyama-Zitat](https://fandomwire.com/i-took-the-thing-that-i-couldnt-accept-in-the-internet-novels-kugane-maruyama-changed-the-1-thing-in-overlord-he-hated-in-isekai-manga/), [ANN – Etrange Overlord](https://www.animenewsnetwork.com/news/2025-11-06/etrange-overlord-game-heads-west-in-early-2026/.230722)
 - **Faktenprüfung 19.10.2026 (Text direkt gelesen):** Wikipedia [EN – Overlord (novel series)](https://en.wikipedia.org/wiki/Overlord_(novel_series)) (Bandtabellen LN und Manga mit Verlagsbelegen), [DE – Overlord (Light Novel)](https://de.wikipedia.org/wiki/Overlord_(Light_Novel)), [JA – オーバーロード (小説)](https://ja.wikipedia.org/wiki/オーバーロード_(小説)) (Web-Roman-Daten, Manga Teil 1/2, Spiele); Overlord-Wiki [Mass for the Dead](https://overlordmaruyama.fandom.com/wiki/Mass_for_the_Dead), [Overlord: King of Nazarick](https://overlordmaruyama.fandom.com/wiki/Overlord:_King_of_Nazarick), [Overlord Web Novel](https://overlordmaruyama.fandom.com/wiki/Overlord_Web_Novel)
+- **Offene Punkte 19.10.2026 (Aufgabe 05):** manga-passion-Datenbank [Light Novel Softcover](https://www.manga-passion.de/editions/1333), [Light Novel Hardcover](https://www.manga-passion.de/editions/1334), [Manga (Carlsen)](https://www.manga-passion.de/editions/178), [Overlord New World](https://www.manga-passion.de/editions/5443), [À La Carte Anthology](https://www.manga-passion.de/editions/88); [TOKYOPOP – Serienseite](https://tokyopop.de/buecher/light-novel/overlord-light-novel/); [JA-Wikipedia – Anime](https://ja.wikipedia.org/wiki/オーバーロード_(アニメ)); Overlord-Wiki [Overlord New World](https://overlordmaruyama.fandom.com/wiki/Overlord_New_World)
