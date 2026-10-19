@@ -122,7 +122,7 @@ Reihenfolge.
 
 | Gegenstand | Was |
 |---|---|
-| **Stab von Ainz Ooal Gown** | **Gildenwaffe** – goldener Stab mit Schlangenköpfen, die farbige Juwelen im Maul halten (◇ sieben Schlangen). Nur Ainz führt ihn; wird er zerstört, ist die Gilde aufgelöst ◇. Erzeugt eine Aura der Verzweiflung |
+| **Stab von Ainz Ooal Gown** | **Gildenwaffe** – goldener Stab wie ein Hermesstab, umwunden von **sieben Schlangen**, jede mit einem Juwel anderer Farbe im Maul (Sonne, Mond, Erde, Feuer, Wind, Wasser, Zeit); fast so stark wie ein Weltgegenstand. Von allen Mitgliedern in jahrelanger Arbeit gebaut, nur für Momonga. Wird er zerstört, ist die Gilde aufgelöst – darum hing er früher sicher verwahrt in Nazarick. Verstärkt Ainz' Aura der Verzweiflung. Seit Bd. 4 bewacht **Aureole Omega** den echten Stab; Ainz benutzt eine **Nachbildung** |
 | **Ring von Ainz Ooal Gown** | Teleport zwischen allen Räumen Nazaricks (sonst dort gesperrt); Pflicht für Gildenmitglieder; Ainz verleiht ihn später an verdiente NPCs |
 | **Rote Kugel in Ainz' Bauch** | Ein **Weltgegenstand**, Wirkung unbekannt (Wiki-Arbeitstitel „Momonga's Red Orb“); viele Gegner halten sie für seinen Schwachpunkt |
 | **Thron der Könige** | Weltgegenstand im Thronsaal; zeigt Zustand und Werte aller Bewohner |

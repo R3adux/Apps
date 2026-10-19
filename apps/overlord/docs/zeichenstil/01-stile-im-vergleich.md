@@ -18,14 +18,19 @@ Zeichen: ◇ = aus Werkkenntnis, im Netz nicht gegengeprüft · ⚠ = Quellen wi
 **Merkmale (laut Yen Press):** wirkt „wie direkt aus einem Gemälde“; schöne **Farbmischungen**, **dynamische
 Blickwinkel**, **raffinierte Lichtführung**.
 
-**Was das konkret heißt** (Beschreibung, ◇):
+**Was das konkret heißt** (an allen 16 Covern und den Figurenbildern geprüft):
 - **Malerisch statt Strich:** Formen entstehen aus Farbflächen und Licht, nicht aus gleichmäßigen schwarzen Umrisslinien wie im
-  Anime. Pinselstruktur bleibt sichtbar.
-- **Dunkel und dramatisch:** Viel Schwarz und tiefe Schatten, aus denen wenige leuchtende Stellen herausstechen (Augenlichter,
-  Magie, Gold, Blut). Starke Hell-Dunkel-Kontraste.
-- **Gewicht und Details:** Rüstungen, Stoffe, Schmuck und Knochen sind aufwendig ausgearbeitet; Monster wirken bedrohlich und
-  körperlich, nicht niedlich.
-- **Untersicht und Größe:** Herrscherfiguren, vor allem Ainz, oft von unten und monumental gezeigt.
+  Anime. **Grobe, sichtbare Pinselstriche**; Umrisse lösen sich an den Rändern in **schwarze Tuschespritzer** auf (vor allem bei
+  freigestellten Figuren).
+- **Dunkel und dramatisch:** Die Cover sind im Median sehr dunkel (Helligkeit 0,09–0,35 von 1), oft ist mehr als ein Drittel der
+  Fläche fast schwarz. Daraus stechen **Glut, Feuer, Gold, Funken und leuchtende Augen** heraus.
+- **Kräftige, „unnatürliche“ Farben:** Ainz' Robe ist **sattes Ultramarin** statt Schwarz, Gold kippt ins **Grünlich-Gelbe**,
+  Haare bekommen **blau-violette** Strähnen (Albedo). Die Anime-Fassung ist dagegen gedämpft und dunkel.
+- **Volle Bilder:** Die Cover sind **dicht** mit Figuren, Monstern und Trümmern gefüllt, ohne freien Hintergrund; Details nur an
+  Gesichtern, Waffen und Schmuck, der Rest bleibt skizzenhaft.
+- **Warm überwiegt:** 10 von 16 Covern sind fast nur warm (Feuer, Gold, Braun), 3 kühl in Türkis/Blaugrün (Bd. 6, 7, 11),
+  Bd. 15 grün. Zahlen in [03-bildsprache-und-regeln.md](03-bildsprache-und-regeln.md#4-cover-der-light-novel).
+- **Proportionen:** Figuren oft **langgezogen** (Demiurge, Sebas), Ainz monumental und von leicht unten.
 
 ## 2. Manga – Hugin Miyama (Teil 1) und Matsuki (Teil 2)
 
@@ -40,9 +45,10 @@ Blickwinkel**, **raffinierte Lichtführung**.
 - Japanische Leser loben „**Können und Wucht**“ der Zeichnungen (Bd. 12) und dass Szenen **sorgfältiger als im Anime** gezeichnet
   seien (Bd. 9).
 - Figuren weichen leicht von Anime und Light Novel ab – z. B. hat **Sebas** im Manga einen **längeren Bart** und ein älteres Gesicht.
-- ◇ Klassischer Schwarz-Weiß-Manga mit feinen Linien, Rasterfolien und viel Schwarzfläche für Nazarick; Bösewichte bekommen
-  übertrieben verzerrte, unheimliche Gesichter.
-- Matsukis Stil (Teil 2) konnte in dieser Recherche nicht beschrieben werden.
+- Klassischer Schwarz-Weiß-Manga (an 20 Figurenseiten geprüft): **große Schwarzflächen**, **Rasterfolien** für Grautöne,
+  **Speedlines**, große **handgezeichnete Lautmalerei** (Katakana) als Teil des Bildes, starke **Verkürzung** (Ainz' Krallenhand
+  ragt zum Leser), sauber ausgearbeitete Rüstungen. Monster und Untote mit **aufgerissenen Mäulern**.
+- Matsukis Stil (Teil 2) ist noch nicht geprüft.
 
 ## 3. Anime – Madhouse
 
@@ -58,8 +64,12 @@ Blickwinkel**, **raffinierte Lichtführung**.
 
 ### Merkmale
 
-- **Klassischer TV-Anime-Look:** **saubere Linien, Cel-Shading** (zwei bis drei harte Schattenstufen) – so beschreibt es eine
-  Rezension des offiziellen Anime-Artbooks. Damit deutlich glatter und „grafischer“ als so-bins Gemälde.
+- **Klassischer TV-Anime-Look:** **saubere schwarze Konturlinien, Cel-Shading** – so beschreibt es eine Rezension des offiziellen
+  Anime-Artbooks, und so zeigen es die Figurenblätter: je Fläche **Grundton, eine harte Schattenstufe und ein Licht**, bei Stoffen
+  (Ainz' Robe) zusätzlich weiche Verläufe, auf Kugeln und Rüstungen **glänzende Spitzlichter**. Deutlich glatter und
+  „grafischer“ als so-bins Gemälde; die Farben sind **gedämpfter** (Ainz' Robe dunkles Blauviolett statt Ultramarin).
+- **Plakate:** die Wächter als Gruppe um Ainz vor fast schwarzem Grund, **goldener Lichtschein** aus einer Ecke, **rote
+  Lichtspuren** aus Ainz' Augen, Magie als **blauweiße Blitze** (Staffel 4).
 - **Dunkle, satte Farbpalette**, die den ernsten, bedrohlichen Ton trägt. In **Nazarick ist nirgends Tageslicht** zu sehen –
   die Gruft wirkt trotzdem nicht erdrückend, sondern wie der Kopf eines Bösewichts. Verlässt Ainz seinen Thron, wird die Welt
   **bunter**: lebendige mittelalterliche Städte und Märkte.
@@ -82,7 +92,7 @@ Blickwinkel**, **raffinierte Lichtführung**.
 | Werk | Stil |
 |---|---|
 | *Ple Ple Pleiades* (Puyukai) | ◇ Super-Deformed: große Köpfe, kleine Körper, einfache Formen, helle Farben, Gag-Mimik |
-| *Isekai Quartet* (Puyukai, Figuren Minoru Takehara) | ◇ derselbe Chibi-Ansatz für alle vier Serien, damit sie zusammenpassen |
+| *Isekai Quartet* (Puyukai, Figuren Minoru Takehara) | Geprüft an Ainz: **großer Kopf, gedrungener Körper**, dicke Konturen, **flache Farben ohne Verläufe**, alle Erkennungszeichen bleiben (Kapuze, Hornspitzen, rote Kugeln, violettes Band, Gold) – nur vereinfacht |
 | *Fushisha no Oh!* (Jūami) | ◇ Vierbild-Manga mit Chibi-Figuren |
 
 ## 5. Empfehlung für das Projekt
@@ -105,4 +115,5 @@ Mischformen sind möglich (z. B. Anime-Figuren vor malerischen Hintergründen �
 - [ANN – Stab Staffel 2](https://www.animenewsnetwork.com/news/2017-09-29/main-staff-visual-revealed-for-overlord-anime-2nd-season/.122032), [ComicBook – Staffel-4-Designs](https://comicbook.com/anime/news/overlord-season-4-first-character-designs/), [Famitsu 2018](https://www.famitsu.com/news/201808/01161716.html), [anime.eiga.com – Film 1](https://anime.eiga.com/program/105786/), [anime.eiga.com – Film 2](https://anime.eiga.com/program/105900/), [KADOKAWA – Blu-ray-Box](https://www.kadokawa.co.jp/product/video1475/), [Baidu – Anime](https://baike.baidu.com/en/item/Overlord/1520411)
 - [Parkablogs – Complete Anime Artbook](https://www.parkablogs.com/content/book-review-overlord-complete-anime-artbook), [The Outerhaven – Artbook](https://www.theouterhaven.net/?p=193083), [Anime UK News – Staffel 1](https://animeuknews.net/2017/06/overlord-complete-season-1-review/), [Anime-Planet – Rezension](https://www.anime-planet.com/users/Gzerble/reviews/25178), [michaelyearby.com – Rezension](https://www.michaelyearby.com/post/in-depth-review-of-the-overlord-anime-and-manga-series), [letsweaboo – Dark-Young-Szene](https://letsweaboo.com/news/one-overlord-season-3-scene-was-such-a-wasted-potential-fans-still-bitter-about-it_a144), [thereviewmonster – CGI](https://thereviewmonster.blog/2021/11/01/overlord-anime-review-how-to-take-over-the-world-unintentionally/), [epicstream – grünes Leuchten](https://epicstream.com/article/why-does-ainz-glow-green-in-overlord)
 - Film: [Screen Rant](https://screenrant.com/overlord-the-sacred-kingdom-review/), [Flixist](https://www.flixist.com/nycc-2024-review-overlord-the-sacred-kingdom/), [Cat with Monocle](https://catwithmonocle.com/news/2024/11/07/overlord-the-sacred-kingdom-review/), [Boston Bastard Brigade](http://www.bostonbastardbrigade.com/2024/11/overlord-the-sacred-kingdom-review/), [Rotten Tomatoes](https://www.rottentomatoes.com/m/overlord_the_sacred_kingdom)
+- **Bildprüfung (19.10.2026):** alle 16 Light-Novel-Cover, Anime-/Light-Novel-/Manga-Bilder von 20 Figuren, Anime-Logos II–IV, Plakat Staffel 4 und Isekai-Quartet-Ainz aus dem [Overlord-Wiki](https://overlordmaruyama.fandom.com/wiki/Overlord_Wiki) – angesehen und vermessen, nicht im Repo
 - Leserstimmen Manga: [bookmeter](https://bookmeter.com/books/11780944), [KADOKAWA – Manga Bd. 12](https://www.kadokawa.co.jp/product/321905000553/), [KADOKAWA – Manga Bd. 9](https://www.kadokawa.co.jp/product/321708000499/)
