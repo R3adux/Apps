@@ -18,8 +18,9 @@ Zeichen: ◇ = aus Werkkenntnis, im Netz nicht gegengeprüft · ⚠ = Quellen wi
 
 ## 2. Web-Roman (Ursprung)
 
-- Erschien ab **März 2010** (laut Wikipedia ab **9. Mai 2010**) auf der Fanfiction-Seite **Arcadia** und lief bis **30. März 2012**,
-  später auch auf *Shōsetsuka ni Narō*. ⚠ Startdatum je nach Quelle März oder Mai 2010.
+- Erschien ab **9. Mai 2010** auf der Fanfiction-Seite **Arcadia** (letzte Aktualisierung 28.02.2013), ab **30. März 2012**
+  zusätzlich auf *Shōsetsuka ni Narō* (letzte Aktualisierung 24.12.2014). Laut Fan-Wiki begann Maruyama schon im März 2010
+  mit dem Schreiben.
 - Die Light Novel ist **keine Abschrift**: Enterbrain hat den Stoff überarbeitet und erweitert. Es kamen Figuren dazu
   (z. B. gibt es **Albedo im Web-Roman nicht**), Shalltear hat im Web-Roman keine Walküren-Klasse, und ab den mittleren Bänden
   laufen die Handlungen deutlich auseinander (Fan-Wiki; ein Blog nennt etwa Band 8 als Bruchstelle).
@@ -36,26 +37,26 @@ bestätigt; Fan-Seiten melden für Ende 2025 einen fast fertigen Entwurf (unbest
 |---|---|---|---|---|
 | 1 | 不死者の王 | The Undead King | 30.07.2012 | 24.05.2016 |
 | 2 | 漆黒の戦士 | The Dark Warrior | 30.11.2012 | 27.09.2016 |
-| 3 | 鮮血の戦乙女 | The Bloody Valkyrie | 30.03.2013 | – |
-| 4 | 蜥蜴人の勇者たち | The Lizardman Heroes | 31.07.2013 | – |
-| 5 | 王国の漢たち 上 | The Men of the Kingdom Part I | 28.12.2013 | – |
-| 6 | 王国の漢たち 下 | The Men of the Kingdom Part II | 31.01.2014 | – |
-| 7 | 大墳墓の侵入者 | The Invaders of the Great Tomb | 30.08.2014 | – |
+| 3 | 鮮血の戦乙女 | The Bloody Valkyrie | 30.03.2013 | 24.01.2017 |
+| 4 | 蜥蜴人の勇者たち | The Lizardman Heroes | 31.07.2013 | 23.05.2017 |
+| 5 | 王国の漢たち 上 | The Men of the Kingdom Part I | 28.12.2013 | 19.09.2017 |
+| 6 | 王国の漢たち 下 | The Men of the Kingdom Part II | 31.01.2014 | 01.01.2018 |
+| 7 | 大墳墓の侵入者 | The Invaders of the Great Tomb | 30.08.2014 | 22.05.2018 |
 | 8 | 二人の指導者 | The Two Leaders | 26.12.2014 | 18.09.2018 |
-| 9 | 破軍の魔法詠唱者 | The Magic Caster of Destruction ⚠ (auch „The Caster of Destruction“ gelistet) | 29.06.2015 | – |
-| 10 | 謀略の統治者 | The Ruler of Conspiracy | 30.05.2016 | – |
+| 9 | 破軍の魔法詠唱者 | The Caster of Destruction | 29.06.2015 | 22.01.2019 |
+| 10 | 謀略の統治者 | The Ruler of Conspiracy | 30.05.2016 | 21.05.2019 |
 | 11 | 山小人の工匠 | The Dwarven Crafter | 30.09.2016 | 29.10.2019 |
-| 12 | 聖王国の聖騎士 上 | The Paladin of the Sacred Kingdom Part I | 30.09.2017 | – |
+| 12 | 聖王国の聖騎士 上 | The Paladin of the Sacred Kingdom Part I | 30.09.2017 | 23.06.2020 |
 | 13 | 聖王国の聖騎士 下 | The Paladin of the Sacred Kingdom Part II | 27.04.2018 | 01.06.2021 |
 | 14 | 滅国の魔女 | The Witch of the Doomed Kingdom | 12.03.2020 | 28.06.2022 |
 | 15 | 半森妖精の神人 前 | The Half-Elf Demigod Part I | 30.06.2022 | 21.03.2023 |
-| 16 | 半森妖精の神人 後 | The Half-Elf Demigod Part II | 29.07.2022 | 2023 ⚠ (Händlerangabe 18.07.2023) |
+| 16 | 半森妖精の神人 後 | The Half-Elf Demigod Part II | 29.07.2022 | 18.07.2023 |
 | 17 | – | – | angekündigt, offen | – |
 | 18 | – (letzter Band) | – | angekündigt, offen | – |
 
-„–“ in der EN-Spalte heißt: Datum in dieser Recherche nicht sicher belegt. Lizenz für Nordamerika: Yen Press seit Oktober 2015.
+Englische Daten laut Wikipedia (mit Verlagsbelegen). Lizenz für Nordamerika: Yen Press seit Oktober 2015.
 
-**Auflage:** über **14 Millionen** Exemplare (offizielle Pressemitteilung zum Film, Februar 2024). Zum Vergleich: 2018 rund 7 Mio.,
+**Auflage:** über **14 Millionen** Exemplare (Stand Januar 2024, Pressemitteilung zum Film). Zum Vergleich: 2018 rund 7 Mio.,
 Ende 2021 über 11 Mio.
 
 **Deutsch:** TOKYOPOP seit **11. August 2021** (Band 1 „Der untote König“), als Softcover und als Hardcover mit Farbschnitt.
@@ -70,18 +71,18 @@ Der Verlagsshop listet Bände bis mindestens **Band 11**. Übersetzung Bd. 1–2
 | | |
 |---|---|
 | Magazin | Monthly **Comp Ace** (KADOKAWA) |
-| Story/Aufbau | **Satoshi Ōshio** (nach Maruyama) |
-| Zeichnungen Teil 1 | **Hugin Miyama** – vom 26.11.2014 bis 25.05.2023 (Ausgabe 07/2023), **19 Bände** (Bd. 19 in Japan am 26.12.2023, Fan-Wiki) |
-| Zeichnungen Teil 2 | **Matsuki** – Fortsetzung, im Fan-Wiki als *Overlord New World* geführt; 4 Bände bis März 2026. Wikipedia zählt 23 Bände gesamt (19 + 4). Laut Fan-Wiki seit **7. Oktober 2026 pausiert**, weil Matsuki im Krankenhaus ist (Kadokawa-Mitteilung, über Fan-Wiki/Animehunch – ⚠ unbestätigt) |
-| Englisch | Yen Press; Bd. 19 am 15.10.2024 |
-| Deutsch | **Carlsen**, seit Juli 2017; Bd. 18 am 30.04.2024 (8,00 €). Teil 1 auf Deutsch abgeschlossen in 19 Bänden (laut deutscher Manga-Presse) |
+| Story/Aufbau | **Satoshi Ōshio** (nach Maruyama; siehe Teil 1) |
+| Zeichnungen Teil 1 | **Hugin Miyama** – vom 26.11.2014 (Ausgabe 01/2015) bis 25.05.2023 (Ausgabe 07/2023): **78 Kapitel in 19 Bänden** (Bd. 1 am 26.06.2015, Bd. 19 am 26.12.2023). Ōshio schrieb das Drehbuch für Bd. 1–8 und wirkte bei Bd. 9–19 mit |
+| Zeichnungen Teil 2 | **Matsuki** – Fortsetzung unter dem Titel ***Overlord <Shin> Sekai-hen*** (オーバーロード＜新＞世界編, „Neue Welt“), seit 22.02.2024 auf *Comp Ace Comic Connect*; Bände: 25.09.2024, 25.03.2025, 23.10.2025, 26.03.2026 (4 Bände). Wikipedia zählt 23 Bände gesamt (19 + 4). Laut Fan-Wiki seit **7. Oktober 2026 pausiert**, weil Matsuki im Krankenhaus ist (⚠ nur Fan-Wiki/Animehunch) |
+| Englisch | Yen Press; Bd. 1 am 28.06.2016, Bd. 19 am 15.10.2024 |
+| Deutsch | **Carlsen**, seit Juli 2017; Bd. 18 am 30.04.2024 (8,00 €); 19 Bände (Stand März 2025) – Teil 1 damit auf Deutsch vollständig |
 
 Miyamas Ausstieg verkündete Maruyama am 20.09.2023 auf X.
 
 ### Ableger-Manga *Overlord: Fushisha no Oh!* (オーバーロード 不死者のOh!)
 
 - Vierbild-Komik (4-Koma), nicht kanonische Kurzgeschichten aus dem Alltag in Nazarick.
-- Text Maruyama, Zeichnungen **Jūami**. Ab Comp Ace 02/2017 (erschienen 26.01.2017).
+- Text Maruyama, Zeichnungen **Jūami**. Ab Comp Ace 03/2017 (erschienen 26.01.2017); 16 Bände (Stand März 2026).
 - Der Titel spielt auf Band 1 / den ersten Kinofilm *Fushisha no Ō* („Der untote König“) an.
 - Englisch: *Overlord: The Undead King Oh!* (Yen Press, Bd. 1 am 12.11.2019).
 
@@ -131,13 +132,13 @@ Miyamas Ausstieg verkündete Maruyama am 20.09.2023 auf X.
 | Lupusregina Beta | Mikako Komatsu | – | – |
 | Solution Epsilon | Ayane Sakura | – | – |
 | Entoma Vasilissa Zeta | Kei Shindō | – | – |
-| CZ2128 Delta | Asami Seto ⚠ (eine Quelle nennt anders) | – | – |
+| CZ2128 Delta | Asami Seto | – | – |
 | Brain Unglaus | Kōji Yusa | – | – |
 
 „–“ = in dieser Recherche nicht sicher belegt.
 
 - **Englische Fassung:** Funimation ab August 2016, später Crunchyroll; Staffel 4 Dialogregie Cris George.
-- **Deutsche Fassung:** Alle vier Staffeln bei **KSM Anime** auf Disc (Staffel 4 im Juli 2023). Synchronstudio **Kölnsynchron**,
+- **Deutsche Fassung:** Lizenz von **KSM Anime** am 29.11.2016 bekanntgegeben; alle vier Staffeln auf Disc (deutsche Synchronfassung Staffel 3 am 17.12.2020, Staffel 4 im Juli 2023). Synchronstudio **Kölnsynchron**,
   Dialogregie **Daniel Käser**. Uschi Hugo spricht Albedo seit Staffel 1.
 
 ## 6. Filme
@@ -167,10 +168,11 @@ erschienen (anime2you).
 
 | Titel | Art | Erschienen | Bemerkung |
 |---|---|---|---|
-| *OVERLORD: Mass for the Dead* | Handy-Rollenspiel (iOS/Android), Exys Inc. | 2019 | Story: Momonga loggt nicht aus. ◇ Dienst inzwischen eingestellt (nicht gegengeprüft) |
+| *OVERLORD: MASS FOR THE DEAD* | Handy-Rollenspiel (iOS/Android), Exys Inc. | Japan 21.02.2019, weltweit 20.04.2020 | Story unter Aufsicht von Maruyama; Titellied „MASS FOR THE DEAD“ (OxT). Weltweite Fassung am 31.03.2021 eingestellt |
 | *OVERLORD: ESCAPE FROM NAZARICK* | 2D-Action-Abenteuer („Metroidvania“), ENGINES Inc. / KADOKAWA | 15.06.2022 (PC/Steam, Switch) | Heldin: Clementine ohne Erinnerung, muss aus Nazarick fliehen |
-| *Lord of Nazarick* | rundenbasiertes Handy-Rollenspiel | ◇ um 2024 | aktueller Stand unklar |
-| Weitere laut Fan-Wiki | *Overlord: King of Nazarick*, Kooperation *Overlord × Unison League* | – | nur als Listeneintrag bekannt |
+| *Lord of Nazarick* (China: *Overlord: King of Nazarick*) | Strategie-Karten-Rollenspiel von bilibili; westlich A Plus Japan / Crunchyroll Games | China Beta 21.11.2023, westlich Herbst 2024 | laut Fan-Wiki: Einstellung zum 29.12.2025 angekündigt (Quelle chinesisch, welche Fassung ⚠) |
+| *PICROSS LORD OF THE NAZARICK* | Logik-Rätsel (Picross) von Jupiter, Nintendo Switch | 25.07.2019 | |
+| Weitere laut Fan-Wiki | Kooperation *Overlord × Unison League* | – | nur als Listeneintrag bekannt |
 
 **Achtung, Namensvettern:** *Etrange Overlord* (2026), *Unicorn Overlord* und die Spielreihe *Overlord* von Codemasters haben
 **nichts** mit diesem Werk zu tun.
@@ -192,3 +194,4 @@ erschienen (anime2you).
 - Yen Press: [Bd. 1](https://yenpress.com/titles/9780316272247-overlord-vol-1-light-novel), [Bd. 2](https://yenpress.com/titles/9780316363921-overlord-vol-2-light-novel), [Bd. 8](https://yenpress.com/titles/9780316398848-overlord-vol-8-light-novel), [Bd. 11](https://yenpress.com/titles/9780316445023-overlord-vol-11-light-novel), [Bd. 13](https://yenpress.com/titles/9781975311537-overlord-vol-13-light-novel), [Bd. 15](https://yenpress.com/titles/9781975360566-overlord-vol-15-light-novel), [Bd. 16](https://yenpress.com/titles/9781975367800-overlord-vol-16-light-novel), [Manga Bd. 19](https://yenpress.com/titles/9798855403817-overlord-vol-19-manga)
 - Deutsch: [manga-passion – LN endet in zwei Bänden](https://www.manga-passion.de/news/6251/overlord-light-novel-endet-in-zwei-baenden), [manga-passion – Bd. 1](https://www.manga-passion.de/volumes/8285/overlord-light-novel-band-1-der-untote-koenig), [TOKYOPOP](https://tokyopop.de/buecher/light-novel/overlord-light-novel/), [Carlsen Bd. 18](https://www.carlsen.de/taschenbuch/overlord-18/978-3-551-80111-1), [anime2you – Staffel 4 Cast](https://www.anime2you.de/news/697408/overlord-staffel-4-deutscher-trailer/), [anime2you – Film-Trailer](https://www.anime2you.de/news/872945/overlord-sacred-kingdom-deutscher-trailer/), [AnimagiC – Uschi Hugo](https://animagic.de/animagic-2023/uschi-hugo/), [Synchronkartei](https://www.synchronkartei.de/serie/36522)
 - Sonstige: [Pressemitteilung 14 Mio. (ANN)](https://cdn02.animenewsnetwork.com/press-release/2024-02-27/overlord-the-sacred-kingdom-release-of-the-second-teaser-visual/.208071), [the-numbers – Film](https://www.the-numbers.com/movie/Overlord-The-Sacred-Kingdom-(2024-Japan)), [offizielle Filmseite](https://www.overlord-movie.com/), [Fandompost – Dub-Cast 2016](https://www.fandompost.com/2016/08/13/overlord-anime-dub-cast-announced/), [anime.eiga.com – Filmlieder](https://anime.eiga.com/news/103986/), [realsound – 10-Jahres-Album](https://realsound.jp/2025/03/post-1969636.html), [Steam – Escape from Nazarick](https://store.steampowered.com/app/1782150/OVERLORD_ESCAPE_FROM_NAZARICK/), [Animehunch – Manga-Pause](https://animehunch.com/overlord-new-world-chapter-24-release-delayed/), [otakuapex – Staffel-5-Stand](https://otakuapex.com/status/overlord/), [Lit Retreat – Bd. 17](https://litretreat.com/is-overlord-light-novel-finished/), [AniDB – Ple Ple Pleiades](https://anidb.net/anime/12147), [fandomwire – Maruyama-Zitat](https://fandomwire.com/i-took-the-thing-that-i-couldnt-accept-in-the-internet-novels-kugane-maruyama-changed-the-1-thing-in-overlord-he-hated-in-isekai-manga/), [ANN – Etrange Overlord](https://www.animenewsnetwork.com/news/2025-11-06/etrange-overlord-game-heads-west-in-early-2026/.230722)
+- **Faktenprüfung 19.10.2026 (Text direkt gelesen):** Wikipedia [EN – Overlord (novel series)](https://en.wikipedia.org/wiki/Overlord_(novel_series)) (Bandtabellen LN und Manga mit Verlagsbelegen), [DE – Overlord (Light Novel)](https://de.wikipedia.org/wiki/Overlord_(Light_Novel)), [JA – オーバーロード (小説)](https://ja.wikipedia.org/wiki/オーバーロード_(小説)) (Web-Roman-Daten, Manga Teil 1/2, Spiele); Overlord-Wiki [Mass for the Dead](https://overlordmaruyama.fandom.com/wiki/Mass_for_the_Dead), [Overlord: King of Nazarick](https://overlordmaruyama.fandom.com/wiki/Overlord:_King_of_Nazarick), [Overlord Web Novel](https://overlordmaruyama.fandom.com/wiki/Overlord_Web_Novel)

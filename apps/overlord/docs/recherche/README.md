@@ -30,24 +30,39 @@ Der Zeichenstil liegt getrennt unter [`../zeichenstil/`](../zeichenstil/).
 
 ## Wie geprüft wurde
 
-- Jede Angabe wurde, wo möglich, per Websuche gegen mindestens eine Quelle geprüft; die Quellen stehen am Ende jeder Datei.
-  Bevorzugt: Verlage (Yen Press, Carlsen, TOKYOPOP), Anime News Network, Wikipedia, offizielle Seiten. Das Fan-Wiki
-  (overlordmaruyama.fandom.com) ist gründlich, aber von Fans gepflegt – Angaben **nur** von dort sind mit „(Wiki)“ markiert.
-- **◇** = aus Werkkenntnis, in dieser Recherche nicht extern gegengeprüft. Diese Punkte sind nach bestem Wissen richtig,
-  sollten aber vor einer Veröffentlichung am Originaltext geprüft werden.
-- **⚠** = Quellen widersprechen sich oder die Angabe ist unsicher. Die Abweichung steht jeweils dabei.
-- **Grenzen dieser Recherche:** Die Umgebung erlaubte nur die Websuche, keine direkten Seitenabrufe und keine Bilder. Die Bücher
-  selbst lagen nicht vor. Inhalte aus dem Web-Roman sind nicht Kanon.
+1. **Websuche** (Aufgabe 01): jede Angabe, wo möglich, gegen mindestens eine Quelle geprüft – bevorzugt Verlage (Yen Press,
+   Carlsen, TOKYOPOP), Anime News Network, Wikipedia, offizielle Seiten.
+2. **Faktenprüfung an den Quellen selbst** (Aufgabe 04, 19.10.2026): Nachdem der Netzzugriff freigegeben war, wurden alle mit ◇
+   oder ⚠ markierten Angaben **direkt im Text** des Overlord-Wikis (63 Artikel inkl. Bandzusammenfassungen) und der englischen,
+   deutschen und japanischen Wikipedia nachgelesen. Ergebnis: die meisten Angaben bestätigt, **mehrere korrigiert** (siehe unten).
+- Das Overlord-Wiki (overlordmaruyama.fandom.com) ist gründlich und belegt viele Angaben mit Band und Kapitel, wird aber von Fans
+  gepflegt. Angaben **nur** von dort sind, wo es darauf ankommt, mit „(Wiki)“ oder „laut Fan-Wiki“ markiert.
+- **◇** = aus Werkkenntnis, nirgends gegengeprüft (nur noch eine Handvoll Stellen). **⚠** = Quellen widersprechen sich oder
+  Angabe unsicher; die Abweichung steht jeweils dabei.
+- Die Bücher selbst lagen nicht vor. Inhalte aus dem Web-Roman sind nicht Kanon.
+
+## Korrekturen durch die Faktenprüfung
+
+| Vorher | Richtig |
+|---|---|
+| Web-Roman März/Mai 2010 bis 30.03.2012 | Arcadia ab **9. Mai 2010**, Shōsetsuka ni Narō ab **30. März 2012** |
+| Englischer Titel Bd. 9 „The Magic Caster of Destruction“ | „**The Caster of Destruction**“ (Yen Press) |
+| Ainz' Klassen: „Chosen of Undead“, Eclipse 5 oder 10 | **Necromancer 10, Master of Death 10, Eclipse 5** |
+| Demiurges Fähigkeit „Befehlende Stimme“ | **Command Mantra** |
+| Shooting Star: Sommerbonus | **Jahresendbonus** |
+| Tia und Tina Zwillinge | **Drillinge** (dritte Schwester Tira) |
+| Bd. 7: Ainz reist nach Arwintar | **Aura und Mare** greifen den Kaiserpalast an; Jircniv entschuldigt sich danach in Nazarick |
+| Bd. 14: Albedo führt den Feldzug | Angriff auf die Hauptstadt führt **Cocytus** mit Aura und Mare; „Ainz“ gegen „Riku Aganeia“ ist in Wahrheit **Pandora's Actor** |
+| Stab: Ainz trägt ihn | Seit Bd. 4 verwahrt **Aureole Omega** den echten Stab; Ainz nutzt eine Nachbildung |
+| Rubedo: Ort unbekannt | wohnt im **8. Stock** |
+| „Lord of Nazarick“ ≈ 2024, Stand unklar | bilibili-Spiel, westlich Herbst 2024; laut Wiki Einstellung zum 29.12.2025 angekündigt |
 
 ## Offene Punkte
 
 | Punkt | Warum offen |
 |---|---|
-| Englische Erscheinungsdaten Bd. 3–7, 9, 10, 12, 16 | nicht sicher gefunden |
-| Deutscher Stand der Light Novel (letzter Band bei TOKYOPOP) und deutsche Bandtitel | nur Bd. 1, 5, 8 sicher |
-| Englischer Titel Bd. 9 | zwei Varianten gelistet |
-| Erschaffer von Yuri Alpha, Solution Epsilon, Aureole Omega, Eclair; Rasse einzelner Plejaden | nur Werkkenntnis |
-| Genaue Klassenstufen von Ainz (Eclipse 5 oder 10) | Quellen uneins |
-| Vollständige Liste der 41 Gildenmitglieder | im Werk nicht vollständig genannt |
-| Sprecher von CZ2128 Delta | Quellen uneins |
+| Deutscher Stand der Light Novel (letzter Band bei TOKYOPOP) und deutsche Bandtitel | nur Bd. 1, 5, 8 und „seit August 2021“ belegt |
+| Vollständige Liste der 41 Gildenmitglieder | im Werk nicht vollständig genannt; das Wiki kennt 32 Namen |
+| Erschaffer von Aureole Omega | im Werk unbekannt |
 | Band 17: Erscheinungstermin | nicht angekündigt |
+| Cocytus' Katakana-Sprechweise, Ainz übt Posen, Untote brauchen weder Essen noch Schlaf | Werkkenntnis ◇, keine Quelle gefunden |
