@@ -8,6 +8,7 @@ Eigene Apps als Ersatz für Apps, die mir nicht gefallen – lokal, ohne Konto, 
 |---|---|---|---|---|
 | [Licht](apps/licht/) | Matter-Lampen steuern (statt LEDVANCE SMART+ App), ohne Cloud | Windows (eigenes Fenster) / Raspberry Pi + Browser, Android | stabil, Android experimentell | [Licht.exe](https://github.com/R3adux/Apps/releases/download/licht-latest/Licht.exe) · [Licht.apk](https://github.com/R3adux/Apps/releases/download/licht-android/Licht.apk) |
 | [Stratagem](apps/stratagem/) | Helldivers 2: Stratagems per Radialmenü, Taste oder Handy aufrufen, Liste direkt aus dem Spiel lesen | Windows + Browser | experimentell, im Spiel noch ungetestet | [Stratagem.exe](https://github.com/R3adux/Apps/releases/download/stratagem-latest/Stratagem.exe) |
+| [Overlord](apps/overlord/) | Projekt rund um den Anime / die Light Novel *Overlord* – Ziel noch offen | – | Recherche | – |
 
 Jede App hat im eigenen Ordner eine README mit Anleitung (für Nutzer) und Entwicklerhinweisen.
 Alle Downloads: [Releases](https://github.com/R3adux/Apps/releases).
@@ -18,6 +19,7 @@ Alle Downloads: [Releases](https://github.com/R3adux/Apps/releases).
 apps/
   licht/            eine App = ein Ordner, alles darin (Code, Tests, Doku, Web-Oberfläche)
   stratagem/
+  overlord/
 docs/
   NEUE-APP.md       Regeln und Checkliste für neue Apps
 .github/
