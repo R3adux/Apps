@@ -231,7 +231,9 @@ function startLicht(dir, extraEnv = {}, args = []) {
   child.stdout.on('data', (d) => { output += d; });
   child.stderr.on('data', (d) => { output += d; });
   const exited = new Promise((resolve) => child.on('exit', resolve));
-  return { child, exited, output: () => output };
+  // On Windows Licht writes to licht.log instead of the console.
+  const log = join(dir, 'licht.log');
+  return { child, exited, output: () => output + (existsSync(log) ? readFileSync(log, 'utf8') : '') };
 }
 
 test('Licht.exe start-up: window first, lamps, second start, quit – no web server', { timeout: 120_000 }, async () => {
@@ -240,7 +242,8 @@ test('Licht.exe start-up: window first, lamps, second start, quit – no web ser
   const licht = startLicht(dir);
   try {
     const entries = () => readLog(log);
-    await until(() => entries().some((e) => e.t === 'reply' && e.id === 3), 'replies to the window', 60_000);
+    const replied = (id) => entries().some((e) => e.t === 'reply' && e.id === id);
+    await until(() => replied(1) && replied(2) && replied(3), 'replies to the window', 60_000);
     const all = entries();
     assert.deepEqual(all[0], { t: 'started', args: ['--data', dir, '--show'] });
     assert.deepEqual(all.find((e) => e.t === 'hello'), { t: 'hello', autostart: false, hint: true });
