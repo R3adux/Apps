@@ -9,6 +9,7 @@ on:
       - 'apps/licht/android-app/**'
       - 'apps/licht/test/support/**'
       - 'apps/licht/package*.json'
+      - 'apps/licht/scripts/build-page.mjs'
       - '.github/workflows/licht-android.yml'
       - '.github/scripts/licht-android-selftest.sh'
   workflow_dispatch:

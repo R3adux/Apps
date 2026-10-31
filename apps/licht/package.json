@@ -17,6 +17,7 @@
   "devDependencies": {
     "esbuild": "^0.28.2",
     "jsqr": "1.4.0",
+    "playwright-core": "1.56.1",
     "postject": "^1.0.0-alpha.6",
     "rcedit": "^5.0.2",
     "uqr": "0.1.3"
