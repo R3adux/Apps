@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    LichtFenster.exe: the Licht window and the tray icon. A plain Windows program (WPF, .NET Framework 4.8,
+    part of every Windows 10 and 11) – no browser, no WebView2, nothing to install.
+    Licht.exe starts it and talks to it over standard input/output (see ../../bridge.js).
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <!-- Only for the tray icon (NotifyIcon). -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>LichtFenster</AssemblyName>
+    <RootNamespace>LichtFenster</RootNamespace>
+    <ApplicationIcon>licht.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Licht.Fenster.Core\Licht.Fenster.Core.csproj" />
+    <!-- Builds for .NET Framework on any system (also the Linux test machine). -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="licht.ico" />
+  </ItemGroup>
+</Project>

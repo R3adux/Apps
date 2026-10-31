@@ -1,0 +1,50 @@
+name: Licht · Tests
+
+# All tests of Licht on Linux: the lamp part with simulated lamps (also reconnecting and sharing between
+# two Lichts), the PC part, and the logic of the Windows window.
+on:
+  push:
+    branches: [main]
+    paths: ['apps/licht/**', '.github/workflows/licht-tests.yml']
+  pull_request:
+    paths: ['apps/licht/**', '.github/workflows/licht-tests.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/licht
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Abhängigkeiten
+        run: npm ci
+
+      - name: Tests (Node, mit simulierten Lampen)
+        run: npm test
+
+      - name: Tests Fenster-Logik (C#)
+        working-directory: apps/licht/pc/fenster
+        run: dotnet test --project Licht.Fenster.Tests
+
+      - name: Fenster-Programm baut (auch ohne Windows)
+        working-directory: apps/licht/pc/fenster
+        run: dotnet build LichtFenster -c Release -nologo

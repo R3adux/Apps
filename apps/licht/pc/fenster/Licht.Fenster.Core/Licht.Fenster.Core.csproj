@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Everything of the window that is not drawing: talking to Licht, lamp states, sending, sharing, adding.
+       No Windows here, so it is tested on any system (Licht.Fenster.Tests). -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>Licht.Fenster</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- QR codes for sharing lamps (MIT, a port of Project Nayuki's reference encoder). -->
+    <PackageReference Include="Net.Codecrete.QrCodeGenerator" Version="3.2.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Licht.Fenster.Tests" />
+  </ItemGroup>
+</Project>

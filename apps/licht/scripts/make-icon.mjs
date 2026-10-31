@@ -1,4 +1,4 @@
-// Makes desktop/licht.ico (tray, window and Licht.exe icon) from web/icon.svg:
+// Makes pc/fenster/LichtFenster/licht.ico (tray, window and Licht.exe icon) from web/icon.svg:
 // small sizes as 32-bit bitmaps (shown correctly everywhere), 256 px as PNG.
 // Needs Playwright with Chromium (e.g. npx playwright install chromium); run: node scripts/make-icon.mjs
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -50,5 +50,5 @@ const dir = sizes.map((s, i) => {
   offset += images[i].length; return e;
 });
 const ico = Buffer.concat([head, ...dir, ...images]);
-writeFileSync(`${root}desktop/licht.ico`, ico);
+writeFileSync(`${root}pc/fenster/LichtFenster/licht.ico`, ico);
 console.log('ico bytes', ico.length);

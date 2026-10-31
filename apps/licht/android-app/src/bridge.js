@@ -1,5 +1,6 @@
 // Connects the web UI (running in a WebView) with the Matter hub running in the app.
-// The page gets window.LichtApi – the same methods as the HTTP API of the PC hub.
+// The page gets window.LichtApi; its calls are the ones in core/api.js (the same as the Windows app's).
+import { callHub } from '../../core/api.js';
 
 export const injectedApi = `
 (function () {
@@ -50,35 +51,8 @@ true;
 
 /** Runs a call from the page against the hub. Returns a promise of the result. */
 export async function handleCall(hub, method, args) {
-  switch (method) {
-    case 'info':
-      return { ble: false };
-    case 'lights':
-      return hub.lights();
-    case 'update':
-      return { light: await hub.update(args[0], args[1] ?? {}) };
-    case 'add': {
-      const { code, ip, wifi } = args[0] ?? {};
-      const id = await hub.commission({ code, ip: ip || undefined, wifi: wifi?.ssid ? wifi : undefined });
-      return hub.light(id);
-    }
-    case 'rename':
-      await hub.rename(args[0], args[1]);
-      return { light: hub.light(args[0]) };
-    case 'share':
-      return hub.share(args[0]);
-    case 'remove': {
-      const { localOnly } = (await hub.remove(args[0])) ?? {};
-      return { ok: true, localOnly: Boolean(localOnly) };
-    }
-    case 'discover':
-      return hub.discover();
-    case 'wake':
-      hub.wake();
-      return { ok: true };
-    default:
-      throw Object.assign(new Error(`Unbekannte Funktion: ${method}`), { status: 400 });
-  }
+  if (method === 'info') return { ble: false };
+  return callHub(hub, method, args);
 }
 
 /** Script that delivers a reply or event into the page. */

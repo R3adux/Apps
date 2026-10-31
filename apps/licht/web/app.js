@@ -390,10 +390,10 @@ $('#add-form').addEventListener('submit', async (event) => {
   $('#add-error').hidden = true;
   $('#add-progress').hidden = false;
   try {
-    const light = await api.add({ code, ip: ip.trim() || undefined, wifi: ssid ? { ssid, password } : undefined });
+    const result = await api.add({ code, ip: ip.trim() || undefined, wifi: ssid ? { ssid, password } : undefined });
     $('#add-dialog').close();
     await reload();
-    if (light) toast(`„${light.name}“ wurde hinzugefügt.`, 'ok');
+    toast(addSummary(result), result?.failed?.length ? 'error' : 'ok');
   } catch (err) {
     $('#add-error').textContent = err.message;
     $('#add-error').hidden = false;
@@ -441,6 +441,19 @@ function ask({ title, text = '', input, label = '', okLabel = 'OK', danger = fal
   });
 }
 
+/** What adding did, in words: { added: [ids], present: n, failed: [...] } (core/hub.js add). */
+function addSummary(result) {
+  const added = result?.added?.length ?? 0;
+  const present = result?.present ?? 0;
+  const failed = result?.failed?.length ?? 0;
+  if (!added && !failed && present) return present === 1 ? 'Diese Lampe ist schon in Licht.' : `Alle ${present} Lampen sind schon in Licht.`;
+  const parts = [];
+  if (added) parts.push(added === 1 ? '1 Lampe hinzugefügt' : `${added} Lampen hinzugefügt`);
+  if (present) parts.push(present === 1 ? '1 war schon da' : `${present} waren schon da`);
+  if (failed) parts.push(failed === 1 ? '1 hat nicht geklappt' : `${failed} haben nicht geklappt`);
+  return parts.length ? `${parts.join(', ')}.` : 'Keine Lampe hinzugefügt.';
+}
+
 const formatCode = (code) => (/^\d{11}$/.test(code) ? `${code.slice(0, 4)}-${code.slice(4, 7)}-${code.slice(7)}` : code);
 
 async function lightAction(action, id) {
@@ -455,8 +468,8 @@ async function lightAction(action, id) {
       render();
     }
     if (action === 'share') {
-      const { code, validMinutes } = await api.share(id);
-      $('#share-code').textContent = formatCode(code);
+      const { code, manual, validMinutes } = await api.share(id);
+      $('#share-code').textContent = formatCode(manual ?? code);
       $('#share-valid').textContent = `Gültig für ${validMinutes} Minuten.`;
       $('#share-dialog').showModal();
     }

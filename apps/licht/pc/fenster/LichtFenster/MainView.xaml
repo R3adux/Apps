@@ -1,0 +1,212 @@
+<!--
+  Everything inside the Licht window: header, lamp cards, dialogs and short messages.
+  DataContext: MainViewModel (Licht.Fenster.Core).
+-->
+<UserControl x:Class="LichtFenster.MainView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:LichtFenster"
+             FontFamily="{StaticResource UiFont}" FontSize="14"
+             Foreground="{DynamicResource Text}"
+             UseLayoutRounding="True">
+  <UserControl.Resources>
+
+    <!-- One lamp: bulb, name, state, menu, switch – and when it is on: white/colour, sliders, presets. -->
+    <DataTemplate x:Key="LampCard">
+      <Grid x:Name="Card" AutomationProperties.Name="{Binding Name}">
+        <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="18" />
+        <Border CornerRadius="18" Margin="1">
+          <Border.Background>
+            <MultiBinding Converter="{StaticResource GlowBrush}">
+              <Binding Path="LampColor" />
+              <Binding Path="Glow" />
+            </MultiBinding>
+          </Border.Background>
+        </Border>
+        <StackPanel Margin="16">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Ellipse x:Name="Bulb" Width="40" Height="40" Fill="{DynamicResource Surface2}" Stroke="{DynamicResource Border}" StrokeThickness="1"
+                     VerticalAlignment="Center">
+              <Ellipse.Effect>
+                <DropShadowEffect ShadowDepth="0"
+                                  Color="{Binding LampColor, Converter={StaticResource RgbBrush}}"
+                                  BlurRadius="{Binding Glow, Converter={StaticResource GlowRadius}}"
+                                  Opacity="{Binding IsLit, Converter={StaticResource GlowOpacity}}" />
+              </Ellipse.Effect>
+            </Ellipse>
+            <StackPanel Grid.Column="1" Margin="14,0,8,0" VerticalAlignment="Center">
+              <TextBlock Text="{Binding Name}" FontSize="15.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+              <TextBlock x:Name="State" Text="{Binding StateText}" FontSize="13" Foreground="{DynamicResource Muted}" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <Button Grid.Column="2" Style="{StaticResource IconBtn}" Width="34" Height="34" Margin="0,0,6,0"
+                    Foreground="{DynamicResource Muted}" local:Look.Icon="{StaticResource IconMoreVertical}"
+                    ToolTip="Lampen-Optionen" AutomationProperties.Name="Lampen-Optionen" Click="OpenMenu">
+              <Button.ContextMenu>
+                <ContextMenu>
+                  <MenuItem Header="Umbenennen" Command="{Binding RenameCommand}" />
+                  <MenuItem Header="Teilen (QR-Code)" Command="{Binding ShareCommand}" />
+                  <Separator />
+                  <MenuItem Header="Entfernen" Command="{Binding RemoveCommand}" Style="{StaticResource DangerItem}" />
+                </ContextMenu>
+              </Button.ContextMenu>
+            </Button>
+            <local:StateButton Grid.Column="3" Style="{StaticResource Switch}" VerticalAlignment="Center"
+                               IsActive="{Binding IsLit, Mode=OneWay}" Command="{Binding ToggleCommand}"
+                               AutomationProperties.Name="{Binding ToggleLabel}" ToolTip="{Binding ToggleLabel}" />
+          </Grid>
+
+          <StackPanel x:Name="Controls" Margin="0,16,0,0" Visibility="{Binding ShowControls, Converter={StaticResource VisibleIf}}">
+            <Border Background="{DynamicResource Surface2}" CornerRadius="12" Padding="3" Margin="0,0,0,10"
+                    Visibility="{Binding ShowModeSwitch, Converter={StaticResource VisibleIf}}">
+              <UniformGrid Columns="2">
+                <local:StateButton Style="{StaticResource Segment}" Content="Weiß" IsActive="{Binding IsWhite, Mode=OneWay}"
+                                   Command="{Binding WhiteCommand}" AutomationProperties.Name="Weiß" />
+                <local:StateButton Style="{StaticResource Segment}" Content="Farbe" IsActive="{Binding IsColour, Mode=OneWay}"
+                                   Command="{Binding ColourCommand}" AutomationProperties.Name="Farbe" />
+              </UniformGrid>
+            </Border>
+
+            <StackPanel Visibility="{Binding ShowBrightness, Converter={StaticResource VisibleIf}}">
+              <DockPanel Margin="0,4,0,0">
+                <TextBlock DockPanel.Dock="Right" Text="{Binding Brightness, Converter={StaticResource Percent}}" FontSize="13" />
+                <TextBlock Text="Helligkeit" FontSize="13" Foreground="{DynamicResource Muted}" />
+              </DockPanel>
+              <Slider Style="{StaticResource LampSlider}" Minimum="1" Maximum="100" Value="{Binding Brightness}"
+                      AutomationProperties.Name="Helligkeit" />
+            </StackPanel>
+
+            <StackPanel Visibility="{Binding ShowTemperature, Converter={StaticResource VisibleIf}}">
+              <TextBlock Text="Farbtemperatur" FontSize="13" Foreground="{DynamicResource Muted}" Margin="0,6,0,0" />
+              <Slider Style="{StaticResource LampSlider}" Minimum="0" Maximum="100" Value="{Binding Temperature}"
+                      Background="{StaticResource TemperatureTrack}" AutomationProperties.Name="Farbtemperatur" />
+            </StackPanel>
+
+            <StackPanel Visibility="{Binding ShowColour, Converter={StaticResource VisibleIf}}">
+              <TextBlock Text="Farbe" FontSize="13" Foreground="{DynamicResource Muted}" Margin="0,6,0,0" />
+              <Slider Style="{StaticResource LampSlider}" Minimum="0" Maximum="360" Value="{Binding Hue}"
+                      Background="{StaticResource HueTrack}" AutomationProperties.Name="Farbton" />
+              <TextBlock Text="Sättigung" FontSize="13" Foreground="{DynamicResource Muted}" Margin="0,6,0,0" />
+              <Slider Style="{StaticResource LampSlider}" Minimum="0" Maximum="100" Value="{Binding Saturation}"
+                      Background="{Binding HueColor, Converter={StaticResource SaturationTrack}}" AutomationProperties.Name="Sättigung" />
+            </StackPanel>
+
+            <ItemsControl ItemsSource="{Binding Presets}" Margin="0,12,0,-9" Focusable="False">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Button Style="{StaticResource Swatch}" Background="{Binding Color, Converter={StaticResource RgbBrush}}"
+                          ToolTip="{Binding Label}" AutomationProperties.Name="{Binding Label}"
+                          Command="{Binding DataContext.PresetCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                          CommandParameter="{Binding}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </StackPanel>
+      </Grid>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding IsLit}" Value="True">
+          <Setter TargetName="Bulb" Property="Fill" Value="{Binding LampColor, Converter={StaticResource RgbBrush}}" />
+          <Setter TargetName="Bulb" Property="Stroke" Value="Transparent" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding IsOffline}" Value="True">
+          <Setter TargetName="Card" Property="Opacity" Value="0.55" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding IsConnecting}" Value="True">
+          <Setter TargetName="State" Property="Foreground" Value="{DynamicResource Accent}" />
+          <DataTrigger.EnterActions>
+            <BeginStoryboard x:Name="Pulse">
+              <Storyboard>
+                <DoubleAnimation Storyboard.TargetName="Bulb" Storyboard.TargetProperty="Opacity" From="1" To="0.55"
+                                 Duration="0:0:0.8" AutoReverse="True" RepeatBehavior="Forever" />
+              </Storyboard>
+            </BeginStoryboard>
+          </DataTrigger.EnterActions>
+          <DataTrigger.ExitActions>
+            <StopStoryboard BeginStoryboardName="Pulse" />
+          </DataTrigger.ExitActions>
+        </DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <Grid Background="{DynamicResource Bg}">
+    <Grid x:Name="Page">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <DockPanel Margin="20,14,12,10" LastChildFill="False">
+        <TextBlock DockPanel.Dock="Left" Text="Licht" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <Button DockPanel.Dock="Right" Style="{StaticResource IconBtn}" local:Look.Icon="{StaticResource IconMore}"
+                ToolTip="Menü" AutomationProperties.Name="Menü" Click="OpenMenu" Margin="4,0,0,0">
+          <Button.ContextMenu>
+            <ContextMenu>
+              <MenuItem Header="Lampe hinzufügen" Command="{Binding AddCommand}" />
+              <MenuItem Header="Alle Lampen teilen (QR-Code)" Command="{Binding ShareAllCommand}" />
+              <Separator />
+              <MenuItem Header="Mit Windows starten" Command="{Binding AutostartCommand}" IsChecked="{Binding Autostart, Mode=OneWay}" />
+              <Separator />
+              <MenuItem Header="Licht beenden" Command="{Binding QuitCommand}" />
+            </ContextMenu>
+          </Button.ContextMenu>
+        </Button>
+        <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Pill}" Content="{Binding AllToggleText}"
+                Command="{Binding AllToggleCommand}" AutomationProperties.Name="{Binding AllToggleText}" />
+      </DockPanel>
+
+      <ScrollViewer Grid.Row="1" x:Name="Scroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                    Focusable="False" Padding="16,2,16,18">
+        <Grid MaxWidth="1100">
+          <ItemsControl x:Name="LampList" ItemsSource="{Binding Lamps}" ItemTemplate="{StaticResource LampCard}" Focusable="False">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <local:CardPanel MinColumnWidth="320" Gap="14" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+          </ItemsControl>
+
+          <Border Visibility="{Binding IsEmpty, Converter={StaticResource VisibleIf}}" Background="{DynamicResource Surface}"
+                  BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="18" Padding="24" VerticalAlignment="Top">
+            <StackPanel HorizontalAlignment="Center" MaxWidth="360">
+              <TextBlock Text="Noch keine Lampen" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" />
+              <TextBlock Style="{StaticResource Muted}" TextAlignment="Center" Margin="0,8,0,16"
+                         Text="Füge eine Lampe mit ihrem Matter-Code hinzu – oder mit dem Code, mit dem ein anderes Licht seine Lampen teilt." />
+              <Button Style="{StaticResource Btn.Primary}" Content="Lampe hinzufügen" Command="{Binding AddCommand}" HorizontalAlignment="Center" />
+            </StackPanel>
+          </Border>
+
+          <StackPanel Visibility="{Binding IsLoading, Converter={StaticResource VisibleIf}}" Orientation="Horizontal"
+                      HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,40,0,0">
+            <local:Spinner />
+            <TextBlock Text="Lampen werden geladen …" Style="{StaticResource Muted}" Margin="10,0,0,0" VerticalAlignment="Center" />
+          </StackPanel>
+        </Grid>
+      </ScrollViewer>
+    </Grid>
+
+    <!-- Dialogs: one layer each, the newest on top (MainView.xaml.cs). -->
+    <Grid x:Name="Overlays" />
+
+    <!-- Short message at the bottom -->
+    <Border x:Name="Toast" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="16,0,16,20" MaxWidth="460"
+            Background="{DynamicResource Surface2}" BorderBrush="{DynamicResource Danger}" BorderThickness="1" CornerRadius="14"
+            Padding="16,11" Visibility="Collapsed" IsHitTestVisible="False">
+      <Border.Effect>
+        <DropShadowEffect ShadowDepth="6" BlurRadius="24" Opacity="0.35" Color="Black" />
+      </Border.Effect>
+      <TextBlock x:Name="ToastText" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
+    </Border>
+  </Grid>
+</UserControl>

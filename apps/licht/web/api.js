@@ -123,7 +123,7 @@ export class DemoApi {
     if (String(code).replace(/\D/g, '').length < 11) throw new ApiError('Der Code muss 11 oder 21 Ziffern haben.', 400);
     const light = { id: String(this.nextId++), name: 'Neue Lampe', online: true, on: true, mode: 'white', brightness: 100, temperature: 30, color: { h: 0, s: 100 }, supports };
     this.state.push(light);
-    return structuredClone(light);
+    return { added: [light.id], present: 0, failed: [], lights: structuredClone(this.state) };
   }
 
   async rename(id, name) {
@@ -139,7 +139,7 @@ export class DemoApi {
 
   async share() {
     await sleep(300);
-    return { code: '34970112332', validMinutes: 15 };
+    return { code: 'MT:Y.K90AFN00KA0648G00', manual: '34970112332', lamps: ['Wohnzimmer'], skipped: [], validMinutes: 15 };
   }
 
   async remove(id) {

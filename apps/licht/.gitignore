@@ -1,4 +1,5 @@
 node_modules/
 dist/
-desktop/bin/
-desktop/obj/
+# Window program (C#): build outputs
+pc/fenster/**/bin/
+pc/fenster/**/obj/

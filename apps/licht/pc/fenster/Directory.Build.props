@@ -1,0 +1,15 @@
+<Project>
+  <!-- LichtFenster.exe: the Licht window and tray icon for Windows (see ../main.js). -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Version>2.0.0</Version>
+    <Product>Licht</Product>
+    <Company>R3adux</Company>
+    <Copyright></Copyright>
+    <DebugType>none</DebugType>
+    <SatelliteResourceLanguages>de</SatelliteResourceLanguages>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+</Project>

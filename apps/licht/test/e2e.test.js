@@ -47,13 +47,15 @@ test('commission, control, share and remove a lamp', { timeout: 180_000 }, async
     await pc.rename(id, 'Wohnzimmer');
     assert.equal(pc.light(id).name, 'Wohnzimmer');
 
-    // Share with the phone hub (Matter multi-admin).
-    const shared = await pc.share(id);
-    assert.match(shared.code, /^\d{11}$/);
+    // Share with the phone hub (Matter multi-admin): one lamp → QR code text plus the 11 digits.
+    const shared = await pc.share([id]);
+    assert.match(shared.manual, /^\d{11}$/);
+    assert.match(shared.code, /^MT:[0-9A-Z.-]+$/);
+    assert.deepEqual([shared.lamps, shared.skipped, shared.validMinutes], [['Wohnzimmer'], [], 15]);
     const phone = new LightHub({ id: 'phone', label: 'Licht Handy' });
     hubs.push(phone);
     await phone.start();
-    const phoneId = await phone.commission({ code: shared.code, ip: address });
+    const phoneId = await phone.commission({ code: shared.manual, ip: address });
     assert.equal(phone.light(phoneId).name, 'Wohnzimmer');
 
     // Phone switches off → lamp off → PC sees it via its subscription.
@@ -72,6 +74,57 @@ test('commission, control, share and remove a lamp', { timeout: 180_000 }, async
   } finally {
     for (const hub of hubs) await hub.close().catch(() => {});
     lamp.child.kill();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// One QR code for all lamps: a second Licht (e.g. another phone) adds them all without setting them up.
+test('all lamps shared with one code are added by another Licht in one go', { timeout: 240_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'licht-shareall-'));
+  const ports = [5300, 5400].map((base) => base + Math.floor(Math.random() * 90));
+  const lamps = ports.map((port, i) => startVirtualLight(join(dir, `lamp${i}`), port));
+  const hubs = [];
+  try {
+    const codes = await Promise.all(lamps.map((l) => l.ready));
+    Environment.default.vars.set('storage.path', join(dir, 'hubs'));
+    const pc = new LightHub({ id: 'pc', label: 'Licht PC' });
+    hubs.push(pc);
+    await pc.start();
+    const ids = [];
+    for (const [i, port] of ports.entries()) ids.push(await pc.commission({ code: codes[i], ip: `127.0.0.1:${port}` }));
+    await pc.rename(ids[0], 'Flur');
+    await pc.rename(ids[1], 'Küche');
+
+    const shared = await pc.share();
+    assert.equal(shared.manual, undefined);
+    assert.deepEqual([...shared.lamps].sort(), ['Flur', 'Küche']);
+    assert.equal(shared.code.split('*').length, 2);
+
+    const phone = new LightHub({ id: 'phone2', label: 'Licht Handy 2' });
+    hubs.push(phone);
+    await phone.start();
+    const progress = [];
+    phone.subscribe((e) => e.type === 'adding' && progress.push(e.done ? 'done' : `${e.index + 1}/${e.total}`));
+    const t = Date.now();
+    const result = await phone.add({ code: shared.code });
+    console.log(`TIMING share all: 2 lamps added in ${Date.now() - t} ms`);
+    assert.equal(result.added.length, 2);
+    assert.deepEqual([result.present, result.failed], [0, []]);
+    assert.deepEqual(progress, ['1/2', '2/2', 'done']);
+    assert.deepEqual(phone.lights().map((l) => l.name), ['Flur', 'Küche']); // names come from the lamps
+    for (const light of phone.lights()) {
+      await phone.update(light.id, { on: true });
+      await phone.update(light.id, { on: false });
+    }
+    await waitFor(() => lamps.every((l) => l.state.onOff === false), 'both lamps switched by the second Licht');
+
+    // The same code again: the lamps are recognised as already there (no second setup).
+    const again = await phone.add({ code: (await pc.share()).code });
+    assert.deepEqual([again.added, again.present], [[], 2]);
+    assert.equal(phone.lights().length, 2);
+  } finally {
+    for (const hub of hubs) await hub.close().catch(() => {});
+    for (const l of lamps) l.child.kill('SIGKILL');
     rmSync(dir, { recursive: true, force: true });
   }
 });

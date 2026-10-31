@@ -1,0 +1,17 @@
+<!-- A question, a question with a text field, or a message (see WindowUi.cs). -->
+<UserControl x:Class="LichtFenster.MessageDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <StackPanel MinWidth="300">
+    <TextBlock x:Name="TitleText" Style="{StaticResource DialogTitle}" />
+    <TextBlock x:Name="BodyText" Style="{StaticResource Muted}" Margin="0,10,0,0" />
+    <StackPanel x:Name="Field" Visibility="Collapsed">
+      <TextBlock x:Name="FieldLabel" Style="{StaticResource FieldLabel}" />
+      <TextBox x:Name="Input" MaxLength="32" KeyDown="InputKeyDown" />
+    </StackPanel>
+    <StackPanel Style="{StaticResource DialogButtons}">
+      <Button x:Name="CancelButton" Style="{StaticResource Btn.Ghost}" Content="Abbrechen" Margin="0,0,8,0" Click="CancelClick" />
+      <Button x:Name="OkButton" Style="{StaticResource Btn.Primary}" Content="OK" Click="OkClick" MinWidth="88" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

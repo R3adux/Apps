@@ -5,10 +5,11 @@
 //
 // The executable is a copy of the running node binary with the bundled app injected,
 // so build on the platform you want to run it on (CI builds the Windows .exe).
-// On Windows the window program (desktop/, needs the .NET SDK) is built and embedded too.
+// On Windows the window program (pc/fenster/, needs the .NET SDK) is built and embedded too
+// (elsewhere with --window, for checking).
 
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as esbuild from 'esbuild';
@@ -16,61 +17,38 @@ import * as esbuild from 'esbuild';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(root, 'dist');
 const onlyBundle = process.argv.includes('--bundle');
+const VERSION = '2.0.0';
 
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(dist, { recursive: true });
 
-// The web app becomes part of the bundle: { '/index.html': Buffer, … }
-const webDir = join(root, 'web');
-const webFiles = Object.fromEntries(
-  readdirSync(webDir).map((name) => [`/${name}`, readFileSync(join(webDir, name)).toString('base64')]),
-);
-const webFilesPlugin = {
-  name: 'licht-web-files',
-  setup(build) {
-    build.onResolve({ filter: /^licht:web-files$/ }, () => ({ path: 'web-files', namespace: 'licht' }));
-    build.onLoad({ filter: /.*/, namespace: 'licht' }, () => ({
-      contents: `const files = ${JSON.stringify(webFiles)};
-        for (const key of Object.keys(files)) files[key] = Buffer.from(files[key], 'base64');
-        export default files;`,
-      loader: 'js',
-    }));
-  },
-};
-
-// Window program (tray icon + Licht window), see desktop/. Built here so one command builds everything;
-// its files go into Licht.exe and are unpacked on first start (server/desktop.js).
+// The window program (Licht window + tray icon, see pc/fenster/). Built here so one command builds everything;
+// its files go into Licht.exe and are unpacked on first start (pc/windows.js installWindowFiles).
 const isWindows = process.platform === 'win32';
-const desktopDir = join(root, 'desktop');
-const desktopOut = join(desktopDir, 'bin', 'Release', 'net48');
-const DESKTOP_FILES = [
-  'LichtFenster.exe', 'LichtFenster.exe.config',
-  'Microsoft.Web.WebView2.Core.dll', 'Microsoft.Web.WebView2.WinForms.dll',
-];
-const LOADER = join('runtimes', 'win-x64', 'native', 'WebView2Loader.dll');
-let desktopFiles = [];
-if (!onlyBundle && (isWindows || process.argv.includes('--desktop'))) {
-  execFileSync('dotnet', ['build', desktopDir, '-c', 'Release', '-nologo', '-v', 'quiet'], { stdio: 'inherit' });
-  // The loader next to the program (found first), and where the WebView2 library looks for it.
-  copyFileSync(join(desktopOut, LOADER), join(desktopOut, 'WebView2Loader.dll'));
-  desktopFiles = [...DESKTOP_FILES, 'WebView2Loader.dll', LOADER.replaceAll('\\', '/')];
-  for (const name of desktopFiles) {
-    if (!existsSync(join(desktopOut, name))) throw new Error(`Window program incomplete: ${name} missing`);
+const windowProject = join(root, 'pc', 'fenster', 'LichtFenster');
+const windowOut = join(windowProject, 'bin', 'Release', 'net48');
+let windowFiles = [];
+if (!onlyBundle && (isWindows || process.argv.includes('--window'))) {
+  rmSync(windowOut, { recursive: true, force: true });
+  execFileSync('dotnet', ['build', windowProject, '-c', 'Release', '-nologo', '-v', 'quiet'], { stdio: 'inherit' });
+  windowFiles = readdirSync(windowOut).filter((name) => /\.(exe|dll|config)$/i.test(name)).sort();
+  for (const name of ['LichtFenster.exe', 'LichtFenster.exe.config', 'Licht.Fenster.Core.dll']) {
+    if (!windowFiles.includes(name)) throw new Error(`Window program incomplete: ${name} missing`);
   }
+  console.log(`Fenster-Programm: ${windowFiles.join(', ')}`);
 }
 
 const bundle = join(dist, 'licht.cjs');
 await esbuild.build({
-  entryPoints: [join(root, 'server/exe.js')],
+  entryPoints: [join(root, 'pc/main.js')],
   bundle: true,
   platform: 'node',
   target: 'node22',
   format: 'cjs',
   outfile: bundle,
   external: ['@matter/nodejs-ble', 'bun:sqlite'], // Bluetooth (native) and Bun-only code, not used by the .exe
-  plugins: [webFilesPlugin],
   // matter.js reads import.meta.url in a few places; give it a sensible value in CommonJS.
-  define: { 'import.meta.url': 'importMetaUrl', LICHT_DESKTOP_FILES: JSON.stringify(desktopFiles) },
+  define: { 'import.meta.url': 'importMetaUrl', LICHT_WINDOW_FILES: JSON.stringify(windowFiles) },
   banner: { js: 'const importMetaUrl = require("node:url").pathToFileURL(__filename).href;' },
   logLevel: 'warning',
 });
@@ -85,7 +63,7 @@ writeFileSync(seaConfig, JSON.stringify({
   disableExperimentalSEAWarning: true,
   useCodeCache: false,
   useSnapshot: false,
-  assets: Object.fromEntries(desktopFiles.map((name) => [`fenster/${name}`, join(desktopOut, name)])),
+  assets: Object.fromEntries(windowFiles.map((name) => [`fenster/${name}`, join(windowOut, name)])),
 }));
 execFileSync(process.execPath, ['--experimental-sea-config', seaConfig], { stdio: 'inherit' });
 
@@ -95,12 +73,11 @@ copyFileSync(process.execPath, exe);
 // Windows: lamp icon and file description instead of Node's (must happen before injecting).
 if (isWindows) {
   const { rcedit } = await import('rcedit');
-  const icon = join(desktopDir, 'licht.ico'); // the same icon as the window and the tray
-  const version = '1.0.0';
+  const icon = join(windowProject, 'licht.ico'); // the same icon as the window and the tray
   await rcedit(exe, {
     icon,
-    'file-version': version,
-    'product-version': version,
+    'file-version': VERSION,
+    'product-version': VERSION,
     'version-string': {
       FileDescription: 'Licht – lokale Lampensteuerung',
       ProductName: 'Licht',

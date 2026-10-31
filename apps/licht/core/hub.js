@@ -9,7 +9,7 @@ import { NodeId, Status, StatusResponseError, ValidationError } from '@matter/ma
 import { CommissioningController } from '@project-chip/matter.js';
 import { NodeStates } from '@project-chip/matter.js/device';
 import { applyChange, normalizeChange, toCommands, toLight } from './model.js';
-import { parsePairingCode } from './pairing.js';
+import { parseAddress, parsePairingCodes, shareCode } from './pairing.js';
 
 const logger = Logger.get('Licht');
 
@@ -20,7 +20,9 @@ const LIGHT_ATTRIBUTES = [
 const SHARE_WINDOW_SECONDS = 15 * 60; // Matter command parameter, in seconds
 // matter.js durations are in milliseconds. How long to search for and pair a new lamp.
 export const COMMISSIONING_TIMEOUT = Minutes(2);
-const MATTER_PORT = 5540;
+// A lamp from a share code is already in the network with its window open: it is found within seconds.
+const SHARED_LAMP_SEARCH = Seconds(30);
+const SHARE_TIMEOUT_MS = 15_000;
 
 // Responsiveness. Without an answer after COMMAND_TIMEOUT_MS, the lamp counts as unreachable
 // (OFFLINE_COMMAND_TIMEOUT_MS for a lamp that has been away for a while already).
@@ -71,12 +73,6 @@ function withTimeout(promise, ms, message, status = 503) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-// "192.168.1.20" or "192.168.1.20:5540" → known address for faster discovery.
-function parseAddress(text) {
-  const match = String(text ?? '').trim().match(/^(\d{1,3}(?:\.\d{1,3}){3})(?::(\d+))?$/);
-  if (!match) return undefined;
-  return { ip: match[1], port: Number(match[2] ?? MATTER_PORT), type: 'udp' };
-}
 
 // Turns matter.js commissioning errors into hints a person can act on.
 export function commissioningError(err) {
@@ -293,12 +289,50 @@ export class LightHub {
   /* ---------- Adding, sharing, removing ---------- */
 
   /**
-   * Adds a lamp. code: the Matter setup code (printed on the lamp or a share code from another app).
-   * ip: optional, speeds up finding a lamp that is already in the network.
-   * wifi: { ssid, password } – only for a factory-new lamp that is set up via Bluetooth.
+   * Adds lamps from a setup code: the code printed on a lamp, or a share code from another Licht with one
+   * or several lamps (QR code text "MT:…"). One lamp after the other; progress goes to the listeners as
+   * { type: 'adding', index, total } and finally { type: 'adding', done: true, total }.
+   * ip: address of a single lamp, speeds up finding it; wifi: { ssid, password } – only for a
+   * factory-new lamp that is set up via Bluetooth.
+   * Returns { added: [ids], present: number (already in Licht), failed: [{ index, message }] }.
    */
-  async commission({ code, ip, wifi } = {}) {
-    const { passcode, identifierData } = parsePairingCode(code);
+  async add({ code, ip, wifi } = {}) {
+    const entries = parsePairingCodes(code);
+    const single = entries.length === 1;
+    const result = { added: [], present: 0, failed: [] };
+    try {
+      for (const [index, entry] of entries.entries()) {
+        this.#emit({ type: 'adding', index, total: entries.length });
+        const address = (single ? parseAddress(ip) : undefined) ?? entry.address;
+        if (address && this.#lampAt(address)) {
+          result.present++;
+          continue;
+        }
+        try {
+          const search = single ? COMMISSIONING_TIMEOUT : SHARED_LAMP_SEARCH;
+          result.added.push(await this.#commission(entry, { address, wifi, search }));
+        } catch (err) {
+          if (single) throw err;
+          result.failed.push({ index, message: err.message });
+        }
+      }
+    } finally {
+      this.#emit({ type: 'adding', done: true, total: entries.length });
+    }
+    if (!result.added.length && !result.present && result.failed.length) {
+      throw Object.assign(new Error(result.failed[0].message), { status: 502 });
+    }
+    return result;
+  }
+
+  /** Adds one lamp (see add) and returns its id. */
+  async commission(options) {
+    const { added, present } = await this.add(options);
+    if (!added.length && present) throw Object.assign(new Error('Diese Lampe ist schon in Licht.'), { status: 409 });
+    return added[0];
+  }
+
+  async #commission({ passcode, identifierData }, { address, wifi, search }) {
     const viaBle = Boolean(wifi?.ssid);
     const run = (knownAddress) => this.#controller.commissionNode({
       passcode,
@@ -306,7 +340,7 @@ export class LightHub {
         identifierData,
         discoveryCapabilities: { onIpNetwork: true, ble: viaBle },
         knownAddress,
-        timeout: COMMISSIONING_TIMEOUT,
+        timeout: search,
       },
       commissioning: {
         regulatoryLocation: GeneralCommissioning.RegulatoryLocationType.Indoor,
@@ -321,13 +355,12 @@ export class LightHub {
 
     let nodeId;
     try {
-      const address = parseAddress(ip);
       if (address) {
         try {
           nodeId = await run(address);
         } catch (err) {
-          // The lamp may use another port than the default – find it via the network instead.
-          logger.warn(`Commissioning via ${ip} failed, searching the network instead:`, err);
+          // The lamp may have another address or port by now – find it via the network instead.
+          logger.warn(`Commissioning via ${address.ip}:${address.port} failed, searching the network instead:`, err);
         }
       }
       nodeId ??= await run(undefined);
@@ -341,15 +374,59 @@ export class LightHub {
     return lamp.id;
   }
 
-  /** Opens the lamp for another app (e.g. Licht on the phone). Returns a temporary setup code. */
-  async share(id) {
-    const lamp = this.#lamp(id);
-    this.wake({ ids: [lamp.id] });
-    const { manualPairingCode, qrPairingCode } = await withTimeout(
-      lamp.node.openEnhancedCommissioningWindow(SHARE_WINDOW_SECONDS),
-      15_000, UNREACHABLE,
-    );
-    return { code: manualPairingCode, qr: qrPairingCode, validMinutes: SHARE_WINDOW_SECONDS / 60 };
+  // The lamp Licht already has at this address, if any.
+  #lampAt({ ip, port }) {
+    return [...this.#lamps.values()].find((lamp) => this.#addresses(lamp)
+      .some((a) => a.ip.toLowerCase() === ip.toLowerCase() && a.port === port));
+  }
+
+  #addresses(lamp) {
+    try {
+      return (lamp.node.node.state.commissioning.addresses ?? []).filter((a) => a.type === 'udp' && a.ip);
+    } catch {
+      return [];
+    }
+  }
+
+  // The best address to hand to another app: IPv4, otherwise a routable IPv6 address.
+  #shareAddress(lamp) {
+    const addresses = this.#addresses(lamp);
+    return addresses.find((a) => !a.ip.includes(':')) ?? addresses.find((a) => !/^fe80:/i.test(a.ip));
+  }
+
+  /**
+   * Opens lamps for another app – e.g. Licht on a second phone – so it can add them without setting
+   * them up again: one share code (QR code) for all of them, valid for 15 minutes.
+   * ids: the lamps to share (default: all). Lamps that do not answer are left out.
+   * Returns { code: 'MT:…', manual?: digits (one lamp only), lamps: [names], skipped: [names], validMinutes }.
+   */
+  async share(ids) {
+    const lamps = ids?.length ? ids.map((id) => this.#lamp(id)) : [...this.#lamps.values()].filter((l) => l.ready);
+    if (!lamps.length) throw Object.assign(new Error('Noch keine Lampe eingerichtet.'), { status: 404 });
+    const results = await Promise.all(lamps.map(async (lamp) => {
+      try {
+        if (!this.#isConnected(lamp)) this.#restartConnecting(lamp, RESTART_ON_TAP_MS);
+        const { manualPairingCode, qrPairingCode } = await withTimeout(
+          lamp.node.openEnhancedCommissioningWindow(SHARE_WINDOW_SECONDS), SHARE_TIMEOUT_MS, UNREACHABLE,
+        );
+        return { lamp, manual: manualPairingCode, qr: qrPairingCode, address: this.#shareAddress(lamp) };
+      } catch (err) {
+        logger.warn(`Sharing lamp ${lamp.id} failed`, err);
+        return { lamp };
+      }
+    }));
+    const shared = results.filter((r) => r.qr);
+    if (!shared.length) {
+      const message = lamps.length === 1 ? UNREACHABLE : 'Keine Lampe antwortet gerade. Sind sie eingeschaltet?';
+      throw Object.assign(new Error(message), { status: 503 });
+    }
+    return {
+      code: shareCode(shared),
+      manual: shared.length === 1 ? shared[0].manual : undefined,
+      lamps: shared.map((r) => r.lamp.name),
+      skipped: results.filter((r) => !r.qr).map((r) => r.lamp.name),
+      validMinutes: SHARE_WINDOW_SECONDS / 60,
+    };
   }
 
   /**

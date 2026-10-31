@@ -1,0 +1,12 @@
+<Window x:Class="LichtFenster.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:LichtFenster"
+        Title="Licht" Icon="pack://application:,,,/licht.ico"
+        MinWidth="360" MinHeight="420"
+        Background="{DynamicResource Bg}"
+        WindowStartupLocation="Manual"
+        ShowActivated="True"
+        UseLayoutRounding="True">
+  <local:MainView x:Name="View" />
+</Window>
