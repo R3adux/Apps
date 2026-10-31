@@ -60,13 +60,16 @@ jobs:
           $p = Start-Process -FilePath $exe -ArgumentList '--render', "`"$out`"" -Wait -PassThru -NoNewWindow -RedirectStandardOutput "$env:RUNNER_TEMP\render.txt"
           Get-Content "$env:RUNNER_TEMP\render.txt"
           if ($p.ExitCode -ne 0) { throw "Fenster zeichnen fehlgeschlagen ($($p.ExitCode))" }
-          $count = (Get-ChildItem $out -Filter *.png).Count
-          if ($count -lt 20) { throw "Nur $count Bilder" }
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Licht-Fenster-Bilder
-          path: ${{ runner.temp }}/fenster-bilder
+          $pictures = Get-ChildItem $out -Filter *.png | Sort-Object Name
+          if ($pictures.Count -lt 20) { throw "Nur $($pictures.Count) Bilder" }
+          # The pictures go into this log (Base64 between markers), to look at them without artifacts:
+          # download the log and decode the lines between BILD-ANFANG and BILD-ENDE.
+          foreach ($picture in $pictures) {
+            "BILD-ANFANG $($picture.Name)"
+            $text = [Convert]::ToBase64String([IO.File]::ReadAllBytes($picture.FullName))
+            for ($i = 0; $i -lt $text.Length; $i += 2000) { $text.Substring($i, [Math]::Min(2000, $text.Length - $i)) }
+            "BILD-ENDE"
+          }
 
       - name: Licht.exe starten und bedienen
         shell: pwsh
@@ -160,11 +163,6 @@ jobs:
           Get-Content $log
           if (Select-String -Path $log -Pattern ' ERROR |Fehler im Fenster|abgestürzt' -Quiet) { throw "Fehler im Protokoll (licht.log)" }
           "Licht.exe OK ($([math]::Round((Get-Item $exe).Length / 1MB, 1)) MB)"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Licht-Windows
-          path: apps/licht/dist/Licht.exe
 
       - name: Download-Seite (Release) aktualisieren
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

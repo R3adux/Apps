@@ -293,9 +293,10 @@ function onEvent(event) {
   if (event.type === 'adding') showAddProgress(event);
   if (event.type === 'lights') merge(event.lights);
   if (event.type === 'light') {
+    // While the user adjusts the lamp, the controls stay; reachability and name are shown anyway.
     const index = lights.findIndex((l) => l.id === event.light.id);
-    if (index === -1 || isBusy(event.light.id)) return;
-    lights[index] = event.light;
+    if (index === -1) return;
+    lights[index] = isBusy(event.light.id) ? { ...event.light, ...pickControls(lights[index]) } : event.light;
     render();
   }
 }

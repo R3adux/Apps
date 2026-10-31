@@ -76,6 +76,10 @@ public class ViewModelTests
         Assert.Equal("Flur neu", lamp.Name); // name and reachability are taken over anyway
         Assert.True(lamp.IsConnecting);
 
+        _hub.Raise("""{"t":"light","light":""" + Lights.Json("1", "Flur neu", on: true, brightness: 52, status: "offline") + "}");
+        Assert.Equal(80, lamp.Brightness); // one lamp reported: the same
+        Assert.True(lamp.IsOffline);
+
         _hub.Calls[0].Reply.SetResult(null);
         _clock.Advance(LampViewModel.QuietAfterInput);
         _hub.Raise("""{"t":"light","light":""" + Lights.Json("1", "Flur neu", on: true, brightness: 79) + "}");

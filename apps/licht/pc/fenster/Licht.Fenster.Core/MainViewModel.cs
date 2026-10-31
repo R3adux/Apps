@@ -134,10 +134,11 @@ namespace Licht.Fenster
             Save();
         }
 
+        // While the user adjusts the lamp, Apply keeps the controls; reachability and name are shown anyway.
         private void UpdateOne(Light light)
         {
             var lamp = Lamps.FirstOrDefault(l => l.Id == light.Id);
-            if (lamp == null || lamp.IsBusy) return;
+            if (lamp == null) return;
             lamp.Apply(light);
             Refresh();
             Save();

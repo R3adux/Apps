@@ -7,124 +7,110 @@ Licht spricht **direkt im Heimnetz** mit den Lampen, über den offenen Standard 
 Es gibt keine Cloud, kein Konto, kein Tuya und kein LEDVANCE dazwischen.
 
 - An/Aus, Helligkeit, Weißton (warm ↔ kalt), Farbe, Sättigung, Farb-Vorlagen
-- „Alle aus / Alle an“, Live-Updates in allen offenen Fenstern
-- Lampen umbenennen (der Name wird in der Lampe gespeichert), teilen, entfernen
-- Läuft im Browser auf PC und Handy. Auf dem Handy kannst du sie über „Zum Startbildschirm hinzufügen“ wie eine App nutzen
+- „Alle aus / Alle an“, Live-Updates auf allen Geräten
+- Lampen umbenennen (der Name wird in der Lampe gespeichert), entfernen
+- **Teilen per QR-Code:** alle eingerichteten Lampen auf einmal an ein anderes Gerät weitergeben –
+  dort muss niemand die Lampen neu einrichten
+- Für **Windows** (eigenes Programm, kein Browser) und **Android** (eigene App). Beide brauchen
+  einander nicht und laufen ohne Server.
 
 ## Aufbau
 
 ```
- PC-Browser ─┐                                         ┌─ Lampe 1
-             ├──►  Licht-Zentrale (Pi oder PC)  ──Matter──┼─ Lampe 2
- Handy ──────┘     server/ + core/ + web/               └─ …
+ Licht.exe (Windows) ──┐                ┌─ Lampe 1
+                       ├──── Matter ────┼─ Lampe 2
+ Licht.apk (Android) ──┘                └─ …
 ```
 
 | Teil | Was |
 |---|---|
-| `scripts/build-exe.mjs` | Packt alles in eine einzige Datei (`Licht.exe`) |
-| `core/` | Matter-Steuerung (Lampen aufnehmen, schalten, teilen). Wird auch von der Android-App genutzt |
-| `server/` | Die Zentrale: Web-Server + API, läuft dauerhaft auf Pi oder PC |
-| `web/` | Die Oberfläche (HTML/CSS/JS, kein Build-Schritt) |
+| `core/` | Matter-Steuerung (Lampen aufnehmen, schalten, teilen). Nutzen Windows und Android |
+| `pc/` | Windows: der Lampen-Teil von `Licht.exe` (Node.js) |
+| `pc/fenster/` | Windows: das Licht-Fenster mit Taskleisten-Symbol (C#/WPF, `LichtFenster.exe`) |
+| `web/` | Die Oberfläche der Android-App (HTML/CSS/JS) |
+| `android-app/` | Android: die App mit eingebauter Matter-Steuerung |
+| `scripts/build-exe.mjs` | Packt den Windows-Teil in eine einzige Datei (`Licht.exe`) |
 
-Jede Matter-Lampe akzeptiert mindestens 5 Steuergeräte. Die Zentrale und später die Android-App
-steuern die Lampe deshalb unabhängig voneinander. Die SMART+ App kann parallel weiterlaufen,
-du brauchst sie aber nicht mehr.
+Jede Matter-Lampe akzeptiert mindestens 5 Steuergeräte. PC und Handy steuern die Lampe deshalb
+unabhängig voneinander. Die SMART+ App kann parallel weiterlaufen, du brauchst sie aber nicht mehr.
 
-## Zentrale einrichten
+## Einrichten
 
 ### Windows-PC: Licht.exe
 
 1. **[Licht.exe herunterladen](https://github.com/R3adux/Apps/releases/download/licht-latest/Licht.exe)**
    und irgendwo ablegen, z. B. auf dem Desktop.
-2. Doppelklicken. Licht startet und öffnet sich in einem **kleinen eigenen Fenster** unten rechts.
+2. Doppelklicken. Licht öffnet sich in einem **eigenen kleinen Fenster** unten rechts – ein ganz
+   normales Windows-Programm, kein Browser.
    - Beim ersten Mal warnt Windows-SmartScreen, weil die Datei nicht signiert ist:
      **„Weitere Informationen“ → „Trotzdem ausführen“**.
    - Fragt die Firewall nach: **„Private Netzwerke“ erlauben**, sonst findet Licht die Lampe nicht.
 3. Das Fenster schließen beendet Licht nicht: Licht läuft im Hintergrund weiter, unten rechts in der
-   Taskleiste ist ein **Licht-Symbol** (eventuell hinter dem Pfeil `^`):
+   Taskleiste ist ein **Lampen-Symbol** (eventuell hinter dem Pfeil `^`):
    - **Klick**: Fenster öffnen – noch ein Klick legt es wieder weg. Ein erneuter Doppelklick auf
      `Licht.exe` öffnet es ebenfalls.
-   - **Rechtsklick**: **Im Browser öffnen**, **Mit Windows starten** (an/aus) und **Licht beenden**.
-   - „Mit Windows starten“ und „Licht beenden“ gibt es auch in Licht im Menü **⋯** (nur auf dem PC selbst).
-   - Das Fenster merkt sich Position und Größe. Es nutzt Edge WebView2, das bei Windows 10/11 dabei ist;
-     fehlt es, öffnet sich Licht im Browser (`http://localhost:8080`).
+   - **Rechtsklick**: **Licht öffnen**, **Mit Windows starten** (an/aus) und **Licht beenden**.
+   - Dasselbe gibt es im Fenster im Menü **⋯**, dazu **Lampe hinzufügen** und **Alle Lampen teilen**.
+   - Hell oder dunkel wie Windows; das Fenster merkt sich Position und Größe.
 
-Nichts weiter zu installieren. Die Kopplungsdaten liegen in `C:\Users\<Name>\.licht`, dort steht
-auch das Protokoll `licht.log`, falls einmal etwas nicht klappt (außerdem: `fenster\` – das Fenster-Programm,
-das Licht.exe beim Start dort auspackt, `WebView2\` und `fenster.txt` – Daten des Fensters).
+Nichts weiter zu installieren (das Fenster nutzt .NET Framework 4.8, das bei Windows 10/11 dabei ist).
+Licht öffnet keinen Browser und hat keinen Webserver: es spricht nur mit den Lampen.
+
+Alles von Licht liegt in `C:\Users\<Name>\.licht`: die Kopplungsdaten, das Protokoll `licht.log`
+(falls einmal etwas nicht klappt), `fenster\` (das Fenster-Programm, das Licht.exe beim Start dort
+auspackt), `fenster-lampen.json` (die Lampen für die sofortige Anzeige beim Start) und
+`fenster-platz.json` (Position des Fensters).
 Ein Update: Licht beenden, die neue `Licht.exe` an dieselbe Stelle legen und starten.
+`Licht.exe --quit` beendet ein laufendes Licht (z. B. für Skripte).
 
-> Läuft die Zentrale auf dem PC, geht das Handy nur, solange der PC an ist.
-> Die Android-App (siehe unten) braucht keinen PC.
+### Android-Handy: Licht.apk
 
-### Android-Handy: Licht.apk (experimentell)
-
-Die Android-App hat ihre eigene Matter-Steuerung eingebaut und funktioniert **ohne laufenden PC**.
+Die Android-App hat ihre eigene Matter-Steuerung eingebaut und funktioniert **ohne PC**.
 
 1. Auf dem Handy **[Licht.apk herunterladen](https://github.com/R3adux/Apps/releases/download/licht-android/Licht.apk)** und öffnen.
    Android fragt, ob der Browser Apps installieren darf: erlauben.
-2. In der PC-Version von Licht beim Lampen-Menü **⋮ → Mit anderem Gerät teilen** wählen.
-3. In der Handy-App **⋯ → Lampe hinzufügen** wählen und den angezeigten Code eingeben.
-   Klappt das nicht, unter „Erweitert“ zusätzlich die IP-Adresse der Lampe angeben.
+2. Lampen übernehmen: Am PC in Licht **⋯ → Alle Lampen teilen** wählen. In der Handy-App
+   **⋯ → Lampe hinzufügen → QR-Code scannen** und den QR-Code vom Bildschirm abfotografieren.
+   Alle Lampen kommen auf einmal dazu. (Beim ersten Scan fragt Android, ob Licht die Kamera benutzen darf.)
 
 Handy und Lampe müssen im selben WLAN sein.
 
-### Raspberry Pi (oder aus dem Quellcode)
-
-```sh
-# Node.js 22 installieren (einmalig)
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt install -y nodejs git
-
-git clone https://github.com/R3adux/Apps.git
-cd Apps/licht
-npm install
-npm start
-```
-
-Danach im Browser (PC oder Handy) die angezeigte Adresse öffnen, z. B. `http://192.168.178.20:8080`.
-
-**Autostart:** In `server/licht.service` Benutzer und Pfad prüfen, dann:
-
-```sh
-sudo cp server/licht.service /etc/systemd/system/
-sudo systemctl enable --now licht
-```
-
 ## Lampe hinzufügen
 
-Im Menü **⋯ → Lampe hinzufügen** den **Matter-Code** eingeben: 11 Ziffern von der Lampe oder
-der Verpackung, z. B. `3497-011-2332`.
+Im Menü **⋯ → Lampe hinzufügen**:
+- am Handy **QR-Code scannen** (den QR-Code auf der Lampe oder der Verpackung), oder
+- den **Matter-Code** eingeben: 11 Ziffern von der Lampe oder der Verpackung, z. B. `3497-011-2332`.
 
 Wichtig: Eine Lampe nimmt neue Steuergeräte nur an, wenn sie gerade **im Kopplungsmodus** ist.
-Dafür gibt es drei Wege:
+Dafür gibt es zwei Wege:
 
 **A) Die Lampe ist schon in der SMART+ App eingerichtet**
 Suche in der SMART+ App in den Lampen-Einstellungen nach „Matter“, „Teilen“ oder
 „Mit anderer App verbinden“. Dort entsteht ein neuer Code, der ein paar Minuten gültig ist.
 Diesen Code gibst du in Licht ein.
 
-**B) Lampe zurücksetzen und per Bluetooth einrichten** (Zentrale mit Bluetooth, z. B. Pi 3/4/5)
-1. Zentrale mit Bluetooth starten (nur aus dem Quellcode, nicht mit Licht.exe):
-   einmalig `npm install @matter/nodejs-ble`, dann `LICHT_BLE=1 npm start`
-   (auf dem Pi ggf. einmalig: `sudo setcap cap_net_raw+eip $(readlink -f $(which node))`)
-2. Lampe zurücksetzen: 5× aus- und einschalten, bis sie blinkt.
-3. In Licht den Code von der Lampe eingeben. Unter **Erweitert** zusätzlich WLAN-Name und
-   -Passwort eintragen. Die Lampe bekommt die WLAN-Daten per Bluetooth.
-
-**C) Über Google Home (Android)**, wenn die Zentrale kein Bluetooth hat
-1. Lampe zurücksetzen und mit der Google-Home-App einrichten (Code von der Lampe).
+**B) Über Google Home (Android)**, für eine neue oder zurückgesetzte Lampe
+1. Lampe zurücksetzen (5× aus- und einschalten, bis sie blinkt) und mit der Google-Home-App einrichten
+   (Code von der Lampe).
 2. In Google Home: Lampe → Einstellungen → **Verknüpfte Matter-Apps und -Dienste** →
    **App oder Dienst verknüpfen**. Es erscheint ein neuer Code.
 3. Diesen Code in Licht eingeben. Google Home kannst du danach wieder entfernen.
 
 Tipp: Wenn die Suche lange dauert, unter **Erweitert** die IP-Adresse der Lampe angeben
-(steht in der Geräteliste deines Routers).
+(steht in der Geräteliste deines Routers). **Im Netz suchen** zeigt, ob eine Lampe gerade bereit ist.
 
-### Mit dem Handy teilen
+### Lampen teilen (QR-Code)
 
-Lampen-Menü **⋮ → Mit anderem Gerät teilen** zeigt einen Code, der 15 Minuten gilt.
-Diesen Code in der Licht-App auf dem Handy unter „Lampe hinzufügen“ eingeben.
+Damit nicht jeder alle Lampen neu einrichten muss: Hat ein Gerät die Lampen schon, gibt es sie weiter.
+
+- **Alle Lampen:** Menü **⋯ → Alle Lampen teilen**. **Eine Lampe:** ihr Menü **⋮ → Teilen (QR-Code)**.
+- Licht zeigt einen QR-Code (15 Minuten gültig). Auf dem anderen Gerät **Lampe hinzufügen →
+  QR-Code scannen** – alle Lampen darin kommen auf einmal dazu, auch mit Namen. Lampen, die das andere
+  Gerät schon hat, werden erkannt und übersprungen.
+- Ein PC hat meist keine Kamera: dort **Code kopieren** auf dem einen Gerät und den Text (beginnt mit
+  `MT:`) auf dem PC unter **Lampe hinzufügen** einfügen. Für eine einzelne Lampe zeigt Licht zusätzlich
+  11 Ziffern zum Abtippen – die gehen auch in anderen Matter-Apps (z. B. SMART+).
+- Lampen, die beim Teilen gerade nicht erreichbar sind, sind nicht dabei; Licht sagt, welche.
 
 ## Wenn etwas nicht klappt
 
@@ -132,40 +118,39 @@ Diesen Code in der Licht-App auf dem Handy unter „Lampe hinzufügen“ eingebe
 |---|---|
 | Lampe wird nicht gefunden | Ist sie im Kopplungsmodus (siehe oben)? Windows-Firewall für private Netze erlaubt? IP-Adresse unter *Erweitert* angeben. |
 | „Verbinde …“ | Licht baut die Verbindung zur Lampe gerade (wieder) auf, z. B. nach dem Start oder wenn die Lampe Strom bekommt. Dauert meist nur Sekunden; schalten kannst du trotzdem. |
-| „Nicht erreichbar“ | Lampe hat keinen Strom, oder Zentrale und Lampe sind in verschiedenen Netzen (z. B. Gäste-WLAN). Sobald sie wieder da ist, verbindet Licht sich von selbst. |
+| „Nicht erreichbar“ | Lampe hat keinen Strom, oder Gerät und Lampe sind in verschiedenen Netzen (z. B. Gäste-WLAN). Sobald sie wieder da ist, verbindet Licht sich von selbst. |
+| Geteilter Code geht nicht | Er gilt 15 Minuten und für jede Lampe einmal: auf dem anderen Gerät neu teilen. |
+| Handy: Kamera geht nicht | Android-Einstellungen → Apps → Licht → Berechtigungen → Kamera erlauben. |
 | PC: Licht startet nicht | Meldung lesen; Details in `C:\Users\<Name>\.licht\licht.log`. |
-| Ausführliche Meldungen | `LICHT_LOG=info npm start` |
 
-Einstellungen über Umgebungsvariablen: `PORT` (Standard 8080), `LICHT_DATA` (Speicherort der
-Kopplungsdaten, Standard `~/.licht`), `LICHT_BLE=1`, `LICHT_LOG`, `LICHT_HOSTS` (siehe unten).
-
-Die Zentrale ist für das Heimnetz gedacht und hat kein Passwort. Jeder im WLAN kann das
-Licht steuern, wie bei einem Lichtschalter. Gib den Port nicht ins Internet frei.
-Webseiten aus dem Internet können Licht nicht fernsteuern: Licht antwortet nur, wenn es über eine
-IP-Adresse, den Computernamen oder einen Heimnetz-Namen (`….local`, `….fritz.box`, `….lan`, …)
-aufgerufen wird. Andere Namen (z. B. über ein VPN) lassen sich mit `LICHT_HOSTS=name1,name2` erlauben.
+Einstellungen über Umgebungsvariablen (PC, vor allem zur Fehlersuche): `LICHT_DATA` (Speicherort,
+Standard `~/.licht`), `LICHT_LOG` (ausführlichere Matter-Meldungen, z. B. `info`).
 
 ## Entwicklung
 
 ```sh
-npm test                       # alle Tests, inkl. Ende-zu-Ende-Test mit simulierter Matter-Lampe
-npm start                      # Zentrale starten
-node scripts/build-exe.mjs     # Einzeldatei bauen (Licht.exe unter Windows, braucht dort auch das .NET SDK)
-dotnet build desktop -c Release   # nur das Fenster-Programm (geht auch unter Linux/macOS)
+npm test                                  # alle Tests, inkl. Ende-zu-Ende-Tests mit simulierten Matter-Lampen
+cd pc/fenster && dotnet test --project Licht.Fenster.Tests   # Logik des Windows-Fensters (geht überall)
+node scripts/build-exe.mjs                # Licht.exe bauen (unter Windows, braucht das .NET SDK)
 ```
 
-`desktop/` ist das Fenster-Programm `LichtFenster.exe` (C#, .NET Framework 4.8 + WebView2, beides bei
-Windows dabei): Taskleisten-Symbol und Licht-Fenster mit derselben Oberfläche wie im Browser. Licht.exe
-enthält seine Dateien (ca. 1 MB), packt sie beim Start nach `.licht\fenster\<Version>\` aus, startet es
-und spricht mit ihm zeilenweise über Standard-Ein-/Ausgabe (siehe `desktop/Program.cs`).
+Das Windows-Fenster (`pc/fenster/`):
+- `Licht.Fenster.Core` – alles außer dem Zeichnen: Gespräch mit Licht, Lampenzustände, Senden,
+  Teilen, Hinzufügen, QR-Code. Wird mit `Licht.Fenster.Tests` auf jedem System getestet.
+- `LichtFenster` – das WPF-Fenster (XAML) und das Taskleisten-Symbol.
+  `LichtFenster.exe --render <Ordner>` zeichnet das Fenster mit erfundenen Lampen in allen Zuständen
+  (hell und dunkel) als PNG – so lässt sich jede Änderung am Aussehen prüfen.
+- `Licht.exe` enthält die Dateien des Fensters, packt sie beim Start nach `.licht\fenster\<Version>\` aus,
+  startet es und spricht mit ihm zeilenweise über Standard-Ein-/Ausgabe (Nachrichten siehe `pc/bridge.js`).
 
-Die Windows-`Licht.exe` baut GitHub Actions (`.github/workflows/licht-windows.yml`) bei jeder
-Änderung in `main`. Sie wird auf Windows gestartet und geprüft (auch dass das Licht-Fenster die Seite
-lädt) und dann als Release
-`licht-latest` veröffentlicht.
+Die Windows-`Licht.exe` baut GitHub Actions (`.github/workflows/licht-windows.yml`) bei jeder Änderung in
+`main`: Tests, Bilder des Fensters (Artefakt „Licht-Fenster-Bilder“), dann wird `Licht.exe` auf Windows
+gestartet und per Fernsteuerung bedient (Fenster, Dialog, Fehlermeldung, Schließen, zweiter Start, kein
+Browser, kein offener Port, Beenden). Danach wird sie als Release `licht-latest` veröffentlicht.
 
-Ohne Lampen ausprobieren: `http://localhost:8080/?demo` (Demo beenden im Menü).
+Die Oberfläche der Android-App ohne Handy ansehen: `web/` mit einem kleinen Webserver öffnen – ohne die
+App zeigt sie erfundene Lampen (Demo).
 
-`test/e2e.test.js` startet eine simulierte Matter-Farblampe (`test/support/virtual-light.mjs`)
-und prüft über das echte Matter-Protokoll: Aufnehmen per Code, Farbe/Weiß/Helligkeit,
-Umbenennen, Teilen mit einer zweiten Zentrale, gegenseitige Live-Updates und Entfernen.
+`test/e2e.test.js` startet simulierte Matter-Farblampen (`test/support/virtual-light.mjs`) und prüft über
+das echte Matter-Protokoll: Aufnehmen per Code, Farbe/Weiß/Helligkeit, Umbenennen, Teilen mit einer
+zweiten Licht (einzeln und alle Lampen mit einem QR-Code), gegenseitige Live-Updates und Entfernen.
