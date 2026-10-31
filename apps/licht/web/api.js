@@ -1,83 +1,10 @@
-// Talks to the Licht hub, or simulates lamps in demo mode.
-// The Android app provides an object with the same methods.
+// Made-up lamps for the page in a plain browser (demo). The Android app provides the real API
+// (window.LichtApi, see android-app/src/bridge.js) with the same methods.
 
 export class ApiError extends Error {
   constructor(message, status) {
     super(message);
     this.status = status;
-  }
-}
-
-export class HttpApi {
-  async #call(method, path, body) {
-    let res;
-    try {
-      res = await fetch(path, {
-        method,
-        headers: body ? { 'Content-Type': 'application/json' } : {},
-        body: body ? JSON.stringify(body) : undefined,
-      });
-    } catch {
-      throw new ApiError('Keine Verbindung zur Licht-Zentrale.', 0);
-    }
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new ApiError(data.error || `Fehler ${res.status}`, res.status);
-    return data;
-  }
-
-  async info() {
-    return this.#call('GET', '/api/info');
-  }
-
-  async lights() {
-    return (await this.#call('GET', '/api/lights')).lights;
-  }
-
-  update(id, change) {
-    return this.#call('POST', `/api/lights/${id}`, change);
-  }
-
-  async add({ code, ip, wifi }) {
-    return (await this.#call('POST', '/api/lights', { code, ip, wifi })).light;
-  }
-
-  rename(id, name) {
-    return this.#call('POST', `/api/lights/${id}/name`, { name });
-  }
-
-  async discover(code) {
-    return (await this.#call('GET', `/api/discover${code ? `?code=${encodeURIComponent(code)}` : ''}`)).devices;
-  }
-
-  /** PC only (Licht.exe, from this computer). */
-  async setAutostart(enabled) {
-    return (await this.#call('POST', '/api/autostart', { enabled })).autostart;
-  }
-
-  quit() {
-    return this.#call('POST', '/api/quit');
-  }
-
-  /** Asks the hub to reconnect lamps that are not connected right now. */
-  wake() {
-    return this.#call('POST', '/api/wake');
-  }
-
-  share(id) {
-    return this.#call('POST', `/api/lights/${id}/share`);
-  }
-
-  remove(id) {
-    return this.#call('DELETE', `/api/lights/${id}`);
-  }
-
-  /** Live updates. onEvent({ type: 'lights', lights } | { type: 'light', light }), onStatus(connected). */
-  subscribe(onEvent, onStatus) {
-    const source = new EventSource('/api/events');
-    source.onmessage = (e) => onEvent(JSON.parse(e.data));
-    source.onopen = () => onStatus(true);
-    source.onerror = () => onStatus(false);
-    return () => source.close();
   }
 }
 
@@ -120,10 +47,16 @@ export class DemoApi {
 
   async add({ code }) {
     await sleep(1200);
-    if (String(code).replace(/\D/g, '').length < 11) throw new ApiError('Der Code muss 11 oder 21 Ziffern haben.', 400);
-    const light = { id: String(this.nextId++), name: 'Neue Lampe', online: true, on: true, mode: 'white', brightness: 100, temperature: 30, color: { h: 0, s: 100 }, supports };
-    this.state.push(light);
-    return { added: [light.id], present: 0, failed: [], lights: structuredClone(this.state) };
+    const text = String(code).trim();
+    const count = /^MT:/i.test(text) ? text.split('*').length : 1;
+    if (!/^MT:/i.test(text) && text.replace(/\D/g, '').length < 11) throw new ApiError('Der Code muss 11 oder 21 Ziffern haben.', 400);
+    const added = [];
+    for (let i = 0; i < count; i++) {
+      const light = { id: String(this.nextId++), name: `Neue Lampe ${this.nextId - 5}`, online: true, on: true, mode: 'white', brightness: 100, temperature: 30, color: { h: 0, s: 100 }, supports };
+      this.state.push(light);
+      added.push(light.id);
+    }
+    return { added, present: 0, failed: [], lights: structuredClone(this.state) };
   }
 
   async rename(id, name) {
@@ -137,9 +70,19 @@ export class DemoApi {
     return [{ name: 'SMART+ Classic A60', discriminator: 2400, shortDiscriminator: 9, mode: 2, addresses: ['192.168.0.50:5540'], matchesCode: true }];
   }
 
-  async share() {
-    await sleep(300);
-    return { code: 'MT:Y.K90AFN00KA0648G00', manual: '34970112332', lamps: ['Wohnzimmer'], skipped: [], validMinutes: 15 };
+  async share(id) {
+    await sleep(900);
+    const one = 'MT:Y.K90AFN00KA0648G00';
+    const chosen = id ? [this.#find(id)] : this.state;
+    const lamps = chosen.filter((l) => l.online).map((l) => l.name);
+    if (!lamps.length) throw new ApiError('Die Lampe ist gerade nicht erreichbar.', 503);
+    return {
+      code: `MT:${lamps.map(() => one.slice(3)).join('*')}`,
+      manual: id ? '34970112332' : undefined,
+      lamps,
+      skipped: chosen.filter((l) => !l.online).map((l) => l.name),
+      validMinutes: 15,
+    };
   }
 
   async remove(id) {

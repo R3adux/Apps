@@ -8,21 +8,21 @@
 
     <StackPanel Orientation="Horizontal" Margin="0,18,0,6" Visibility="{Binding Preparing, Converter={StaticResource VisibleIf}}">
       <local:Spinner />
-      <TextBlock Style="{StaticResource Muted}" Margin="10,0,0,0" VerticalAlignment="Center"
+      <TextBlock Style="{StaticResource MutedText}" Margin="10,0,0,0" VerticalAlignment="Center"
                  Text="Der Code wird vorbereitet – die Lampen werden zum Teilen geöffnet …" />
     </StackPanel>
 
     <StackPanel Visibility="{Binding HasCode, Converter={StaticResource VisibleIf}}">
-      <TextBlock Style="{StaticResource Muted}" Margin="0,10,0,0"
+      <TextBlock Style="{StaticResource MutedText}" Margin="0,10,0,0"
                  Text="Auf dem anderen Gerät in Licht „Lampe hinzufügen“ wählen und diesen QR-Code scannen. Die Lampen müssen dort nicht neu eingerichtet werden." />
       <local:QrView x:Name="Code" Matrix="{Binding Matrix}" MaxSize="300" Margin="0,16,0,0" HorizontalAlignment="Stretch"
                     AutomationProperties.Name="QR-Code zum Teilen" />
       <TextBlock Text="{Binding LampsText}" TextWrapping="Wrap" Margin="0,14,0,0" />
       <TextBlock Text="{Binding SkippedText}" TextWrapping="Wrap" Foreground="{DynamicResource Accent}" Margin="0,6,0,0"
                  Visibility="{Binding SkippedText, Converter={StaticResource VisibleIfAny}}" />
-      <TextBlock Style="{StaticResource Small}" Text="{Binding ValidText}" Margin="0,6,0,0" />
+      <TextBlock Style="{StaticResource SmallText}" Text="{Binding ValidText}" Margin="0,6,0,0" />
       <StackPanel Visibility="{Binding ManualCode, Converter={StaticResource VisibleIfAny}}" Margin="0,14,0,0">
-        <TextBlock Style="{StaticResource Small}" Text="Für andere Matter-Apps (z. B. SMART+) stattdessen diese Ziffern eingeben:" />
+        <TextBlock Style="{StaticResource SmallText}" Text="Für andere Matter-Apps (z. B. SMART+) stattdessen diese Ziffern eingeben:" />
         <TextBox Style="{StaticResource CodeText}" Text="{Binding ManualCode, Mode=OneWay}" Margin="0,6,0,0"
                  AutomationProperties.Name="Code mit Ziffern" />
       </StackPanel>

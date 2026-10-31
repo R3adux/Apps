@@ -35,11 +35,11 @@
   </Style>
 
   <!-- Text -->
-  <Style x:Key="Muted" TargetType="TextBlock">
+  <Style x:Key="MutedText" TargetType="TextBlock">
     <Setter Property="Foreground" Value="{DynamicResource Muted}" />
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
-  <Style x:Key="Small" TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+  <Style x:Key="SmallText" TargetType="TextBlock" BasedOn="{StaticResource MutedText}">
     <Setter Property="FontSize" Value="12.5" />
   </Style>
   <Style x:Key="DialogTitle" TargetType="TextBlock">
@@ -48,7 +48,7 @@
     <Setter Property="TextWrapping" Value="Wrap" />
     <Setter Property="Foreground" Value="{DynamicResource Text}" />
   </Style>
-  <Style x:Key="FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+  <Style x:Key="FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource MutedText}">
     <Setter Property="FontSize" Value="13" />
     <Setter Property="Margin" Value="0,14,0,6" />
   </Style>

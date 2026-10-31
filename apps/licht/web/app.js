@@ -1,9 +1,9 @@
-import { ApiError, DemoApi, HttpApi } from './api.js';
+import { DemoApi } from './api.js';
 import { PRESETS, lampRgb, temperatureToRgb, hsvToRgb } from './color.js';
+import { qrSvg, startScanner } from './qr.js';
 
 const SEND_GAP_MS = 60; // breathing room between commands to the same lamp
 const QUIET_AFTER_INPUT_MS = 1500; // ignore live updates for a lamp the user is adjusting
-const DEMO_KEY = 'licht.demo';
 const CACHE_KEY = 'licht.lights.v1'; // last known lamps, shown instantly on the next start
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -15,22 +15,16 @@ const storage = {
   set(key, value) {
     try { localStorage.setItem(key, value); } catch { /* not available */ }
   },
-  remove(key) {
-    try { localStorage.removeItem(key); } catch { /* not available */ }
-  },
 };
 
-// The Android app injects its own API (window.LichtApi); in the browser we talk to the hub.
-const params = new URLSearchParams(location.search);
-const demo = params.has('demo') || storage.get(DEMO_KEY) === '1';
-const api = demo ? new DemoApi() : (window.LichtApi ?? new HttpApi());
-if (params.has('demo')) storage.set(DEMO_KEY, '1');
+// The Android app provides window.LichtApi (android-app/src/bridge.js). Opened in a plain browser, the page
+// shows made-up lamps (demo) – handy for trying out the look.
+const demo = !window.LichtApi;
+const api = window.LichtApi ?? new DemoApi();
 
 let lights = [];
 let loaded = false; // first real data received (until then: cached data or "loading")
 let info = { ble: false };
-let unsubscribe = () => {};
-let ended = false; // Licht.exe was quit from this page
 
 // 'online' | 'connecting' | 'offline' (older hubs only send `online`)
 const statusOf = (light) => light.status ?? (light.online ? 'online' : 'offline');
@@ -288,18 +282,15 @@ const pickControls = ({ on, mode, brightness, temperature, color }) => ({ on, mo
 async function reload() {
   try {
     merge(await api.lights());
-    setStatus('');
   } catch (err) {
-    if (err instanceof ApiError && err.status === 0) {
-      setStatus('Keine Verbindung zu Licht auf dem PC. Läuft es dort?');
-    } else {
-      setStatus('');
-      toast(err.message);
-    }
+    toast(err.message);
+  } finally {
+    setStatus('');
   }
 }
 
 function onEvent(event) {
+  if (event.type === 'adding') showAddProgress(event);
   if (event.type === 'lights') merge(event.lights);
   if (event.type === 'light') {
     const index = lights.findIndex((l) => l.id === event.light.id);
@@ -388,18 +379,102 @@ $('#add-form').addEventListener('submit', async (event) => {
   const button = form.querySelector('[type=submit]');
   button.disabled = true;
   $('#add-error').hidden = true;
+  $('#add-progress').textContent = /^\s*MT:/i.test(code)
+    ? 'Lampen werden hinzugefügt …'
+    : 'Suche Lampe … das kann bis zu zwei Minuten dauern.';
   $('#add-progress').hidden = false;
   try {
     const result = await api.add({ code, ip: ip.trim() || undefined, wifi: ssid ? { ssid, password } : undefined });
     $('#add-dialog').close();
     await reload();
-    toast(addSummary(result), result?.failed?.length ? 'error' : 'ok');
+    if (result?.failed?.length) {
+      await ask({
+        title: 'Nicht alle Lampen hinzugefügt',
+        text: `${addSummary(result)} Die übrigen waren nicht erreichbar oder ihr Code ist abgelaufen (15 Minuten). `
+          + 'Auf dem anderen Gerät neu teilen und noch einmal scannen.',
+        notice: true,
+      });
+    } else {
+      toast(addSummary(result), 'ok');
+    }
   } catch (err) {
     $('#add-error').textContent = err.message;
     $('#add-error').hidden = false;
   } finally {
     button.disabled = false;
     $('#add-progress').hidden = true;
+  }
+});
+
+// Several lamps from one code: "Lampe 2 von 3 …"
+function showAddProgress({ index, total, done }) {
+  if (done || !(total > 1)) return;
+  $('#add-progress').textContent = `Lampe ${index + 1} von ${total} wird hinzugefügt …`;
+}
+
+$('#scan-btn').addEventListener('click', () => {
+  const dialog = $('#scan-dialog');
+  const status = $('#scan-status');
+  status.textContent = 'Halte die Kamera auf den QR-Code.';
+  status.classList.remove('error');
+  dialog.showModal();
+  const stop = startScanner($('#scan-video'), (text) => {
+    dialog.close();
+    const form = $('#add-form');
+    if (!/^MT:/i.test(text.trim())) {
+      $('#add-error').textContent = 'Das ist kein Matter-Code. Gesucht ist der QR-Code auf der Lampe, ihrer Verpackung '
+        + 'oder der, den Licht beim Teilen zeigt.';
+      $('#add-error').hidden = false;
+      return;
+    }
+    form.elements.code.value = text.trim();
+    form.requestSubmit();
+  }, (problem) => {
+    status.textContent = problem;
+    status.classList.add('error');
+  });
+  dialog.addEventListener('close', stop, { once: true });
+});
+
+/* ---------- Sharing: a QR code another Licht scans ---------- */
+
+let sharedCode = null;
+async function share(ids, title) {
+  const dialog = $('#share-dialog');
+  $('#share-title').textContent = title;
+  $('#share-preparing').hidden = false;
+  $('#share-ready').hidden = true;
+  $('#share-error').hidden = true;
+  $('#share-copy').hidden = true;
+  sharedCode = null;
+  dialog.showModal();
+  try {
+    const { code, manual, lamps = [], skipped = [], validMinutes } = await api.share(ids);
+    sharedCode = code;
+    $('#share-qr').innerHTML = qrSvg(code);
+    $('#share-lamps').textContent = lamps.length === 1 ? `Enthält: ${lamps[0]}` : `Enthält ${lamps.length} Lampen: ${lamps.join(', ')}`;
+    $('#share-skipped').textContent = `Nicht dabei, weil gerade nicht erreichbar: ${skipped.join(', ')}. Später noch einmal teilen.`;
+    $('#share-skipped').hidden = !skipped.length;
+    $('#share-valid').textContent = `Gültig für ${validMinutes} Minuten. Jede Lampe lässt sich mit diesem Code einmal hinzufügen.`;
+    $('#share-manual').hidden = !manual;
+    $('#share-code').textContent = manual ? formatCode(manual) : '';
+    $('#share-ready').hidden = false;
+    $('#share-copy').hidden = false;
+  } catch (err) {
+    $('#share-error').textContent = err.message;
+    $('#share-error').hidden = false;
+  } finally {
+    $('#share-preparing').hidden = true;
+  }
+}
+
+$('#share-copy').addEventListener('click', async () => {
+  if (!sharedCode) return;
+  try {
+    await navigator.clipboard.writeText(sharedCode);
+    toast('Code kopiert.', 'ok');
+  } catch {
+    toast('Kopieren ging gerade nicht.');
   }
 });
 
@@ -467,12 +542,7 @@ async function lightAction(action, id) {
       light.name = name.trim().slice(0, 32);
       render();
     }
-    if (action === 'share') {
-      const { code, manual, validMinutes } = await api.share(id);
-      $('#share-code').textContent = formatCode(manual ?? code);
-      $('#share-valid').textContent = `Gültig für ${validMinutes} Minuten.`;
-      $('#share-dialog').showModal();
-    }
+    if (action === 'share') await share(id, `„${light.name}“ teilen`);
     if (action === 'remove') {
       const sure = await ask({
         title: `„${light.name}“ entfernen?`,
@@ -508,13 +578,11 @@ document.addEventListener('click', (e) => {
   if (!action) return;
   if (inLightMenu) return lightAction(action, menuLightId);
   if (action === 'add') openAddDialog();
-  if (action === 'autostart') toggleAutostart();
-  if (action === 'quit') quitApp();
-  if (action === 'refresh') reload();
-  if (action === 'demo-exit') {
-    storage.remove(DEMO_KEY);
-    location.href = location.pathname;
+  if (action === 'share-all') {
+    if (lights.length) share(undefined, 'Alle Lampen teilen');
+    else toast('Noch keine Lampen zum Teilen.');
   }
+  if (action === 'refresh') reload();
 });
 
 $('#menu-btn').addEventListener('click', (e) => {
@@ -532,75 +600,23 @@ for (const button of document.querySelectorAll('[data-close]')) {
 
 $('#all-toggle').addEventListener('click', allToggle);
 
-/* ---------- PC app (Licht.exe) ---------- */
-
-function showDesktopItems() {
-  for (const item of document.querySelectorAll('[data-desktop]')) item.hidden = !info.desktop;
-  const autostart = $('[data-action="autostart"]');
-  autostart.textContent = `${info.desktop?.autostart ? '✓ ' : ''}Mit Windows starten`;
-  autostart.setAttribute('aria-checked', String(Boolean(info.desktop?.autostart)));
-}
-
-async function toggleAutostart() {
-  try {
-    info.desktop.autostart = await api.setAutostart(!info.desktop.autostart);
-    showDesktopItems();
-    toast(info.desktop.autostart ? 'Licht startet jetzt automatisch mit Windows.' : 'Autostart ist aus.', 'ok');
-  } catch (err) {
-    toast(err.message);
-  }
-}
-
-async function quitApp() {
-  const sure = await ask({
-    title: 'Licht beenden?',
-    text: 'Die Lampen lassen sich dann nicht mehr über Licht steuern – auch nicht vom Handy über den PC.',
-    okLabel: 'Beenden',
-    danger: true,
-  });
-  if (!sure) return;
-  ended = true;
-  unsubscribe();
-  await api.quit().catch(() => {});
-  document.body.innerHTML = '<main class="quit"><h1>Licht ist beendet.</h1>'
-    + '<p class="muted">Du kannst dieses Fenster schließen. Zum Starten Licht.exe doppelklicken.</p></main>';
-}
-
 /* ---------- Start ---------- */
 
 async function start() {
   $('#demo-badge').hidden = !demo;
-  $('[data-action="demo-exit"]').hidden = !demo;
   lights = loadCache();
   render();
   if (!lights.length) setStatus('Lade Lampen …');
   const [, infoResult] = await Promise.all([reload(), api.info().catch(() => info)]);
   info = infoResult;
-  showDesktopItems();
-  let interrupted = false;
-  unsubscribe = api.subscribe(onEvent, (connected) => {
-    setStatus(connected ? '' : 'Verbindung zu Licht auf dem PC unterbrochen …');
-    // Back after an interruption: fetch everything that may have changed in between.
-    if (connected && interrupted) reload();
-    interrupted = !connected;
-  });
+  api.subscribe(onEvent, () => {});
 
-  // Coming back to the app/tab: reconnect lamps right away and refresh.
+  // Coming back to the app: reconnect lamps right away and refresh.
   document.addEventListener('visibilitychange', () => {
-    if (ended || document.visibilityState !== 'visible') return;
+    if (document.visibilityState !== 'visible') return;
     api.wake?.().catch(() => {});
     reload();
   });
-
-  // Shortcut from the home-screen icon (long press → "Alle aus").
-  if (params.get('action') === 'all-off') {
-    lights.filter((l) => l.on && usable(l)).forEach((l) => change(l, { on: false }));
-    history.replaceState(null, '', location.pathname);
-  }
-}
-
-if (!window.LichtApi && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
 start();

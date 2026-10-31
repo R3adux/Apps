@@ -60,6 +60,7 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 6px; font-
 .btn.ghost { background: transparent; color: var(--muted); border-color: transparent; }
 .btn.pill { border-radius: 999px; padding: 8px 16px; font-size: 0.95rem; }
 .btn:active, .icon-btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.5; cursor: default; transform: none; }
 .icon-btn {
   display: grid; place-items: center;
   width: 40px; height: 40px;
@@ -281,3 +282,25 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 6px; font-
 .btn.primary.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
 
 .quit { max-width: 480px; margin: 20vh auto 0; text-align: center; display: flex; flex-direction: column; gap: 12px; }
+
+/* Sharing and scanning QR codes */
+.scan-btn { width: 100%; }
+.share-qr { background: #fff; border-radius: 12px; padding: 8px; width: min(100%, 300px); margin: 4px auto; }
+.share-qr svg { display: block; width: 100%; height: auto; }
+.accent { color: var(--accent); }
+.waiting::before {
+  content: ''; display: inline-block; width: 14px; height: 14px; margin-right: 8px; vertical-align: -2px;
+  border: 2px solid var(--accent); border-right-color: transparent; border-radius: 50%;
+  animation: turn 0.9s linear infinite;
+}
+@keyframes turn { to { transform: rotate(360deg); } }
+.viewfinder {
+  position: relative; aspect-ratio: 1; width: 100%; overflow: hidden;
+  border-radius: 14px; background: #000;
+}
+.viewfinder video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.viewfinder::after {
+  content: ''; position: absolute; inset: 12%;
+  border: 3px solid rgb(255 255 255 / 0.85); border-radius: 16px;
+  box-shadow: 0 0 0 999px rgb(0 0 0 / 0.25);
+}

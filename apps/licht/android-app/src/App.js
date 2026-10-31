@@ -107,6 +107,9 @@ export default function App() {
           setSupportMultipleWindows={false}
           overScrollMode="never"
           cacheEnabled={false}
+          // The QR scanner shows the camera picture right after the user tapped "QR-Code scannen"; Android asks
+          // for the camera permission itself (react-native-webview), the page never records anything.
+          mediaPlaybackRequiresUserAction={false}
         />
       </SafeAreaView>
     </SafeAreaProvider>

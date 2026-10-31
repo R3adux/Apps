@@ -6,9 +6,7 @@
   <title>Licht</title>
   <meta name="description" content="Lokale Steuerung für Matter-Lampen">
   <meta name="theme-color" content="#101217">
-  <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
   <script type="module" src="app.js"></script>
 </head>
@@ -24,10 +22,8 @@
         </button>
         <div id="menu" class="menu" role="menu" hidden>
           <button type="button" role="menuitem" data-action="add">Lampe hinzufügen</button>
+          <button type="button" role="menuitem" data-action="share-all">Alle Lampen teilen (QR-Code)</button>
           <button type="button" role="menuitem" data-action="refresh">Aktualisieren</button>
-          <button type="button" role="menuitem" data-action="demo-exit" hidden>Demo beenden</button>
-          <button type="button" role="menuitem" data-action="autostart" data-desktop hidden>Mit Windows starten</button>
-          <button type="button" role="menuitem" data-action="quit" data-desktop hidden>Licht beenden</button>
         </div>
       </div>
     </header>
@@ -42,12 +38,14 @@
   <dialog id="add-dialog" class="dialog">
     <form id="add-form" method="dialog">
       <h2>Lampe hinzufügen</h2>
-      <p class="muted">Den Matter-Code findest du auf der Lampe oder der Verpackung (11 Ziffern, z. B. <code>3497-011-2332</code>).
-        Ist die Lampe schon in einer anderen App (z. B. SMART+), erzeuge dort einen Code zum Teilen.</p>
+      <button type="button" id="scan-btn" class="btn primary scan-btn">QR-Code scannen</button>
+      <p class="muted small">Der QR-Code von der Lampe oder ihrer Verpackung – oder der, den ein anderes Licht
+        unter <b>Teilen</b> zeigt: dann kommen alle Lampen darin auf einmal dazu.</p>
       <label class="field">
-        <span>Matter-Code</span>
+        <span>Oder den Matter-Code eingeben (11 Ziffern, z. B. <code>3497-011-2332</code>)</span>
         <input name="code" required autocomplete="off" inputmode="numeric" placeholder="1234-567-8901">
       </label>
+      <p class="muted small">Ist die Lampe schon in einer anderen App (z. B. SMART+), erzeuge dort einen Code zum Teilen.</p>
       <div class="discover">
         <button type="button" id="discover-btn" class="btn ghost-border">Im Netz suchen</button>
         <span class="muted small">zeigt, ob die Lampe gerade koppelbar ist</span>
@@ -83,12 +81,36 @@
   <!-- Teilen -->
   <dialog id="share-dialog" class="dialog">
     <form method="dialog">
-      <h2>Mit anderem Gerät teilen</h2>
-      <p class="muted">Gib diesen Code in der Licht-App auf dem anderen Gerät unter <b>Lampe hinzufügen</b> ein.</p>
-      <p id="share-code" class="share-code"></p>
-      <p id="share-valid" class="muted"></p>
+      <h2 id="share-title">Teilen</h2>
+      <p id="share-preparing" class="muted waiting">Der Code wird vorbereitet – die Lampen werden zum Teilen geöffnet …</p>
+      <div id="share-ready" hidden>
+        <p class="muted">Auf dem anderen Gerät in Licht <b>Lampe hinzufügen → QR-Code scannen</b> wählen und diesen
+          Code scannen. Die Lampen müssen dort nicht neu eingerichtet werden.</p>
+        <div id="share-qr" class="share-qr" role="img" aria-label="QR-Code zum Teilen"></div>
+        <p id="share-lamps"></p>
+        <p id="share-skipped" class="accent" hidden></p>
+        <p id="share-valid" class="muted small"></p>
+        <div id="share-manual" hidden>
+          <p class="muted small">Für andere Matter-Apps (z. B. SMART+) stattdessen diese Ziffern eingeben:</p>
+          <p id="share-code" class="share-code"></p>
+        </div>
+      </div>
+      <p id="share-error" class="error" role="alert" hidden></p>
       <div class="dialog-actions">
+        <button type="button" id="share-copy" class="btn ghost" hidden>Code kopieren</button>
         <button type="submit" class="btn primary">Fertig</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- QR-Code scannen -->
+  <dialog id="scan-dialog" class="dialog">
+    <form method="dialog">
+      <h2>QR-Code scannen</h2>
+      <div class="viewfinder"><video id="scan-video" muted playsinline autoplay></video></div>
+      <p id="scan-status" class="muted">Halte die Kamera auf den QR-Code.</p>
+      <div class="dialog-actions">
+        <button type="submit" class="btn ghost">Abbrechen</button>
       </div>
     </form>
   </dialog>
@@ -112,7 +134,7 @@
   <!-- Lampen-Menü -->
   <div id="light-menu" class="menu light-menu" role="menu" hidden>
     <button type="button" role="menuitem" data-action="rename">Umbenennen</button>
-    <button type="button" role="menuitem" data-action="share">Mit anderem Gerät teilen</button>
+    <button type="button" role="menuitem" data-action="share">Teilen (QR-Code)</button>
     <button type="button" role="menuitem" data-action="remove" class="danger">Entfernen</button>
   </div>
 

@@ -181,7 +181,7 @@
                   BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="18" Padding="24" VerticalAlignment="Top">
             <StackPanel HorizontalAlignment="Center" MaxWidth="360">
               <TextBlock Text="Noch keine Lampen" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" />
-              <TextBlock Style="{StaticResource Muted}" TextAlignment="Center" Margin="0,8,0,16"
+              <TextBlock Style="{StaticResource MutedText}" TextAlignment="Center" Margin="0,8,0,16"
                          Text="Füge eine Lampe mit ihrem Matter-Code hinzu – oder mit dem Code, mit dem ein anderes Licht seine Lampen teilt." />
               <Button Style="{StaticResource Btn.Primary}" Content="Lampe hinzufügen" Command="{Binding AddCommand}" HorizontalAlignment="Center" />
             </StackPanel>
@@ -190,7 +190,7 @@
           <StackPanel Visibility="{Binding IsLoading, Converter={StaticResource VisibleIf}}" Orientation="Horizontal"
                       HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,40,0,0">
             <local:Spinner />
-            <TextBlock Text="Lampen werden geladen …" Style="{StaticResource Muted}" Margin="10,0,0,0" VerticalAlignment="Center" />
+            <TextBlock Text="Lampen werden geladen …" Style="{StaticResource MutedText}" Margin="10,0,0,0" VerticalAlignment="Center" />
           </StackPanel>
         </Grid>
       </ScrollViewer>

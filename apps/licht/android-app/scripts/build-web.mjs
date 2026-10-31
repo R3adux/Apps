@@ -20,7 +20,6 @@ const css = readFileSync(join(web, 'style.css'), 'utf8');
 const icon = `data:image/svg+xml;base64,${readFileSync(join(web, 'icon.svg')).toString('base64')}`;
 
 let html = readFileSync(join(web, 'index.html'), 'utf8')
-  .replace(/<link rel="(manifest|apple-touch-icon)"[^>]*>\n?/g, '')
   .replace('<link rel="icon" href="icon.svg" type="image/svg+xml">', `<link rel="icon" href="${icon}">`)
   .replace('<link rel="stylesheet" href="style.css">', `<style>${css}</style>`)
   .replace('<script type="module" src="app.js"></script>', '');

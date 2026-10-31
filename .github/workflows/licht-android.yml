@@ -8,6 +8,7 @@ on:
       - 'apps/licht/web/**'
       - 'apps/licht/android-app/**'
       - 'apps/licht/test/support/**'
+      - 'apps/licht/package*.json'
       - '.github/workflows/licht-android.yml'
       - '.github/scripts/licht-android-selftest.sh'
   workflow_dispatch:
@@ -40,7 +41,9 @@ jobs:
           cache: gradle
 
       - name: Abhängigkeiten
-        run: npm ci
+        run: |
+          (cd .. && npm ci)
+          npm ci
 
       - name: Native Bausteine vollständig?
         run: node scripts/check-native-deps.mjs
@@ -49,9 +52,7 @@ jobs:
         run: node scripts/build-web.mjs
 
       - name: Schnelltest (Matter-Teil wie in der App verpackt, mit simulierter Lampe)
-        run: |
-          (cd .. && npm ci)
-          npm run probe
+        run: npm run probe
 
       - name: APK bauen
         working-directory: apps/licht/android-app/android

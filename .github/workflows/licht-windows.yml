@@ -47,7 +47,7 @@ jobs:
         run: dotnet test --project Licht.Fenster.Tests
 
       - name: Tests (Node)
-        run: node --test --test-concurrency=1 test/model.test.js test/pairing.test.js test/api.test.js test/color.test.js test/hub.test.js test/pc.test.js test/windows.test.js
+        run: node --test --test-concurrency=1 test/model.test.js test/pairing.test.js test/api.test.js test/color.test.js test/qr.test.js test/fenster-xaml.test.js test/hub.test.js test/pc.test.js test/windows.test.js
 
       - name: Licht.exe bauen
         run: node scripts/build-exe.mjs
