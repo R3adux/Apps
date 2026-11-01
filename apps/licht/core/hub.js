@@ -74,6 +74,10 @@ function withTimeout(promise, ms, message, status = 503) {
 }
 
 
+// The lamp answered that it already belongs to this Licht (same fabric): nothing to add.
+const alreadyInLicht = (err) => err?.name === 'DeviceAlreadyCommissionedToThisFabricError'
+  || /already commissioned into this fabric|device-already-commissioned-to-this-fabric/i.test(String(err?.message ?? err));
+
 // Turns matter.js commissioning errors into hints a person can act on.
 export function commissioningError(err) {
   const text = String(err?.message ?? err);
@@ -312,8 +316,10 @@ export class LightHub {
           const search = single ? COMMISSIONING_TIMEOUT : SHARED_LAMP_SEARCH;
           result.added.push(await this.#commission(entry, { address, wifi, search }));
         } catch (err) {
-          if (single) throw err;
-          result.failed.push({ index, message: err.message });
+          // Not recognised by its address (a PC with several network addresses), but the lamp itself says so.
+          if (err.alreadyInLicht) result.present++;
+          else if (single) throw err;
+          else result.failed.push({ index, message: err.message });
         }
       }
     } finally {
@@ -359,12 +365,17 @@ export class LightHub {
         try {
           nodeId = await run(address);
         } catch (err) {
+          if (alreadyInLicht(err)) throw err;
           // The lamp may have another address or port by now – find it via the network instead.
           logger.warn(`Commissioning via ${address.ip}:${address.port} failed, searching the network instead:`, err);
         }
       }
       nodeId ??= await run(undefined);
     } catch (err) {
+      if (alreadyInLicht(err)) {
+        logger.info('Lamp is already in Licht');
+        throw Object.assign(new Error('Diese Lampe ist schon in Licht.'), { status: 409, alreadyInLicht: true });
+      }
       logger.warn('Commissioning failed', err);
       throw commissioningError(err);
     }

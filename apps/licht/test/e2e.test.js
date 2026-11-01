@@ -121,6 +121,9 @@ test('all lamps shared with one code are added by another Licht in one go', { ti
     // The same code again: the lamps are recognised as already there (no second setup).
     const again = await phone.add({ code: (await pc.share()).code });
     assert.deepEqual([again.added, again.present], [[], 2]);
+    // Without an address to recognise it (the 11 digits): the lamp itself says it already belongs to this Licht.
+    const digits = await phone.add({ code: (await pc.share([ids[0]])).manual });
+    assert.deepEqual([digits.added, digits.present, digits.failed], [[], 1, []]);
     assert.equal(phone.lights().length, 2);
   } finally {
     for (const hub of hubs) await hub.close().catch(() => {});

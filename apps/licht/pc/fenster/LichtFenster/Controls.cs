@@ -38,8 +38,8 @@ namespace LichtFenster
     }
 
     /// <summary>
-    /// The lamp cards: as many columns of at least <see cref="MinColumnWidth"/> as fit, each row as high as its
-    /// highest card (like the CSS grid of the phone app).
+    /// The lamp cards: as many columns of at least <see cref="MinColumnWidth"/> as fit; a row is as high as its
+    /// highest card, each card as high as its content.
     /// </summary>
     public sealed class CardPanel : Panel
     {
@@ -77,8 +77,9 @@ namespace LichtFenster
                 var end = Math.Min(start + columns, InternalChildren.Count);
                 double row = 0;
                 for (var i = start; i < end; i++) row = Math.Max(row, InternalChildren[i].DesiredSize.Height);
+                // Each card keeps its own height (a lamp that is off is short), the next row starts below the highest.
                 for (var i = start; i < end; i++)
-                    InternalChildren[i].Arrange(new Rect((i - start) * (columnWidth + Gap), y, columnWidth, row));
+                    InternalChildren[i].Arrange(new Rect((i - start) * (columnWidth + Gap), y, columnWidth, InternalChildren[i].DesiredSize.Height));
                 y += row + Gap;
             }
             return final;
