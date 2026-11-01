@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -49,7 +50,17 @@ namespace LichtFenster
         {
             var previousFocus = Keyboard.FocusedElement as IInputElement;
             var card = new Border { Style = (Style)FindResource("DialogCard"), Child = content };
-            var layer = new Grid { Children = { card } };
+            // In a small window a tall dialog can be scrolled; otherwise it sits in the middle.
+            var holder = new Grid { Children = { card } };
+            var scroller = new ScrollViewer
+            {
+                Content = holder,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                Focusable = false,
+            };
+            holder.SetBinding(MinHeightProperty, new Binding(nameof(ScrollViewer.ViewportHeight)) { Source = scroller });
+            var layer = new Grid { Children = { scroller } };
             layer.SetResourceReference(Panel.BackgroundProperty, "Backdrop");
             KeyboardNavigation.SetTabNavigation(layer, KeyboardNavigationMode.Cycle);
             KeyboardNavigation.SetControlTabNavigation(layer, KeyboardNavigationMode.Cycle);

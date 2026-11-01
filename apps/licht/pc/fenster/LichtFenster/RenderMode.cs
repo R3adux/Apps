@@ -74,6 +74,12 @@ namespace LichtFenster
                 s.Hub.Answer("share", _ => Json.Parse("""{"code":"MT:Y.K90AFN00KA0648G00","manual":"34970112332","lamps":["Wohnzimmer"],"skipped":[],"validMinutes":15}"""));
                 s.Main.Lamps[0].ShareCommand.Execute(null);
             }, height: 860);
+            Shot("teilen-eine-kleines-fenster", s =>
+            {
+                s.Lamps(SampleLamps);
+                s.Hub.Answer("share", _ => Json.Parse("""{"code":"MT:Y.K90AFN00KA0648G00","manual":"34970112332","lamps":["Wohnzimmer"],"skipped":[],"validMinutes":15}"""));
+                s.Main.Lamps[0].ShareCommand.Execute(null);
+            }, height: 520);
             Shot("entfernen", s =>
             {
                 s.Lamps(SampleLamps);
@@ -129,13 +135,20 @@ namespace LichtFenster
         {
             FrameworkElement root = view;
             if (view.Tag is FrameworkElement replacement) root = replacement;
+            // Some bindings of freshly made cards only resolve a moment later (dispatcher), and change the
+            // height: lay out until the size no longer changes.
             var size = new Size(width, height ?? double.PositiveInfinity);
-            root.Measure(size);
-            var final = new Size(width, height ?? root.DesiredSize.Height);
-            root.Arrange(new Rect(final));
-            root.UpdateLayout();
-            DoEvents();
-            root.UpdateLayout();
+            var final = Size.Empty;
+            for (var pass = 0; pass < 5; pass++)
+            {
+                root.Measure(size);
+                var next = new Size(width, height ?? Math.Ceiling(root.DesiredSize.Height));
+                root.Arrange(new Rect(next));
+                root.UpdateLayout();
+                DoEvents();
+                if (next == final) break;
+                final = next;
+            }
             var bitmap = new RenderTargetBitmap((int)Math.Ceiling(final.Width), (int)Math.Ceiling(final.Height), 96, 96, PixelFormats.Pbgra32);
             var background = new DrawingVisual();
             using (var dc = background.RenderOpen())

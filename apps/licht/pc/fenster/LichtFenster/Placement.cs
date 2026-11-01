@@ -13,7 +13,7 @@ namespace LichtFenster
     internal sealed class Placement
     {
         public const double DefaultWidth = 460;
-        public const double DefaultHeight = 680;
+        public const double DefaultHeight = 720;
         private const double Margin = 12;
 
         private readonly string? _file;

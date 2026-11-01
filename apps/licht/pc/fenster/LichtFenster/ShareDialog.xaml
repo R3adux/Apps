@@ -14,7 +14,7 @@
 
     <StackPanel Visibility="{Binding HasCode, Converter={StaticResource VisibleIf}}">
       <TextBlock Style="{StaticResource MutedText}" Margin="0,10,0,0"
-                 Text="Auf dem anderen Gerät in Licht „Lampe hinzufügen“ wählen und diesen QR-Code scannen. Die Lampen müssen dort nicht neu eingerichtet werden." />
+                 Text="Auf dem anderen Gerät in Licht „Lampe hinzufügen → QR-Code scannen“ wählen – die Lampen müssen dort nicht neu eingerichtet werden. Ein PC ohne Kamera: „Code kopieren“ und dort unter „Lampe hinzufügen“ einfügen." />
       <local:QrView x:Name="Code" Matrix="{Binding Matrix}" MaxSize="300" Margin="0,16,0,0" HorizontalAlignment="Stretch"
                     AutomationProperties.Name="QR-Code zum Teilen" />
       <TextBlock Text="{Binding LampsText}" TextWrapping="Wrap" Margin="0,14,0,0" />

@@ -116,9 +116,10 @@ jobs:
           $started = Get-Date
           $proc = Start-Process -FilePath $exe -PassThru
 
-          Wait 'Fenster bereit' { Select-String -Path $log -Pattern 'Fenster: Fenster bereit' -Quiet -ErrorAction SilentlyContinue } | Out-Null
+          function InLog($pattern) { (Test-Path $log) -and (Select-String -Path $log -Pattern $pattern -Quiet) }
+          Wait 'Fenster bereit' { InLog 'Fenster: Fenster bereit' } | Out-Null
           "Fenster bereit nach $([math]::Round(((Get-Date) - $started).TotalSeconds, 1)) s"
-          Wait 'Licht läuft' { Select-String -Path $log -Pattern 'Licht läuft \(' -Quiet -ErrorAction SilentlyContinue } 60 | Out-Null
+          Wait 'Licht läuft' { InLog 'Licht läuft \(' } 60 | Out-Null
           "Lampen-Teil bereit nach $([math]::Round(((Get-Date) - $started).TotalSeconds, 1)) s"
 
           $window = Get-CimInstance Win32_Process -Filter "Name='LichtFenster.exe'" | Where-Object { $_.ParentProcessId -eq $proc.Id }
