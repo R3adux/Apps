@@ -2,10 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { AppState, Linking, StatusBar, StyleSheet } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
-import { Logger } from '@matter/main';
-import { LightHub } from '../../core/hub.js';
 import { eventScript, handleCall, injectedApi, replyScript } from './bridge';
-import { selfTest } from './selftest';
 import webHtml from './web-html';
 
 const BACKGROUND = '#101217';
@@ -19,14 +16,27 @@ const PAGE_HTML = webHtml.replace('</head>', () => `<script>${injectedApi}</scri
 // After this long in the background, connections may be stale: check them right away.
 const STALE_AFTER_MS = 15_000;
 
-// Quiet by default; the self-test turns on more detail (see selftest.js).
-Logger.level = 'warn';
-
-// One hub for the whole app lifetime. Starting is quick: lamps are loaded from storage,
-// connecting to them happens in the background.
-const hub = new LightHub({ label: 'Licht Handy', id: 'licht-android' });
-const hubReady = hub.start();
-hubReady.catch((err) => console.error('Licht: Matter konnte nicht starten', err));
+// matter.js is loaded right after the first frame, not at start: evaluating it takes a moment (seconds on
+// a slow phone), and until then the page already shows the lamps as last seen. Taps wait for the hub.
+// One hub for the whole app lifetime; starting it is quick (lamps come from storage, connecting happens
+// in the background).
+let loading = null;
+function loadHub() {
+  if (!loading) {
+    loading = new Promise((resolve) => setTimeout(resolve, 0)).then(() => {
+      const since = Date.now();
+      const matter = require('./matter');
+      console.log(`LICHT_TIMING matter.js loaded in ${Date.now() - since} ms`);
+      const hub = matter.createHub();
+      const ready = hub.start().then(() => hub);
+      ready.catch((err) => console.error('Licht: Matter konnte nicht starten', err));
+      return { matter, hub, ready };
+    });
+    loading.catch((err) => console.error('LICHT_SELFTEST FAIL matter.js not loaded', err));
+  }
+  return loading;
+}
+const hubReady = () => loadHub().then(({ ready }) => ready);
 
 let pageConnected = false;
 
@@ -34,10 +44,21 @@ export default function App() {
   const webView = useRef(null);
   const send = (script) => webView.current?.injectJavaScript(script);
 
-  // Live updates from the lamps → page
-  useEffect(() => hub.subscribe((event) => {
-    send(eventScript(event.type === 'lights' ? { type: 'lights', lights: hub.lights() } : event));
-  }), []);
+  // Live updates from the lamps → page (this also starts loading matter.js, after the first frame)
+  useEffect(() => {
+    let unsubscribe = () => {};
+    let gone = false;
+    loadHub().then(({ hub }) => {
+      if (gone) return;
+      unsubscribe = hub.subscribe((event) => {
+        send(eventScript(event.type === 'lights' ? { type: 'lights', lights: hub.lights() } : event));
+      });
+    }, () => {});
+    return () => {
+      gone = true;
+      unsubscribe();
+    };
+  }, []);
 
   // Back from the background: make sure the lamps still answer (and reconnect those that do not)
   // instead of waiting for a timeout. After a quick switch only lamps that are not connected are retried.
@@ -45,13 +66,13 @@ export default function App() {
     let backgroundSince = 0;
     const subscription = AppState.addEventListener('change', (state) => {
       if (state !== 'active') {
-        if (!backgroundSince) hubReady.then(() => hub.pause(), () => {});
+        if (!backgroundSince) hubReady().then((hub) => hub.pause(), () => {});
         backgroundSince ||= Date.now();
         return;
       }
       const stale = Boolean(backgroundSince) && Date.now() - backgroundSince > STALE_AFTER_MS;
       backgroundSince = 0;
-      hubReady.then(() => {
+      hubReady().then((hub) => {
         hub.resume({ checkAll: stale });
         send(eventScript({ type: 'lights', lights: hub.lights() }));
       }, () => {});
@@ -62,7 +83,8 @@ export default function App() {
   // Automated test (CI): licht://selftest?code=…&ip=…
   useEffect(() => {
     Linking.getInitialURL().then((url) => {
-      if (url?.startsWith('licht://selftest')) selfTest(hub, hubReady, url);
+      if (!url?.startsWith('licht://selftest')) return;
+      loadHub().then(({ matter, hub, ready }) => matter.selfTest(hub, ready, url), () => {});
     });
   }, []);
 
@@ -79,7 +101,7 @@ export default function App() {
       console.log('LICHT_PAGE connected'); // the page talks to the hub (checked by the emulator test)
     }
     try {
-      await hubReady;
+      const hub = await hubReady();
       const result = await handleCall(hub, method, args ?? []);
       send(replyScript(id, true, result));
     } catch (err) {

@@ -1,6 +1,6 @@
 // Connects the web UI (running in a WebView) with the Matter hub running in the app.
 // The page gets window.LichtApi; its calls are the ones in core/api.js (the same as the Windows app's).
-import { callHub } from '../../core/api.js';
+// Nothing of matter.js is imported here: the page must come up before matter.js is loaded (see App.js).
 
 export const injectedApi = `
 (function () {
@@ -52,7 +52,7 @@ true;
 /** Runs a call from the page against the hub. Returns a promise of the result. */
 export async function handleCall(hub, method, args) {
   if (method === 'info') return { ble: false };
-  return callHub(hub, method, args);
+  return require('../../core/api.js').callHub(hub, method, args); // loaded with matter.js by now
 }
 
 /** Script that delivers a reply or event into the page. */

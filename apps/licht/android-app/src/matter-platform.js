@@ -1,12 +1,8 @@
 // Sets up matter.js for React Native (network, storage, crypto) – see @matter/react-native.
-import NetInfo from '@react-native-community/netinfo';
+import './no-internet-checks';
 import '@matter/react-native';
 import { ReactNativeCrypto, ReactNativeWebStorageDriver } from '@matter/react-native';
 import { Crypto, Entropy, Environment, StorageService } from '@matter/main';
-
-// matter.js asks NetInfo for the Wi-Fi address. NetInfo would otherwise sometimes check the
-// internet connection by calling a Google server – Licht stays in the home network.
-NetInfo.configure({ reachabilityShouldRun: () => false, useNativeReachability: true });
 
 const environment = Environment.default;
 
