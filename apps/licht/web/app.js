@@ -378,7 +378,9 @@ $('#add-form').addEventListener('submit', async (event) => {
   const form = event.target;
   const { code, ip, ssid, password } = Object.fromEntries(new FormData(form));
   const button = form.querySelector('[type=submit]');
+  if (button.disabled) return; // already adding
   button.disabled = true;
+  $('#scan-btn').disabled = true;
   $('#add-error').hidden = true;
   $('#add-progress').textContent = /^\s*MT:/i.test(code)
     ? 'Lampen werden hinzugefügt …'
@@ -403,6 +405,7 @@ $('#add-form').addEventListener('submit', async (event) => {
     $('#add-error').hidden = false;
   } finally {
     button.disabled = false;
+    $('#scan-btn').disabled = false;
     $('#add-progress').hidden = true;
   }
 });
@@ -440,7 +443,9 @@ $('#scan-btn').addEventListener('click', () => {
 /* ---------- Sharing: a QR code another Licht scans ---------- */
 
 let sharedCode = null;
+let shareRequest = 0; // a late answer to an earlier share must not replace the current one
 async function share(ids, title) {
+  const request = ++shareRequest;
   const dialog = $('#share-dialog');
   $('#share-title').textContent = title;
   $('#share-preparing').hidden = false;
@@ -451,6 +456,7 @@ async function share(ids, title) {
   dialog.showModal();
   try {
     const { code, manual, lamps = [], skipped = [], validMinutes } = await api.share(ids);
+    if (request !== shareRequest) return;
     sharedCode = code;
     $('#share-qr').innerHTML = qrSvg(code);
     $('#share-lamps').textContent = lamps.length === 1 ? `Enthält: ${lamps[0]}` : `Enthält ${lamps.length} Lampen: ${lamps.join(', ')}`;
@@ -462,10 +468,11 @@ async function share(ids, title) {
     $('#share-ready').hidden = false;
     $('#share-copy').hidden = false;
   } catch (err) {
+    if (request !== shareRequest) return;
     $('#share-error').textContent = err.message;
     $('#share-error').hidden = false;
   } finally {
-    $('#share-preparing').hidden = true;
+    if (request === shareRequest) $('#share-preparing').hidden = true;
   }
 }
 
