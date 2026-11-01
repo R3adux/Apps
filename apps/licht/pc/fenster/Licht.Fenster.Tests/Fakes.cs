@@ -69,7 +69,11 @@ public sealed class FakeUi : IUi
     public (string Title, string Text)? Fatal { get; private set; }
 
     public Task<string?> AskText(string title, string label, string value, string okLabel) => Task.FromResult((string?)Answers.Dequeue());
-    public Task<bool> Confirm(string title, string text, string okLabel, bool danger) => Task.FromResult((bool)Answers.Dequeue()!);
+    public Task<bool> Confirm(string title, string text, string okLabel, bool danger)
+    {
+        Confirms.Add((title, text));
+        return Task.FromResult((bool)Answers.Dequeue()!);
+    }
 
     public Task Notice(string title, string text)
     {
@@ -91,6 +95,17 @@ public sealed class FakeUi : IUi
     {
         Share = share;
         share.CopyToClipboard = text => Clipboard = text;
+        var closed = DialogClosed = new TaskCompletionSource<bool>();
+        share.CloseRequested += () => closed.TrySetResult(true);
+        return closed.Task;
+    }
+
+    public ConnectionsViewModel? Connections { get; private set; }
+    public List<(string Title, string Text)> Confirms { get; } = new();
+
+    public Task ShowConnections(ConnectionsViewModel connections)
+    {
+        Connections = connections;
         DialogClosed = new TaskCompletionSource<bool>();
         return DialogClosed.Task;
     }

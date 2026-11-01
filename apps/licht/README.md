@@ -112,6 +112,15 @@ Damit nicht jeder alle Lampen neu einrichten muss: Hat ein Gerät die Lampen sch
   11 Ziffern zum Abtippen – die gehen auch in anderen Matter-Apps (z. B. SMART+).
 - Lampen, die beim Teilen gerade nicht erreichbar sind, sind nicht dabei; Licht sagt, welche.
 
+### Verbundene Apps (wenn eine Lampe „voll“ ist)
+
+Eine Matter-Lampe nimmt nur wenige Apps auf – die SMART+ A60 höchstens **5** (z. B. SMART+, Google Home, Licht am
+PC, Licht am Handy …). Ist sie voll, kann kein weiteres Gerät sie hinzufügen; Licht sagt das beim Teilen.
+Dann im Lampen-Menü **⋮ → Verbundene Apps …** nachsehen: Dort steht jede App, die die Lampe steuern darf, und
+nicht mehr benutzte (z. B. eine frühere Installation von Licht) lassen sich **entfernen** – ohne die Lampe
+zurückzusetzen. Jedes Licht heißt dort mit einem eigenen Kürzel, z. B. „Licht PC 3F2A“ oder „Licht Handy 08E1“,
+und sich selbst zeigt es als „Dieses Licht“.
+
 ## Wenn etwas nicht klappt
 
 | Problem | Lösung |
@@ -120,6 +129,7 @@ Damit nicht jeder alle Lampen neu einrichten muss: Hat ein Gerät die Lampen sch
 | „Verbinde …“ | Licht baut die Verbindung zur Lampe gerade (wieder) auf, z. B. nach dem Start oder wenn die Lampe Strom bekommt. Dauert meist nur Sekunden; schalten kannst du trotzdem. |
 | „Nicht erreichbar“ | Lampe hat keinen Strom, oder Gerät und Lampe sind in verschiedenen Netzen (z. B. Gäste-WLAN). Sobald sie wieder da ist, verbindet Licht sich von selbst. |
 | Geteilter Code geht nicht | Er gilt 15 Minuten und für jede Lampe einmal: auf dem anderen Gerät neu teilen. |
+| „Schon mit 5 Apps verbunden“ | Die Lampe ist voll: **⋮ → Verbundene Apps …** und eine nicht mehr benutzte App entfernen (siehe oben). |
 | Handy: Kamera geht nicht | Android-Einstellungen → Apps → Licht → Berechtigungen → Kamera erlauben. |
 | PC: Licht startet nicht | Meldung lesen; Details in `C:\Users\<Name>\.licht\licht.log`. |
 

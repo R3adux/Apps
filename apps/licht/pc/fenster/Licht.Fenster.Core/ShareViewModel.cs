@@ -12,6 +12,8 @@ namespace Licht.Fenster
         public string? Manual { get; set; }
         public IReadOnlyList<string> Lamps { get; set; } = Array.Empty<string>();
         public IReadOnlyList<string> Skipped { get; set; } = Array.Empty<string>();
+        /// <summary>Lamps left out because they take no further app (see ConnectionsViewModel).</summary>
+        public IReadOnlyList<string> Full { get; set; } = Array.Empty<string>();
         public int ValidMinutes { get; set; } = 15;
 
         public static ShareInfo FromJson(IDictionary<string, object?> o) => new ShareInfo
@@ -20,6 +22,7 @@ namespace Licht.Fenster
             Manual = o.Str("manual"),
             Lamps = o.Arr("lamps")?.OfType<string>().ToList() ?? new List<string>(),
             Skipped = o.Arr("skipped")?.OfType<string>().ToList() ?? new List<string>(),
+            Full = o.Arr("full")?.OfType<string>().ToList() ?? new List<string>(),
             ValidMinutes = o.Int("validMinutes", 15),
         };
     }
@@ -37,6 +40,25 @@ namespace Licht.Fenster
         {
             Title = title;
             CopyCommand = new Command(Copy, () => _info != null);
+            ConnectionsCommand = new Command(OpenConnections, () => _openConnections != null);
+        }
+
+        private Action? _openConnections;
+
+        /// <summary>Sharing failed because the lamp is full: the button that leads to its connected apps.</summary>
+        public bool CanOpenConnections => _openConnections != null;
+
+        public ICommand ConnectionsCommand { get; }
+
+        /// <summary>Raised when the dialog should close (it hands over to another dialog).</summary>
+        public event Action? CloseRequested;
+
+        private void OpenConnections()
+        {
+            var open = _openConnections;
+            if (open == null) return;
+            CloseRequested?.Invoke();
+            open();
         }
 
         public string Title { get; }
@@ -59,6 +81,10 @@ namespace Licht.Fenster
         public string? SkippedText => _info == null || _info.Skipped.Count == 0 ? null
             : $"Nicht dabei, weil gerade nicht erreichbar: {string.Join(", ", _info.Skipped)}. Später noch einmal teilen.";
 
+        public string? FullText => _info == null || _info.Full.Count == 0 ? null
+            : $"Nicht dabei, weil schon mit so vielen Apps verbunden, wie sie kann: {string.Join(", ", _info.Full)}. "
+              + "Im Lampen-Menü ⋮ unter „Verbundene Apps“ eine nicht mehr benutzte App entfernen, dann neu teilen.";
+
         public string ValidText => _info == null ? "" : $"Gültig für {_info.ValidMinutes} Minuten. Jede Lampe lässt sich mit diesem Code einmal hinzufügen.";
 
         public ICommand CopyCommand { get; }
@@ -71,14 +97,17 @@ namespace Licht.Fenster
             _info = info;
             Matrix = Qr.Matrix(info.Code);
             OnPropertiesChanged(nameof(Preparing), nameof(HasCode), nameof(Matrix), nameof(Code), nameof(ManualCode),
-                nameof(LampsText), nameof(SkippedText), nameof(ValidText));
+                nameof(LampsText), nameof(SkippedText), nameof(FullText), nameof(ValidText));
             ((Command)CopyCommand).Refresh();
         }
 
-        internal void Failed(string message)
+        /// <param name="openConnections">Way out when the lamp is full (the "Verbundene Apps" button), or null.</param>
+        internal void Failed(string message, Action? openConnections = null)
         {
             _error = message;
-            OnPropertiesChanged(nameof(Preparing), nameof(Error));
+            _openConnections = openConnections;
+            OnPropertiesChanged(nameof(Preparing), nameof(Error), nameof(CanOpenConnections));
+            ((Command)ConnectionsCommand).Refresh();
         }
 
         private void Copy()

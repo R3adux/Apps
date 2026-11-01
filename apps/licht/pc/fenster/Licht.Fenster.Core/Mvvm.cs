@@ -96,6 +96,9 @@ namespace Licht.Fenster
         /// <summary>Shows the share dialog; completes when it is closed.</summary>
         Task ShowShare(ShareViewModel share);
 
+        /// <summary>Shows the apps connected to a lamp; completes when the dialog is closed.</summary>
+        Task ShowConnections(ConnectionsViewModel connections);
+
         /// <summary>Licht cannot run: show it; the window program ends afterwards.</summary>
         Task ShowFatal(string title, string text);
 

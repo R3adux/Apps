@@ -20,6 +20,8 @@
       <TextBlock Text="{Binding LampsText}" TextWrapping="Wrap" Margin="0,14,0,0" />
       <TextBlock Text="{Binding SkippedText}" TextWrapping="Wrap" Foreground="{DynamicResource Accent}" Margin="0,6,0,0"
                  Visibility="{Binding SkippedText, Converter={StaticResource VisibleIfAny}}" />
+      <TextBlock Text="{Binding FullText}" TextWrapping="Wrap" Foreground="{DynamicResource Accent}" Margin="0,6,0,0"
+                 Visibility="{Binding FullText, Converter={StaticResource VisibleIfAny}}" />
       <TextBlock Style="{StaticResource SmallText}" Text="{Binding ValidText}" Margin="0,6,0,0" />
       <StackPanel Visibility="{Binding ManualCode, Converter={StaticResource VisibleIfAny}}" Margin="0,14,0,0">
         <TextBlock Style="{StaticResource SmallText}" Text="Für andere Matter-Apps (z. B. SMART+) stattdessen diese Ziffern eingeben:" />
@@ -32,6 +34,8 @@
                AutomationProperties.AutomationId="Fehler" />
 
     <StackPanel Style="{StaticResource DialogButtons}">
+      <Button Style="{StaticResource Btn.Ghost}" Content="Verbundene Apps …" Command="{Binding ConnectionsCommand}" Margin="0,0,8,0"
+              Visibility="{Binding CanOpenConnections, Converter={StaticResource VisibleIf}}" />
       <Button Style="{StaticResource Btn.Ghost}" Content="Code kopieren" Command="{Binding CopyCommand}" Margin="0,0,8,0"
               Visibility="{Binding HasCode, Converter={StaticResource VisibleIf}}"
               ToolTip="Den Code als Text kopieren – zum Einfügen in Licht auf einem anderen PC." />

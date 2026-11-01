@@ -91,6 +91,18 @@ namespace LichtFenster
             Action close = () => { };
             Action done = () => { close(); result.TrySetResult(true); };
             dialog.CloseClicked += done;
+            share.CloseRequested += done;
+            close = _view.ShowDialog(dialog, done, dialog.FirstFocus);
+            return result.Task;
+        }
+
+        public Task ShowConnections(ConnectionsViewModel connections)
+        {
+            var dialog = new ConnectionsDialog(connections);
+            var result = new TaskCompletionSource<bool>();
+            Action close = () => { };
+            Action done = () => { close(); result.TrySetResult(true); };
+            dialog.CloseClicked += done;
             close = _view.ShowDialog(dialog, done, dialog.FirstFocus);
             return result.Task;
         }

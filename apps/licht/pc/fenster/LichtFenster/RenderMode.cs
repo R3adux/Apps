@@ -65,7 +65,7 @@ namespace LichtFenster
             Shot("teilen-alle", s =>
             {
                 s.Lamps(SampleLamps);
-                s.Hub.Answer("share", _ => Json.Parse("""{"code":"MT:Y.K90AFN00KA0648G00*Y.K90AFN00KA0648G00*Y.K90AFN00KA0648G00","lamps":["Wohnzimmer","Leselampe","Flur"],"skipped":["Balkon"],"validMinutes":15}"""));
+                s.Hub.Answer("share", _ => Json.Parse("""{"code":"MT:Y.K90AFN00KA0648G00*Y.K90AFN00KA0648G00*Y.K90AFN00KA0648G00","lamps":["Wohnzimmer","Leselampe"],"skipped":["Balkon"],"full":["Flur"],"validMinutes":15}"""));
                 s.Main.ShareAllCommand.Execute(null);
             }, height: 820);
             Shot("teilen-eine", s =>
@@ -78,6 +78,18 @@ namespace LichtFenster
             {
                 s.Lamps(SampleLamps);
                 s.Hub.Answer("share", _ => Json.Parse("""{"code":"MT:Y.K90AFN00KA0648G00","manual":"34970112332","lamps":["Wohnzimmer"],"skipped":[],"validMinutes":15}"""));
+                s.Main.Lamps[0].ShareCommand.Execute(null);
+            }, height: 520);
+            Shot("verbundene-apps", s =>
+            {
+                s.Lamps(SampleLamps);
+                s.Hub.Answer("connections", _ => Json.Parse("""{"supported":5,"entries":[{"index":1,"name":"Licht PC 3F2A","own":true},{"index":2,"name":"SMART+","own":false},{"index":3,"name":"Licht Handy 08E1","own":false},{"index":4,"name":"Licht Handy 63C4","own":false},{"index":5,"name":"App ohne Namen (z. B. ein älteres Licht)","own":false}]}"""));
+                s.Main.Lamps[0].ConnectionsCommand.Execute(null);
+            }, height: 820);
+            Shot("teilen-lampe-voll", s =>
+            {
+                s.Lamps(SampleLamps);
+                s.Hub.Answer("share", _ => throw new HubException("Die Lampe ist schon mit 5 Apps verbunden – mehr als 5 geht bei ihr nicht. Im Lampen-Menü ⋮ unter „Verbundene Apps“ eine nicht mehr benutzte Verbindung entfernen (z. B. von einer früheren Installation), dann neu teilen.", 409));
                 s.Main.Lamps[0].ShareCommand.Execute(null);
             }, height: 520);
             Shot("entfernen", s =>
@@ -231,6 +243,7 @@ namespace LichtFenster
             }
 
             public Task ShowShare(ShareViewModel share) => _ui.ShowShare(share);
+            public Task ShowConnections(ConnectionsViewModel connections) => _ui.ShowConnections(connections);
             public Task ShowFatal(string title, string text) => _ui.ShowFatal(title, text);
             public void CopyToClipboard(string text) { }
             public void BringToFront() { }

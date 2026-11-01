@@ -283,6 +283,17 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 6px; font-
 
 .quit { max-width: 480px; margin: 20vh auto 0; text-align: center; display: flex; flex-direction: column; gap: 12px; }
 
+/* Connected apps of a lamp */
+.connections { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.connections li {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface-2); border-radius: 12px; padding: 10px 12px;
+}
+.connections .who { flex: 1; min-width: 0; }
+.connections .name { font-weight: 600; overflow-wrap: anywhere; }
+.connections .own .detail { color: var(--accent); }
+.btn.remove { color: var(--danger); background: transparent; padding: 8px 12px; font-size: 0.9rem; }
+
 /* Sharing and scanning QR codes */
 .scan-btn { width: 100%; }
 .share-qr { background: #fff; border-radius: 12px; padding: 8px; width: min(100%, 300px); margin: 4px auto; }

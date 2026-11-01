@@ -33,6 +33,13 @@ export async function callHub(hub, method, args = []) {
       const ids = args[0] === undefined || args[0] === null ? undefined : [args[0]].flat().map(id);
       return hub.share(ids);
     }
+    case 'connections':
+      return hub.connections(id(args[0]));
+    case 'removeConnection': {
+      const index = Number(args[1]);
+      if (!Number.isInteger(index) || index < 1 || index > 254) throw invalid('Verbindung fehlt.');
+      return hub.removeConnection(id(args[0]), index);
+    }
     case 'remove': {
       const { localOnly } = (await hub.remove(id(args[0]))) ?? {};
       return { ok: true, localOnly: Boolean(localOnly) };

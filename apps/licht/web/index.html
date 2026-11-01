@@ -89,6 +89,7 @@
         <div id="share-qr" class="share-qr" role="img" aria-label="QR-Code zum Teilen"></div>
         <p id="share-lamps"></p>
         <p id="share-skipped" class="accent" hidden></p>
+        <p id="share-full" class="accent" hidden></p>
         <p id="share-valid" class="muted small"></p>
         <div id="share-manual" hidden>
           <p class="muted small">Für andere Matter-Apps (z. B. SMART+) stattdessen diese Ziffern eingeben:</p>
@@ -97,7 +98,26 @@
       </div>
       <p id="share-error" class="error" role="alert" hidden></p>
       <div class="dialog-actions">
+        <button type="button" id="share-connections" class="btn ghost" hidden>Verbundene Apps …</button>
         <button type="button" id="share-copy" class="btn ghost" hidden>Code kopieren</button>
+        <button type="submit" class="btn primary">Fertig</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Verbundene Apps einer Lampe -->
+  <dialog id="connections-dialog" class="dialog">
+    <form method="dialog">
+      <h2 id="connections-title">Verbundene Apps</h2>
+      <p class="muted small">Diese Apps dürfen die Lampe steuern. Eine Lampe nimmt nur wenige auf – ist sie voll, kann
+        kein weiteres Gerät sie hinzufügen. Einträge von Apps, die du nicht mehr benutzt (z. B. eine frühere Installation
+        von Licht), kannst du hier entfernen.</p>
+      <p id="connections-loading" class="muted waiting">Die Lampe wird gefragt …</p>
+      <ul id="connections-list" class="connections"></ul>
+      <p id="connections-summary" class="small"></p>
+      <p id="connections-busy" class="muted waiting" hidden></p>
+      <p id="connections-error" class="error" role="alert" hidden></p>
+      <div class="dialog-actions">
         <button type="submit" class="btn primary">Fertig</button>
       </div>
     </form>
@@ -135,6 +155,7 @@
   <div id="light-menu" class="menu light-menu" role="menu" hidden>
     <button type="button" role="menuitem" data-action="rename">Umbenennen</button>
     <button type="button" role="menuitem" data-action="share">Teilen (QR-Code)</button>
+    <button type="button" role="menuitem" data-action="connections">Verbundene Apps …</button>
     <button type="button" role="menuitem" data-action="remove" class="danger">Entfernen</button>
   </div>
 

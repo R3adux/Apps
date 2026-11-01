@@ -37,6 +37,8 @@ export const injectedApi = `
     rename: function (id, name) { return call('rename', [id, name]); },
     share: function (id) { return call('share', [id]); },
     remove: function (id) { return call('remove', [id]); },
+    connections: function (id) { return call('connections', [id]); },
+    removeConnection: function (id, index) { return call('removeConnection', [id, index]); },
     discover: function (code) { return call('discover', [code]); },
     wake: function () { return call('wake', []); },
     subscribe: function (onEvent, onStatus) {

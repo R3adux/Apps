@@ -131,3 +131,58 @@ test('all lamps shared with one code are added by another Licht in one go', { ti
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('a lamp that is full: sharing says so, an old connection can be removed, then sharing works', { timeout: 240_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'licht-full-'));
+  const port = 5100 + Math.floor(Math.random() * 90);
+  const lamp = startVirtualLight(dir, port, { fabrics: 5 }); // like the SMART+ A60: at most 5 apps
+  const hubs = [];
+  try {
+    const code = await lamp.ready;
+    Environment.default.vars.set('storage.path', join(dir, 'hubs'));
+    const pc = new LightHub({ id: 'pc-full', label: 'Licht PC' });
+    hubs.push(pc);
+    await pc.start();
+    assert.match(pc.connectionLabel, /^Licht PC [0-9A-F]{4}$/);
+    const id = await pc.commission({ code, ip: `127.0.0.1:${port}` });
+
+    // Old installations of the phone app take the other four places.
+    const old = [];
+    for (let i = 0; i < 4; i++) {
+      const phone = new LightHub({ id: `phone-old-${i}`, label: 'Licht Handy' });
+      await phone.start();
+      await phone.add({ code: (await pc.share([id])).code });
+      old.push(phone.connectionLabel);
+      await phone.close();
+    }
+    assert.equal(new Set(old).size, 4, 'every installation has its own name');
+
+    // Sharing again: the lamp takes no further app – a clear message instead of a code that cannot work.
+    await assert.rejects(pc.share([id]), (err) => err.status === 409 && err.lampFull && /schon mit 5 Apps verbunden/.test(err.message));
+    await assert.rejects(pc.share(), (err) => err.lampFull === true); // all lamps
+
+    // The list of connected apps: Licht itself first, then the old phones, with their names.
+    const before = await pc.connections(id);
+    assert.equal(before.supported, 5);
+    assert.deepEqual(before.entries.map((e) => [e.own, e.name]), [[true, pc.connectionLabel], ...old.map((name) => [false, name])]);
+    await assert.rejects(pc.removeConnection(id, before.entries[0].index), (err) => err.status === 409); // not itself
+
+    const after = await pc.removeConnection(id, before.entries[1].index);
+    assert.deepEqual(after.entries.map((e) => e.name), [pc.connectionLabel, ...old.slice(1)]);
+
+    // Now there is room again: a new phone adds the lamp with a shared code.
+    const shared = await pc.share([id]);
+    assert.deepEqual(shared.full, []);
+    const phone = new LightHub({ id: 'phone-new', label: 'Licht Handy' });
+    hubs.push(phone);
+    await phone.start();
+    const result = await phone.add({ code: shared.code });
+    assert.equal(result.added.length, 1);
+    await phone.update(result.added[0], { on: true });
+    await waitFor(() => lamp.state.onOff === true, 'lamp switched by the new phone');
+  } finally {
+    for (const hub of hubs) await hub.close().catch(() => {});
+    lamp.child.kill('SIGKILL');
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

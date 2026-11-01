@@ -3,9 +3,9 @@
 // Platform-independent: the server (Node) and the Android app both use it.
 
 import { Environment, Logger, Minutes, Seconds } from '@matter/main';
-import { BasicInformation, ColorControl, GeneralCommissioning, LevelControl, OnOff } from '@matter/main/clusters';
+import { BasicInformation, ColorControl, GeneralCommissioning, LevelControl, OnOff, OperationalCredentials } from '@matter/main/clusters';
 import { Invoke, PeerSet } from '@matter/main/protocol';
-import { NodeId, Status, StatusResponseError, ValidationError } from '@matter/main/types';
+import { FabricIndex, NodeId, Status, StatusResponseError, ValidationError } from '@matter/main/types';
 import { CommissioningController } from '@project-chip/matter.js';
 import { NodeStates } from '@project-chip/matter.js/device';
 import { applyChange, normalizeChange, toCommands, toLight } from './model.js';
@@ -23,6 +23,10 @@ export const COMMISSIONING_TIMEOUT = Minutes(2);
 // A lamp from a share code is already in the network with its window open: it is found within seconds.
 const SHARED_LAMP_SEARCH = Seconds(30);
 const SHARE_TIMEOUT_MS = 15_000;
+// Removing another app's connection: a lamp may first try to reach that app (seen: about 11 s), then answers.
+const REMOVE_CONNECTION_MS = 15_000;
+const REMOVE_CHECKS = 6;
+const REMOVE_CHECK_GAP_MS = 5000;
 
 // Responsiveness. Without an answer after COMMAND_TIMEOUT_MS, the lamp counts as unreachable
 // (OFFLINE_COMMAND_TIMEOUT_MS for a lamp that has been away for a while already).
@@ -78,9 +82,38 @@ function withTimeout(promise, ms, message, status = 503) {
 const alreadyInLicht = (err) => err?.name === 'DeviceAlreadyCommissionedToThisFabricError'
   || /already commissioned into this fabric|device-already-commissioned-to-this-fabric/i.test(String(err?.message ?? err));
 
+// Four characters that tell this installation apart from others (its key is created on the first start).
+function installationTag(publicKey) {
+  let hash = 2166136261;
+  for (const byte of publicKey ?? []) hash = Math.imul(hash ^ byte, 16777619) >>> 0;
+  return hash.toString(16).toUpperCase().padStart(8, '0').slice(0, 4);
+}
+
+// Makers of apps a lamp may be connected to (Matter vendor IDs), for the list of connected apps.
+const VENDORS = new Map([
+  [0x6006, 'Google'], [0x1349, 'Apple'], [0x1217, 'Amazon Alexa'], [0x110a, 'Samsung SmartThings'],
+]);
+
+/** What a lamp's connection (Matter "fabric") is called in the list of connected apps. */
+export function connectionName({ label, vendorId }) {
+  if (label) return label;
+  if (VENDORS.has(vendorId)) return VENDORS.get(vendorId);
+  if (vendorId >= 0xfff1 && vendorId <= 0xfff4) return 'App ohne Namen (z. B. ein älteres Licht)';
+  return `App ohne Namen (Hersteller ${vendorId})`;
+}
+
+const LAMP_FULL = (used, supported) =>
+  `Die Lampe ist schon mit ${used} Apps verbunden – mehr als ${supported} geht bei ihr nicht. `
+  + 'Auf dem Gerät, das sie teilt, im Lampen-Menü ⋮ unter „Verbundene Apps“ eine nicht mehr benutzte Verbindung '
+  + 'entfernen (z. B. von einer früheren Installation), dann neu teilen.';
+
 // Turns matter.js commissioning errors into hints a person can act on.
 export function commissioningError(err) {
   const text = String(err?.message ?? err);
+  const full = /Commissioned fabrics \((\d+)\) exceed supported fabrics \((\d+)\)/i.exec(text);
+  if (full || err?.name === 'MaximumCommissionedFabricsReachedError') {
+    return Object.assign(new Error(LAMP_FULL(full?.[1] ?? 'zu vielen', full?.[2] ?? 'das')), { status: 409, lampFull: true });
+  }
   let hint;
   if (/No commissionable device was discovered/i.test(text)) {
     hint = 'Lampe nicht gefunden. Ist sie im Kopplungsmodus (Teilen-Code aus der anderen App oder frisch zurückgesetzt)? '
@@ -123,6 +156,10 @@ export class LightHub {
       adminFabricLabel: this.label,
     });
     await this.#controller.start();
+    // The name lamps show for this Licht in their list of connected apps: with a short tag of this installation,
+    // so two phones (or an old installation) can be told apart. Lamps take it over when they connect next.
+    this.connectionLabel = `${this.label} ${installationTag(this.#controller.fabric.rootPublicKey)}`.slice(0, 32);
+    await this.#controller.updateFabricLabel(this.connectionLabel).catch((err) => logger.warn('Fabric label', err));
     await Promise.all(this.#controller.getCommissionedNodes().map((nodeId) =>
       this.#attach(nodeId).catch((err) => logger.warn(`Could not load lamp ${nodeId}`, err))));
     this.#startWatchdog();
@@ -417,6 +454,9 @@ export class LightHub {
     const results = await Promise.all(lamps.map(async (lamp) => {
       try {
         if (!this.#isConnected(lamp)) this.#restartConnecting(lamp, RESTART_ON_TAP_MS);
+        // A lamp that takes no further app: no use opening it – say so instead.
+        const room = await withTimeout(this.#room(lamp), SHARE_TIMEOUT_MS, UNREACHABLE);
+        if (room && room.used >= room.supported) return { lamp, full: room };
         const { manualPairingCode, qrPairingCode } = await withTimeout(
           lamp.node.openEnhancedCommissioningWindow(SHARE_WINDOW_SECONDS), SHARE_TIMEOUT_MS, UNREACHABLE,
         );
@@ -427,7 +467,15 @@ export class LightHub {
       }
     }));
     const shared = results.filter((r) => r.qr);
+    const full = results.filter((r) => r.full);
     if (!shared.length) {
+      if (full.length === results.length) {
+        const message = lamps.length === 1
+          ? LAMP_FULL(full[0].full.used, full[0].full.supported).replace('Auf dem Gerät, das sie teilt, im', 'Im')
+          : 'Alle Lampen sind schon mit so vielen Apps verbunden, wie sie können. Im Lampen-Menü ⋮ unter '
+            + '„Verbundene Apps“ nicht mehr benutzte Verbindungen entfernen, dann neu teilen.';
+        throw Object.assign(new Error(message), { status: 409, lampFull: true });
+      }
       const message = lamps.length === 1 ? UNREACHABLE : 'Keine Lampe antwortet gerade. Sind sie eingeschaltet?';
       throw Object.assign(new Error(message), { status: 503 });
     }
@@ -435,7 +483,8 @@ export class LightHub {
       code: shareCode(shared),
       manual: shared.length === 1 ? shared[0].manual : undefined,
       lamps: shared.map((r) => r.lamp.name),
-      skipped: results.filter((r) => !r.qr).map((r) => r.lamp.name),
+      skipped: results.filter((r) => !r.qr && !r.full).map((r) => r.lamp.name),
+      full: full.map((r) => r.lamp.name), // take no further app (see connections)
       validMinutes: SHARE_WINDOW_SECONDS / 60,
     };
   }
@@ -515,6 +564,84 @@ export class LightHub {
       const unsubscribe = () => lamp.node.events.stateChanged.off(listener);
       lamp.node.events.stateChanged.on(listener);
     });
+  }
+
+  /**
+   * The apps a lamp is connected to (Matter "fabrics") – a lamp takes only a few, often 5. Licht itself is one
+   * of them (own: true). Returns { supported, entries: [{ index, name, label, vendorId, own }] }.
+   */
+  async connections(id) {
+    const lamp = this.#lamp(id);
+    const creds = this.#credentials(lamp);
+    this.wake({ ids: [lamp.id] });
+    const [fabrics, own, supported] = await withTimeout(Promise.all([
+      creds.attributes.fabrics.get(true, false), // all of them, not only Licht's own
+      creds.attributes.currentFabricIndex.get(true),
+      creds.attributes.supportedFabrics.get(true),
+    ]), COMMAND_TIMEOUT_MS, UNREACHABLE);
+    const entries = (fabrics ?? []).map((fabric) => ({
+      index: Number(fabric.fabricIndex),
+      name: connectionName(fabric),
+      label: fabric.label ?? '',
+      vendorId: Number(fabric.vendorId),
+      own: fabric.fabricIndex === own,
+    }));
+    entries.sort((a, b) => Number(b.own) - Number(a.own) || a.index - b.index);
+    return { supported: Number(supported ?? entries.length), entries };
+  }
+
+  /** Removes another app's connection from a lamp (frees a place). Returns connections(id) afterwards. */
+  async removeConnection(id, index) {
+    const lamp = this.#lamp(id);
+    const { entries } = await this.connections(id);
+    const entry = entries.find((e) => e.index === Number(index));
+    if (!entry) throw Object.assign(new Error('Diese Verbindung gibt es nicht mehr.'), { status: 404 });
+    if (entry.own) {
+      throw Object.assign(new Error('Das ist Licht selbst. Um die Lampe aus Licht zu nehmen: „Entfernen“ im Lampen-Menü.'), { status: 409 });
+    }
+    let result;
+    try {
+      result = await withTimeout(
+        this.#credentials(lamp).commands.removeFabric({ fabricIndex: FabricIndex(entry.index) }), REMOVE_CONNECTION_MS, UNREACHABLE,
+      );
+    } catch (err) {
+      // A lamp can be busy for a while first (it tries to reach the removed app one last time) and answer late:
+      // look whether the connection is gone.
+      const gone = await this.#connectionGone(id, entry.index);
+      if (gone) return gone;
+      throw err;
+    }
+    if (result?.statusCode !== undefined && result.statusCode !== OperationalCredentials.NodeOperationalCertStatus.Ok) {
+      throw Object.assign(new Error(`Die Lampe hat das Entfernen abgelehnt (Code ${result.statusCode}).`), { status: 502 });
+    }
+    logger.info(`Lamp ${lamp.id}: connection ${entry.index} (${entry.name}) removed`);
+    return this.connections(id);
+  }
+
+  // connections(id) once the connection with this index is no longer there; undefined if it stays.
+  async #connectionGone(id, index) {
+    for (let attempt = 0; attempt < REMOVE_CHECKS; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, REMOVE_CHECK_GAP_MS));
+      const now = await this.connections(id).catch(() => undefined);
+      if (now && !now.entries.some((e) => e.index === index)) return now;
+    }
+    return undefined;
+  }
+
+  #credentials(lamp) {
+    const creds = lamp.node.getRootClusterClient(OperationalCredentials.Cluster);
+    if (!creds) throw Object.assign(new Error('Diese Lampe zeigt ihre Verbindungen nicht an.'), { status: 409 });
+    return creds;
+  }
+
+  // How many apps the lamp has and takes, or undefined when it does not say.
+  async #room(lamp) {
+    const creds = lamp.node.getRootClusterClient(OperationalCredentials.Cluster);
+    if (!creds) return undefined;
+    const [used, supported] = await Promise.all([
+      creds.attributes.commissionedFabrics.get(true), creds.attributes.supportedFabrics.get(true),
+    ]);
+    return used === undefined || supported === undefined ? undefined : { used: Number(used), supported: Number(supported) };
   }
 
   /** Stores the name on the lamp itself (Matter "node label"), so every app shows the same name. */

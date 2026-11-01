@@ -33,6 +33,7 @@ namespace Licht.Fenster
             RenameCommand = Command.Async(() => _main.Rename(this));
             ShareCommand = Command.Async(() => _main.Share(this));
             RemoveCommand = Command.Async(() => _main.Remove(this));
+            ConnectionsCommand = Command.Async(() => _main.ShowConnections(this));
             UpdatePresets();
         }
 
@@ -122,6 +123,7 @@ namespace Licht.Fenster
         public ICommand RenameCommand { get; }
         public ICommand ShareCommand { get; }
         public ICommand RemoveCommand { get; }
+        public ICommand ConnectionsCommand { get; }
 
         /// <summary>The user is adjusting this lamp right now (or a change is still on its way).</summary>
         public bool IsBusy => !_sender.Idle || _clock.UtcNow - _touched < QuietAfterInput;

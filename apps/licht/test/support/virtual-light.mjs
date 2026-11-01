@@ -5,7 +5,9 @@ import { ExtendedColorLightDevice } from '@matter/main/devices/extended-color-li
 import { ColorControlServer } from '@matter/main/behaviors/color-control';
 import { LevelControlServer } from '@matter/main/behaviors/level-control';
 
-Logger.level = 'error';
+Logger.level = process.env.LAMP_LOG ?? 'error'; // LAMP_LOG=info shows what the lamp does
+// Messages go to stderr: stdout is for the JSON lines.
+for (const level of ['log', 'info', 'warn', 'error', 'debug']) console[level] = (...args) => process.stderr.write(`${args.join(' ')}\n`);
 const env = Environment.default;
 env.vars.set('storage.path', process.env.STORE);
 const port = Number(process.env.PORT ?? 5540);
@@ -17,6 +19,8 @@ const node = await ServerNode.create({
   commissioning: { passcode: 20202021, discriminator: 3840 },
   // Like many real lamps: subscriptions are not resumed after a restart.
   ...(process.env.NO_RESUME === '1' ? { subscriptions: { persistenceEnabled: false } } : {}),
+  // Real lamps take only a few apps (the A60: 5).
+  ...(process.env.FABRICS ? { operationalCredentials: { supportedFabrics: Number(process.env.FABRICS) } } : {}),
   productDescription: { name: 'Virtual A60', deviceType: ExtendedColorLightDevice.deviceType },
   basicInformation: {
     vendorName: 'Test', productName: 'Virtuelle A60', vendorId: VendorId(0xfff1), productId: 0x8000,

@@ -231,8 +231,19 @@ namespace Licht.Fenster
             }
             catch (HubException e)
             {
-                share.Failed(e.Message);
+                // A lamp that takes no further app: offer the way out right there.
+                var lamp = ids?.Length == 1 && e.Status == 409 ? Lamps.FirstOrDefault(l => l.Id == ids[0]) : null;
+                share.Failed(e.Message, lamp == null ? null : new Action(() => _ = ShowConnections(lamp)));
             }
+            await shown;
+        }
+
+        /// <summary>"Verbundene Apps" of a lamp.</summary>
+        internal async Task ShowConnections(LampViewModel lamp)
+        {
+            var connections = new ConnectionsViewModel(_hub, _ui, lamp.Id, lamp.Name);
+            var shown = _ui.ShowConnections(connections);
+            await connections.Load();
             await shown;
         }
 

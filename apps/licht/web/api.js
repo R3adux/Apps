@@ -85,6 +85,28 @@ export class DemoApi {
     };
   }
 
+  async connections(id) {
+    await sleep(500);
+    const light = this.#find(id);
+    if (!light.online) throw new ApiError('Die Lampe antwortet gerade nicht. Ist sie eingeschaltet?', 503);
+    this.apps ??= new Map();
+    if (!this.apps.has(id)) {
+      this.apps.set(id, [
+        { index: 1, name: 'Licht Handy 3F2A', own: true }, { index: 2, name: 'SMART+', own: false },
+        { index: 3, name: 'Licht Handy 08E1', own: false }, { index: 4, name: 'Licht PC 63C4', own: false },
+        { index: 5, name: 'App ohne Namen (z. B. ein älteres Licht)', own: false },
+      ]);
+    }
+    return { supported: 5, entries: structuredClone(this.apps.get(id)) };
+  }
+
+  async removeConnection(id, index) {
+    await this.connections(id);
+    await sleep(1200);
+    this.apps.set(id, this.apps.get(id).filter((e) => e.index !== index || e.own));
+    return this.connections(id);
+  }
+
   async remove(id) {
     this.state = this.state.filter((l) => l.id !== id);
     return { ok: true, localOnly: false };

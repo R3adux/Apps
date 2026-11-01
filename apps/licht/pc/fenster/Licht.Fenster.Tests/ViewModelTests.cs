@@ -319,4 +319,85 @@ public class ViewModelTests
             Directory.Delete(dir, true);
         }
     }
+
+    private static string ConnectionsJson(int supported, params (int Index, string Name, bool Own)[] entries) =>
+        Json.Write(new Dictionary<string, object?>
+        {
+            ["supported"] = supported,
+            ["entries"] = entries.Select(e => (object?)new Dictionary<string, object?> { ["index"] = e.Index, ["name"] = e.Name, ["own"] = e.Own }).ToList(),
+        });
+
+    [Fact]
+    public async Task Connected_apps_are_listed_and_an_old_one_removed()
+    {
+        var main = Window(Lights.Json("1", "Flur", on: true));
+        main.Lamps[0].ConnectionsCommand.Execute(null);
+        var connections = _ui.Connections!;
+        Assert.True(connections.Loading);
+        Assert.Equal("Verbundene Apps – „Flur“", connections.Title);
+        _hub.Last("connections").Reply.SetResult(Json.Parse(ConnectionsJson(5,
+            (1, "Licht PC 3F2A", true), (2, "SMART+", false), (3, "Licht Handy 08E1", false), (4, "Licht Handy 63C4", false), (5, "Google", false))));
+        Assert.False(connections.Loading);
+        Assert.Equal(new[] { "Licht PC 3F2A", "SMART+", "Licht Handy 08E1", "Licht Handy 63C4", "Google" }, connections.Items.Select(i => i.Name));
+        Assert.True(connections.IsFull);
+        Assert.StartsWith("5 von 5 Plätzen belegt. Die Lampe ist voll", connections.SummaryText);
+
+        connections.RemoveCommand.Execute(connections.Items[0]); // Licht itself: nothing happens
+        Assert.Empty(_ui.Confirms);
+
+        _ui.Answers.Enqueue(false);
+        connections.RemoveCommand.Execute(connections.Items[2]); // not sure after all
+        Assert.DoesNotContain(_hub.Calls, c => c.Method == "removeConnection");
+
+        _ui.Answers.Enqueue(true);
+        connections.RemoveCommand.Execute(connections.Items[2]);
+        Assert.Equal("„Licht Handy 08E1“ entfernen?", _ui.Confirms.Last().Title);
+        Assert.True(connections.Busy);
+        var call = _hub.Last("removeConnection");
+        Assert.Equal(("1", 3), ((string)call.Args[0]!, (int)call.Args[1]!));
+        call.Reply.SetResult(Json.Parse(ConnectionsJson(5, (1, "Licht PC 3F2A", true), (2, "SMART+", false), (4, "Licht Handy 63C4", false), (5, "Google", false))));
+        await Task.Yield();
+        Assert.False(connections.Busy || connections.IsFull);
+        Assert.Equal("4 von 5 Plätzen belegt.", connections.SummaryText);
+        Assert.Equal(("„Licht Handy 08E1“ wurde von „Flur“ entfernt.", true), _ui.Toasts.Last());
+    }
+
+    [Fact]
+    public void A_failed_removal_is_shown_in_the_dialog()
+    {
+        var main = Window(Lights.Json("1", "Flur", on: true));
+        main.Lamps[0].ConnectionsCommand.Execute(null);
+        var connections = _ui.Connections!;
+        _hub.Last("connections").Reply.SetResult(Json.Parse(ConnectionsJson(5, (1, "Licht PC", true), (2, "SMART+", false))));
+        _ui.Answers.Enqueue(true);
+        connections.RemoveCommand.Execute(connections.Items[1]);
+        _hub.Last("removeConnection").Reply.SetException(new HubException("Die Lampe antwortet gerade nicht. Ist sie eingeschaltet?", 503));
+        Assert.Equal("Die Lampe antwortet gerade nicht. Ist sie eingeschaltet?", connections.Error);
+        Assert.False(connections.Busy);
+        Assert.Equal(2, connections.Items.Count);
+    }
+
+    [Fact]
+    public void Sharing_a_full_lamp_leads_to_its_connected_apps()
+    {
+        var main = Window(Lights.Json("1", "Flur", on: true));
+        main.Lamps[0].ShareCommand.Execute(null);
+        var share = _ui.Share!;
+        _hub.Last("share").Reply.SetException(new HubException("Die Lampe ist schon mit 5 Apps verbunden …", 409));
+        Assert.True(share.CanOpenConnections);
+        share.ConnectionsCommand.Execute(null);
+        Assert.True(_ui.DialogClosed.Task.IsCompleted || _ui.Connections != null);
+        Assert.Equal("Flur", _ui.Connections!.LampName);
+        Assert.Equal("connections", _hub.Calls.Last().Method);
+    }
+
+    [Fact]
+    public void Shared_codes_say_which_lamps_are_full()
+    {
+        var main = Window(Lights.Json("1", "Flur", on: true), Lights.Json("2", "Küche", on: true));
+        main.ShareAllCommand.Execute(null);
+        _hub.Last("share").Reply.SetResult(Json.Parse("""{"code":"MT:Y.K90AFN00KA0648G00","lamps":["Flur"],"skipped":[],"full":["Küche"],"validMinutes":15}"""));
+        Assert.StartsWith("Nicht dabei, weil schon mit so vielen Apps verbunden, wie sie kann: Küche.", _ui.Share!.FullText);
+        Assert.False(_ui.Share.CanOpenConnections);
+    }
 }

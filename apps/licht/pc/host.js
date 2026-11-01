@@ -13,7 +13,7 @@ export async function startHost(options = {}) {
   const environment = Environment.default;
   environment.vars.set('storage.path', dataDir);
   await removeStaleLocks(dataDir);
-  const hub = new LightHub({ environment });
+  const hub = new LightHub({ environment, label: 'Licht PC' });
   await hub.start();
   let closed = false;
   return {

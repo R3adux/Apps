@@ -444,9 +444,12 @@ $('#scan-btn').addEventListener('click', () => {
 
 let sharedCode = null;
 let shareRequest = 0; // a late answer to an earlier share must not replace the current one
+let shareFullLamp = null; // sharing failed because this lamp is full: the button leads to its connected apps
 async function share(ids, title) {
   const request = ++shareRequest;
   const dialog = $('#share-dialog');
+  shareFullLamp = null;
+  $('#share-connections').hidden = true;
   $('#share-title').textContent = title;
   $('#share-preparing').hidden = false;
   $('#share-ready').hidden = true;
@@ -455,13 +458,18 @@ async function share(ids, title) {
   sharedCode = null;
   dialog.showModal();
   try {
-    const { code, manual, lamps = [], skipped = [], validMinutes } = await api.share(ids);
+    const result = await api.share(ids);
+    const { code, manual, lamps = [], skipped = [], validMinutes } = result;
     if (request !== shareRequest) return;
     sharedCode = code;
     $('#share-qr').innerHTML = qrSvg(code);
     $('#share-lamps').textContent = lamps.length === 1 ? `Enthält: ${lamps[0]}` : `Enthält ${lamps.length} Lampen: ${lamps.join(', ')}`;
     $('#share-skipped').textContent = `Nicht dabei, weil gerade nicht erreichbar: ${skipped.join(', ')}. Später noch einmal teilen.`;
     $('#share-skipped').hidden = !skipped.length;
+    const { full = [] } = result;
+    $('#share-full').textContent = `Nicht dabei, weil schon mit so vielen Apps verbunden, wie sie kann: ${full.join(', ')}. `
+      + 'Im Lampen-Menü ⋮ unter „Verbundene Apps“ eine nicht mehr benutzte App entfernen, dann neu teilen.';
+    $('#share-full').hidden = !full.length;
     $('#share-valid').textContent = `Gültig für ${validMinutes} Minuten. Jede Lampe lässt sich mit diesem Code einmal hinzufügen.`;
     $('#share-manual').hidden = !manual;
     $('#share-code').textContent = manual ? formatCode(manual) : '';
@@ -471,8 +479,89 @@ async function share(ids, title) {
     if (request !== shareRequest) return;
     $('#share-error').textContent = err.message;
     $('#share-error').hidden = false;
+    shareFullLamp = err.status === 409 && typeof ids === 'string' ? lights.find((l) => l.id === ids) : null;
+    $('#share-connections').hidden = !shareFullLamp;
   } finally {
     if (request === shareRequest) $('#share-preparing').hidden = true;
+  }
+}
+
+$('#share-connections').addEventListener('click', () => {
+  const lamp = shareFullLamp;
+  $('#share-dialog').close();
+  if (lamp) showConnections(lamp);
+});
+
+/* ---------- Connected apps of a lamp ---------- */
+
+let connectionsLamp = null;
+async function showConnections(light) {
+  connectionsLamp = light;
+  $('#connections-title').textContent = `Verbundene Apps – „${light.name}“`;
+  $('#connections-list').innerHTML = '';
+  $('#connections-summary').textContent = '';
+  $('#connections-error').hidden = true;
+  $('#connections-busy').hidden = true;
+  $('#connections-loading').hidden = false;
+  $('#connections-dialog').showModal();
+  try {
+    showConnectionList(light, await api.connections(light.id));
+  } catch (err) {
+    if (connectionsLamp !== light) return;
+    $('#connections-error').textContent = err.message;
+    $('#connections-error').hidden = false;
+  } finally {
+    if (connectionsLamp === light) $('#connections-loading').hidden = true;
+  }
+}
+
+function showConnectionList(light, { supported, entries }) {
+  if (connectionsLamp !== light) return;
+  const list = $('#connections-list');
+  list.innerHTML = '';
+  for (const entry of entries) {
+    const li = document.createElement('li');
+    li.className = entry.own ? 'own' : '';
+    li.innerHTML = '<div class="who"><div class="name"></div><div class="detail small muted"></div></div>';
+    li.querySelector('.name').textContent = entry.name;
+    li.querySelector('.detail').textContent = entry.own ? 'Dieses Licht – hier wird nichts entfernt' : 'kann die Lampe steuern';
+    if (!entry.own) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'btn remove';
+      button.textContent = 'Entfernen';
+      button.addEventListener('click', () => removeConnection(light, entry));
+      li.append(button);
+    }
+    list.append(li);
+  }
+  const full = supported > 0 && entries.length >= supported;
+  $('#connections-summary').textContent = `${entries.length} von ${supported} Plätzen belegt.`
+    + (full ? ' Die Lampe ist voll: Ein weiteres Gerät kann sie erst aufnehmen, wenn hier eine nicht mehr benutzte App entfernt wird.' : '');
+  $('#connections-summary').className = `small ${full ? 'accent' : 'muted'}`;
+}
+
+async function removeConnection(light, entry) {
+  const sure = await ask({
+    title: `„${entry.name}“ entfernen?`,
+    text: `Diese App kann „${light.name}“ danach nicht mehr steuern. Benutzt du sie noch, musst du die Lampe dort neu hinzufügen.`,
+    okLabel: 'Entfernen',
+    danger: true,
+  });
+  if (!sure) return;
+  for (const button of document.querySelectorAll('#connections-list button')) button.disabled = true;
+  $('#connections-error').hidden = true;
+  $('#connections-busy').textContent = `„${entry.name}“ wird entfernt … das kann bis zu einer halben Minute dauern.`;
+  $('#connections-busy').hidden = false;
+  try {
+    showConnectionList(light, await api.removeConnection(light.id, entry.index));
+    toast(`„${entry.name}“ wurde von „${light.name}“ entfernt.`, 'ok');
+  } catch (err) {
+    $('#connections-error').textContent = err.message;
+    $('#connections-error').hidden = false;
+    for (const button of document.querySelectorAll('#connections-list button')) button.disabled = false;
+  } finally {
+    $('#connections-busy').hidden = true;
   }
 }
 
@@ -551,6 +640,7 @@ async function lightAction(action, id) {
       render();
     }
     if (action === 'share') await share(id, `„${light.name}“ teilen`);
+    if (action === 'connections') await showConnections(light);
     if (action === 'remove') {
       const sure = await ask({
         title: `„${light.name}“ entfernen?`,

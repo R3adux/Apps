@@ -16,6 +16,8 @@ function fakeHub() {
     async share(ids) { calls.push(['share', ids]); return { code: 'MT:X' }; },
     async remove(id) { calls.push(['remove', id]); return { localOnly: true }; },
     async discover() { return [{ name: 'A', shortDiscriminator: 15, discriminator: 3840 }, { name: 'B', shortDiscriminator: 1, discriminator: 300 }]; },
+    async connections(id) { calls.push(['connections', id]); return { supported: 5, entries: [] }; },
+    async removeConnection(id, index) { calls.push(['removeConnection', id, index]); return { supported: 5, entries: [] }; },
     wake() { calls.push(['wake']); },
     refresh() { calls.push(['refresh']); },
   };
@@ -34,6 +36,8 @@ test('calls reach the hub with checked arguments', async () => {
   await callHub(hub, 'share', [['7', 8]]);
   await callHub(hub, 'wake');
   await callHub(hub, 'refresh');
+  assert.deepEqual(await callHub(hub, 'connections', [7]), { supported: 5, entries: [] });
+  await callHub(hub, 'removeConnection', ['7', 3]);
   assert.deepEqual(hub.calls, [
     ['update', '7', { on: true }],
     ['add', { code: '34970112332', ip: undefined, wifi: undefined }],
@@ -41,6 +45,7 @@ test('calls reach the hub with checked arguments', async () => {
     ['remove', '7'],
     ['share', undefined], ['share', ['7']], ['share', ['7', '8']],
     ['wake'], ['refresh'],
+    ['connections', '7'], ['removeConnection', '7', 3],
   ]);
 });
 
@@ -48,6 +53,8 @@ test('bad calls are refused with a status', async () => {
   const hub = fakeHub();
   await assert.rejects(callHub(hub, 'update', [{}, { on: true }]), (err) => err.status === 400);
   await assert.rejects(callHub(hub, 'gibtsnicht'), (err) => err.status === 400 && /Unbekannte Funktion/.test(err.message));
+  await assert.rejects(callHub(hub, 'removeConnection', ['7']), (err) => err.status === 400);
+  await assert.rejects(callHub(hub, 'removeConnection', ['7', 0]), (err) => err.status === 400);
 });
 
 test('network search marks the lamps a code belongs to', async () => {

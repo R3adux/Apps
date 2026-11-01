@@ -13,9 +13,12 @@ export async function waitFor(check, what, timeout = 15_000) {
   }
 }
 
-export function startVirtualLight(dir, port, { resume = true } = {}) {
+export function startVirtualLight(dir, port, { resume = true, fabrics } = {}) {
   const child = spawn(process.execPath, [new URL('./virtual-light.mjs', import.meta.url).pathname], {
-    env: { ...process.env, STORE: join(dir, 'lamp'), PORT: String(port), NO_RESUME: resume ? '0' : '1' },
+    env: {
+      ...process.env, STORE: join(dir, 'lamp'), PORT: String(port), NO_RESUME: resume ? '0' : '1',
+      ...(fabrics ? { FABRICS: String(fabrics) } : {}),
+    },
     stdio: ['ignore', 'pipe', 'inherit'],
   });
   const lamp = { child, state: {}, ready: null };

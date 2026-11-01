@@ -51,6 +51,7 @@
                 <ContextMenu>
                   <MenuItem Header="Umbenennen" Command="{Binding RenameCommand}" />
                   <MenuItem Header="Teilen (QR-Code)" Command="{Binding ShareCommand}" />
+                  <MenuItem Header="Verbundene Apps …" Command="{Binding ConnectionsCommand}" />
                   <Separator />
                   <MenuItem Header="Entfernen" Command="{Binding RemoveCommand}" Style="{StaticResource DangerItem}" />
                 </ContextMenu>

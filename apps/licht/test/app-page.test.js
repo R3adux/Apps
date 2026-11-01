@@ -62,7 +62,7 @@ function readDrawnQr(svg) {
   return readQr(rgba, pixels, pixels);
 }
 
-test('phone app: share as QR code, add all lamps by scanning one', { skip, timeout: 120_000 }, async () => {
+test('phone app: share as QR code, add all lamps by scanning one, remove an old connected app', { skip, timeout: 120_000 }, async () => {
   const dir = mkdtempSync(join(tmpdir(), 'licht-page-'));
   const lamp = 'MT:Y.K90AFN00KA0648G00';
   const shared = shareCode([
@@ -108,6 +108,19 @@ test('phone app: share as QR code, add all lamps by scanning one', { skip, timeo
     assert.equal(await page.locator('.light').count(), lampsBefore + 2);
     assert.equal(await page.evaluate(() => document.querySelector('#scan-video').srcObject), null); // camera off
     assert.equal(await page.locator('#add-dialog').evaluate((d) => d.open), false);
+
+    // Connected apps of a lamp: the list, and an old entry removed (frees a place for another device).
+    await page.locator('.light-more').first().click();
+    await page.click('#light-menu [data-action="connections"]');
+    await page.waitForSelector('#connections-list li');
+    assert.equal(await page.locator('#connections-list li').count(), 5);
+    assert.match(await page.locator('#connections-summary').innerText(), /^5 von 5 Plätzen belegt\. Die Lampe ist voll/);
+    assert.equal(await page.locator('#connections-list li.own button').count(), 0); // Licht itself stays
+    await page.locator('#connections-list li', { hasText: 'Licht Handy 08E1' }).locator('button').click();
+    await page.click('#ask-ok');
+    await page.waitForFunction(() => document.querySelectorAll('#connections-list li').length === 4, null, { timeout: 10_000 });
+    assert.match(await page.locator('#connections-summary').innerText(), /^4 von 5 Plätzen belegt\.$/);
+    assert.match(await page.locator('#toast').innerText(), /„Licht Handy 08E1“ wurde von „.+“ entfernt\./);
     assert.deepEqual(errors, []);
   } finally {
     await browser.close();
