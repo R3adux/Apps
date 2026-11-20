@@ -79,8 +79,8 @@ Licht bleibt nach dem Schließen im Hintergrund bereit, damit es beim nächsten 
 Widget) sofort schaltet. Dabei schläft es: Nach einer Minute im Hintergrund hält es keine Abos zu den Lampen
 mehr, die Lampen wecken das Handy also nicht. Android zeigt dafür evtl. eine stille Benachrichtigung
 „Licht ist bereit“ (ab Android 13 nur, wenn Licht Benachrichtigungen zeigen darf).
-Im Menü **⋯ → Messwerte** steht, wie lange der Start gedauert hat und wie schnell die Lampen aus dem
-Schlaf antworten.
+Im Menü **⋯ → Messwerte** steht, wie lange der Start gedauert hat. „Aus dem Schlaf messen“ lässt Licht
+kurz einschlafen, fragt jede Lampe einmal und verbindet danach alles wieder – mit den Zeiten dafür.
 
 ## Lampe hinzufügen
 

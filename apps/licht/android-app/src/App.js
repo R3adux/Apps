@@ -41,7 +41,7 @@ function loadHub() {
   }
   return loading;
 }
-const hubReady = () => loadHub().then(({ ready }) => ready);
+export const hubReady = () => loadHub().then(({ ready }) => ready);
 
 let pageConnected = false;
 let selfTestStarted = false;
@@ -94,7 +94,9 @@ export default function App({ processStart }) {
       const stale = Boolean(backgroundSince) && Date.now() - backgroundSince > STALE_AFTER_MS;
       backgroundSince = 0;
       hubReady().then((hub) => {
+        const wasAsleep = hub.asleep;
         hub.resume({ checkAll: stale });
+        console.log(`LICHT_APP back in front (was asleep: ${wasAsleep})`); // checked by the emulator test
         send(eventScript({ type: 'lights', lights: hub.lights() }));
       }, () => {});
     });

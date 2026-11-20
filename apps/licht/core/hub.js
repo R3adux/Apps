@@ -45,6 +45,8 @@ const CLOSE_TIMEOUT_MS = 3000;
 const KEEPALIVE_SECONDS = 30;
 // Phone app in the background this long: Licht sleeps (see pause). A quick switch to another app keeps all as it is.
 const SLEEP_AFTER_MS = 60_000;
+// Measurement (phone app): how long to wait for the lamps to be connected again after sleeping.
+const RECONNECT_WAIT_MS = 30_000;
 // Every WATCHDOG_MS: reconnect lamps that are away (matter.js itself only retries every 10 minutes)
 // and ask lamps that have not been heard of for LIVENESS_MS whether they are still there.
 const WATCHDOG_MS = 10_000;
@@ -144,6 +146,8 @@ export class LightHub {
   #paused = false;
   #asleep = false;
   #fallingAsleep = Promise.resolve();
+  #pauseOver = Promise.resolve('resumed'); // see pause
+  #endPause = () => {};
 
   constructor({ environment = Environment.default, label = 'Licht', id = 'licht' } = {}) {
     this.environment = environment;
@@ -182,14 +186,22 @@ export class LightHub {
    * sleepAfter: Licht sleeps – the lamps' subscriptions end, so the lamps stop sending updates and do not
    * wake the phone every half minute. A command still works while asleep: it goes straight to that one
    * lamp, without a subscription. resume() connects everything again.
+   *
+   * Returns a promise for the end of this pause: 'asleep' once Licht slept, 'resumed' when resume() came
+   * first. The phone app's background task waits for it – React Native only runs timers (the countdown
+   * here) while such a task runs. Calling pause() again while paused keeps the running countdown.
    */
   pause({ sleepAfter = SLEEP_AFTER_MS } = {}) {
+    if (this.#paused) return this.#pauseOver;
     this.#paused = true;
     clearInterval(this.#watchdog);
     this.#watchdog = undefined;
-    clearTimeout(this.#sleepTimer);
-    this.#sleepTimer = setTimeout(() => this.#sleep(), sleepAfter);
-    this.#sleepTimer.unref?.();
+    this.#pauseOver = new Promise((resolve) => {
+      this.#endPause = resolve;
+      this.#sleepTimer = setTimeout(() => this.#sleep().then(() => resolve('asleep')), sleepAfter);
+      this.#sleepTimer.unref?.();
+    });
+    return this.#pauseOver;
   }
 
   /** In the background (see pause) – and maybe already asleep. */
@@ -219,6 +231,7 @@ export class LightHub {
   resume({ checkAll = false } = {}) {
     this.#paused = false;
     clearTimeout(this.#sleepTimer);
+    this.#endPause('resumed');
     this.#startWatchdog();
     if (this.#asleep) {
       this.#asleep = false;
@@ -233,34 +246,39 @@ export class LightHub {
   }
 
   /**
-   * For the measurement in the phone app: how long each lamp takes to answer after Licht slept and had no
-   * connection left at all – like a tap on the widget after a long time. A small read; no lamp switches.
-   * Returns [{ name, ms } | { name, error }]; connects everything again afterwards.
+   * For the measurement in the phone app – exactly what happens in the background and after it, nothing
+   * more: Licht falls asleep, asks each lamp once (like a tap on the widget while asleep; a small read, no
+   * lamp switches), then wakes up and waits until every lamp is connected again.
+   * Returns [{ name, ms | error, back }]: ms – answer while asleep; back – ms until connected again, or
+   * null if not within RECONNECT_WAIT_MS.
    */
   async measureFromSleep() {
+    const lamps = [...this.#lamps.values()].filter((l) => l.ready);
     await this.#sleep();
     const results = [];
-    for (const lamp of [...this.#lamps.values()].filter((l) => l.ready)) {
-      try {
-        await this.#peer(lamp).disconnect(new Error('measurement')); // no connection left, as after a long time
-      } catch {
-        // there was none
-      }
+    for (const lamp of lamps) {
       const started = Date.now();
       try {
         await withTimeout(lamp.clients.onOff.attributes.onOff.get(true), COMMAND_TIMEOUT_MS, UNREACHABLE);
         results.push({ name: lamp.name, ms: Date.now() - started });
       } catch (err) {
-        results.push({ name: lamp.name, error: err.message });
+        results.push({ name: lamp.name, error: err?.message ?? String(err) });
       }
     }
     this.resume();
-    return results;
+    const resumed = Date.now();
+    const back = new Map();
+    while (back.size < lamps.length && Date.now() - resumed < RECONNECT_WAIT_MS) {
+      for (const lamp of lamps) if (!back.has(lamp) && this.#isConnected(lamp)) back.set(lamp, Date.now() - resumed);
+      if (back.size < lamps.length) await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+    return results.map((result, i) => ({ ...result, back: back.get(lamps[i]) ?? null }));
   }
 
   async close() {
     clearInterval(this.#watchdog);
     clearTimeout(this.#sleepTimer);
+    this.#endPause('resumed');
     for (const lamp of this.#lamps.values()) {
       clearTimeout(lamp.emitTimer);
       clearTimeout(lamp.offlineTimer);

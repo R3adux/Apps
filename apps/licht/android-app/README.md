@@ -9,6 +9,7 @@ wie unter Windows) und braucht keinen PC. Bedienung und Einrichtung: siehe [../R
 | `src/bridge.js` | Verbindung Oberfläche ↔ Matter-Steuerung (`window.LichtApi`, Aufrufe wie in `../core/api.js`) |
 | `src/web-html.js` | Die Oberfläche aus `../web/` als eine Seite – erzeugt von `scripts/build-web.mjs`, nicht im Repository |
 | `android/app/src/main/java/de/r3adux/licht/LichtService.kt` | Hält Licht im Hintergrund bereit (Vordergrund-Dienst); im Hintergrund schläft der Lampen-Teil (`core/hub.js` pause) |
+| `android/app/src/main/java/de/r3adux/licht/LichtTaskService.kt`, `src/background.js` | Nach dem Verlassen der App: eine kurze Hintergrund-Aufgabe, in der React Native die Zeitgeber laufen lässt (sonst hält es sie im Hintergrund an) – Licht schläft nach einer Minute ein, dann endet sie |
 | `src/timings.js` | Zeiten des Starts für „Messwerte“ |
 | `src/selftest.js` | Selbsttest im Emulator (`licht://selftest?…`, siehe `.github/scripts/licht-android-selftest.sh`) |
 | `scripts/probe.mjs` | Schnelltest: der Matter-Teil wie in der App verpackt, gegen eine simulierte Lampe |

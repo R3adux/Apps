@@ -512,11 +512,13 @@ function timingRows(list, rows) {
 
 async function showTimings() {
   $('#timings-wake').innerHTML = '';
+  $('#timings-errors').hidden = true;
   $('#timings-busy').hidden = true;
   $('#timings-dialog').showModal();
   try {
     const t = await api.timings();
-    const from = t.processStart ?? t.jsStart;
+    // Android may have started the process long before (to keep Licht ready): then count from the app's start.
+    const from = t.processStart && t.jsStart - t.processStart < 60_000 ? t.processStart : t.jsStart;
     const at = (time) => (time ? seconds(time - from) : '–');
     timingRows($('#timings-list'), [
       ['App gestartet um', new Date(from).toLocaleTimeString('de-DE')],
@@ -536,9 +538,18 @@ $('#timings-measure').addEventListener('click', async () => {
   const button = $('#timings-measure');
   button.disabled = true;
   $('#timings-busy').hidden = false;
+  $('#timings-errors').hidden = true;
+  timingRows($('#timings-wake'), []);
   try {
     const results = await api.measure();
-    timingRows($('#timings-wake'), results.map((r) => [r.name, r.error ? 'nicht erreichbar' : seconds(r.ms)]));
+    timingRows($('#timings-wake'), results.length ? results.flatMap((r) => [
+      [`${r.name}: Antwort im Schlaf`, r.error ? 'keine' : seconds(r.ms)],
+      [`${r.name}: wieder verbunden`, r.back === null ? 'nicht in 30 s' : `nach ${seconds(r.back)}`],
+    ]) : [['Noch keine Lampen', '–']]);
+    // The exact message helps to find out what went wrong.
+    const errors = results.filter((r) => r.error).map((r) => `${r.name}: ${r.error}`);
+    $('#timings-errors').textContent = errors.join('\n');
+    $('#timings-errors').hidden = !errors.length;
   } catch (err) {
     timingRows($('#timings-wake'), [['Fehler', err.message]]);
   } finally {

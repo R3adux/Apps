@@ -3,7 +3,8 @@
 # simulated lamp on the host (10.0.2.2 from inside the emulator) and waits for the result.
 #
 # Must pass: the app starts, its Matter hub starts, the page talks to the hub (bridge), the app does
-# not crash and the lamp accepts the setup code. The last commissioning step finds the lamp again via
+# not crash, the lamp accepts the setup code, and in the background Licht falls asleep after a minute
+# and wakes up again when the app is opened. The last commissioning step finds the lamp again via
 # mDNS – multicast does not cross the emulator's network (NAT), so that step cannot work here and
 # only gives a notice. On a real phone in the home network it works (covered by the probe tests too).
 set -u
@@ -33,6 +34,25 @@ if [ -n "$started" ]; then
   done
 fi
 
+# In the background: React Native stops the app's timers there, except during Licht's background task
+# (LichtTaskService). With it, Licht falls asleep after a minute; back in front, it wakes up again.
+asleep=""
+back=""
+if [ -n "$started" ] && ! crashed; then
+  adb shell input keyevent KEYCODE_HOME
+  for _ in $(seq 1 60); do
+    if log | grep -q "LICHT_BACKGROUND asleep"; then asleep=1; break; fi
+    crashed && break
+    sleep 2
+  done
+  adb shell am start -W -n de.r3adux.licht/.MainActivity
+  for _ in $(seq 1 15); do
+    if log | grep -q "LICHT_APP back in front"; then back=1; break; fi
+    crashed && break
+    sleep 2
+  done
+fi
+
 echo "----- App log -----"
 # Only the interesting lines: our markers, warnings/errors, commissioning and connection steps.
 log | grep -E "LICHT_|AndroidRuntime|FATAL|WARN|ERROR|commissioning step|Reconnect|Resolving|IpServiceStatus|Operational address|Connected" \
@@ -42,6 +62,9 @@ cat "$LAMP_LOG" || true
 
 if crashed; then echo "Selbsttest: die App ist abgestürzt"; exit 1; fi
 if [ -z "$started" ]; then echo "Selbsttest: App, Matter-Teil oder Seite starten nicht (siehe LICHT_-Zeilen)"; exit 1; fi
+if [ -z "$asleep" ]; then echo "Selbsttest: Licht schläft im Hintergrund nicht ein (keine Zeile LICHT_BACKGROUND asleep)"; exit 1; fi
+if [ -z "$back" ]; then echo "Selbsttest: Licht kommt nach dem Hintergrund nicht wieder nach vorn"; exit 1; fi
+echo "Hintergrund: Licht ist nach einer Minute eingeschlafen und wieder aufgewacht."
 if ! log | grep -q "commissioning step 15.1"; then
   case "$result" in
     *"LICHT_SELFTEST OK"*) ;;

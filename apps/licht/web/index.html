@@ -130,10 +130,12 @@
       <h2>Messwerte</h2>
       <p class="muted small">Zeiten ab dem Start der App:</p>
       <ul id="timings-list" class="timings"></ul>
-      <p class="muted small">Aus dem Schlaf: Licht schläft, wenn die App eine Minute im Hintergrund war. So schnell
-        reagiert dann eine Lampe – wie später beim Widget. Die Lampen schalten dabei nicht.</p>
+      <p class="muted small">Aus dem Schlaf: Licht schläft, wenn die App eine Minute im Hintergrund war. Beim Messen
+        schläft Licht kurz ein, fragt jede Lampe einmal (so schnell reagiert sie dann – wie später beim Widget) und
+        verbindet danach alles wieder. Die Lampen schalten dabei nicht.</p>
       <ul id="timings-wake" class="timings"></ul>
-      <p id="timings-busy" class="muted waiting" hidden>Licht schläft ein und fragt dann jede Lampe …</p>
+      <p id="timings-errors" class="muted small timings-errors" hidden></p>
+      <p id="timings-busy" class="muted waiting" hidden>Licht schläft ein, fragt jede Lampe und verbindet dann alles wieder …</p>
       <div class="dialog-actions">
         <button type="button" id="timings-measure" class="btn ghost">Aus dem Schlaf messen</button>
         <button type="submit" class="btn primary">Fertig</button>

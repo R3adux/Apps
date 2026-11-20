@@ -24,14 +24,17 @@ test('in the background Licht sleeps, a command still switches at once, back in 
     const id = await hub.commission({ code, ip: `127.0.0.1:${port}` });
     await waitFor(() => hub.light(id).status === 'online', 'connected');
 
-    // A quick switch to another app: nothing changes.
-    hub.pause();
+    // A quick switch to another app: nothing changes. The pause ends with 'resumed' (the phone app's
+    // background task waits for this).
+    const quick = hub.pause();
     assert.equal(hub.paused, true);
+    assert.equal(hub.pause(), quick, 'pausing again keeps the running countdown');
     hub.resume();
+    assert.equal(await quick, 'resumed');
     assert.deepEqual([hub.paused, hub.asleep], [false, false]);
 
     // Longer in the background: asleep, the lamp is no longer subscribed.
-    hub.pause({ sleepAfter: 0 });
+    assert.equal(await hub.pause({ sleepAfter: 0 }), 'asleep');
     await waitFor(() => hub.asleep && hub.light(id).status !== 'online', 'asleep');
 
     // A command while asleep (like a tap on the widget): switches at once, without subscribing again.
@@ -43,10 +46,12 @@ test('in the background Licht sleeps, a command still switches at once, back in 
     await new Promise((r) => setTimeout(r, 1500));
     assert.notEqual(hub.light(id).status, 'online', 'no subscription while asleep');
 
-    // The measurement shown in the app: time to reach each lamp from sleep, with no connection left.
+    // The measurement shown in the app: asleep, ask the lamp, wake up – and the lamp is connected again.
     const [result] = await hub.measureFromSleep();
     assert.equal(typeof result.ms, 'number', JSON.stringify(result));
-    console.log(`TIMING from sleep (no connection left): ${result.ms} ms; command while asleep: ${ms} ms`);
+    assert.equal(typeof result.back, 'number', JSON.stringify(result));
+    assert.equal(hub.light(id).status, 'online');
+    console.log(`TIMING from sleep: answer ${result.ms} ms, connected again after ${result.back} ms; command while asleep: ${ms} ms`);
 
     // Back in front: connected again, live updates flow.
     hub.resume();

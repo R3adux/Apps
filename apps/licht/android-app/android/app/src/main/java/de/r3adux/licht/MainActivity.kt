@@ -55,6 +55,8 @@ class MainActivity : ReactActivity() {
   override fun onStop() {
     multicastLock?.takeIf { it.isHeld }?.release()
     super.onStop()
+    // Gives Licht's JavaScript the minute it needs to fall asleep (see LichtTaskService).
+    LichtTaskService.start(this)
   }
 
   override fun onResume() {

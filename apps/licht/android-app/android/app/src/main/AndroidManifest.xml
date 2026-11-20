@@ -48,5 +48,9 @@
         android:name=".LichtService"
         android:exported="false"
         android:foregroundServiceType="connectedDevice" />
+      <!-- Runs Licht's JavaScript for a minute after the app was left, so it can fall asleep. -->
+      <service
+        android:name=".LichtTaskService"
+        android:exported="false" />
     </application>
 </manifest>

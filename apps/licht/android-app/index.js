@@ -5,6 +5,8 @@ import './src/report-errors';
 import './src/no-internet-checks';
 import { AppRegistry } from 'react-native';
 import App from './src/App';
+import { background } from './src/background';
 import { name as appName } from './app.json';
 
 AppRegistry.registerComponent(appName, () => App);
+AppRegistry.registerHeadlessTask('LichtBackground', () => background);
