@@ -35,6 +35,7 @@ class MainActivity : ReactActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    android.util.Log.i("Licht", "LICHT_ACTIVITY created") // the emulator test log shows how often
     val wifi = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
     multicastLock = wifi.createMulticastLock("licht-matter").apply { setReferenceCounted(false) }
     @Suppress("DEPRECATION")

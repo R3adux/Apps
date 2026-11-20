@@ -44,6 +44,8 @@ function loadHub() {
 const hubReady = () => loadHub().then(({ ready }) => ready);
 
 let pageConnected = false;
+let selfTestStarted = false;
+let mounts = 0;
 
 // When the lamps are connected (first one, all of them) – for "Messwerte".
 function markConnected(hub) {
@@ -99,10 +101,12 @@ export default function App({ processStart }) {
     return () => subscription.remove();
   }, []);
 
-  // Automated test (CI): licht://selftest?code=…&ip=…
+  // Automated test (CI): licht://selftest?code=…&ip=…  – once per start of the app.
   useEffect(() => {
+    console.log(`LICHT_APP shown (${++mounts}. time in this process)`); // shown in the emulator test log
     Linking.getInitialURL().then((url) => {
-      if (!url?.startsWith('licht://selftest')) return;
+      if (!url?.startsWith('licht://selftest') || selfTestStarted) return;
+      selfTestStarted = true;
       loadHub().then(({ matter, hub, ready }) => matter.selfTest(hub, ready, url), () => {});
     });
   }, []);
