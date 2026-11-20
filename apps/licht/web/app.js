@@ -492,6 +492,61 @@ $('#share-connections').addEventListener('click', () => {
   if (lamp) showConnections(lamp);
 });
 
+/* ---------- Messwerte (app only): how fast Licht starts and switches from sleep ---------- */
+
+let pageShownAt = 0; // the lamps (as last seen) are on screen
+
+const seconds = (ms) => (ms < 1000 ? `${Math.round(ms)} ms`
+  : `${(ms / 1000).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} s`);
+
+function timingRows(list, rows) {
+  list.innerHTML = '';
+  for (const [label, value] of rows) {
+    const li = document.createElement('li');
+    li.innerHTML = '<span></span><span></span>';
+    li.firstChild.textContent = label;
+    li.lastChild.textContent = value;
+    list.append(li);
+  }
+}
+
+async function showTimings() {
+  $('#timings-wake').innerHTML = '';
+  $('#timings-busy').hidden = true;
+  $('#timings-dialog').showModal();
+  try {
+    const t = await api.timings();
+    const from = t.processStart ?? t.jsStart;
+    const at = (time) => (time ? seconds(time - from) : '–');
+    timingRows($('#timings-list'), [
+      ['App gestartet um', new Date(from).toLocaleTimeString('de-DE')],
+      ['Lampen zu sehen', at(pageShownAt)],
+      ['Matter-Teil geladen', at(t.matterLoaded)],
+      ['… davon nur das Laden', t.matterLoaded ? seconds(t.matterLoaded - t.matterLoading) : '–'],
+      ['Lampen aus dem Speicher', at(t.hubStarted)],
+      ['Erste Lampe verbunden', at(t.firstLampConnected)],
+      ['Alle Lampen verbunden', at(t.allLampsConnected)],
+    ]);
+  } catch (err) {
+    timingRows($('#timings-list'), [['Fehler', err.message]]);
+  }
+}
+
+$('#timings-measure').addEventListener('click', async () => {
+  const button = $('#timings-measure');
+  button.disabled = true;
+  $('#timings-busy').hidden = false;
+  try {
+    const results = await api.measure();
+    timingRows($('#timings-wake'), results.map((r) => [r.name, r.error ? 'nicht erreichbar' : seconds(r.ms)]));
+  } catch (err) {
+    timingRows($('#timings-wake'), [['Fehler', err.message]]);
+  } finally {
+    button.disabled = false;
+    $('#timings-busy').hidden = true;
+  }
+});
+
 /* ---------- Connected apps of a lamp ---------- */
 
 let connectionsLamp = null;
@@ -681,6 +736,7 @@ document.addEventListener('click', (e) => {
     else toast('Noch keine Lampen zum Teilen.');
   }
   if (action === 'refresh') reload();
+  if (action === 'timings') showTimings();
 });
 
 $('#menu-btn').addEventListener('click', (e) => {
@@ -702,8 +758,10 @@ $('#all-toggle').addEventListener('click', allToggle);
 
 async function start() {
   $('#demo-badge').hidden = !demo;
+  $('[data-action="timings"]').hidden = !api.timings;
   lights = loadCache();
   render();
+  pageShownAt = Date.now();
   if (!lights.length) setStatus('Lade Lampen …');
   const [, infoResult] = await Promise.all([reload(), api.info().catch(() => info)]);
   info = infoResult;

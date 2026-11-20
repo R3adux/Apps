@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Small white lamp for the notification of the background service (Android tints it itself). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+  <path
+      android:fillColor="#FFFFFFFF"
+      android:pathData="M12,2C8.13,2 5,5.13 5,9c0,2.38 1.19,4.47 3,5.74V17h8v-2.26c1.81,-1.27 3,-3.36 3,-5.74 0,-3.87 -3.13,-7 -7,-7zM9,19h6v1.5c0,0.83 -0.67,1.5 -1.5,1.5h-3C9.67,22 9,21.33 9,20.5V19z" />
+</vector>

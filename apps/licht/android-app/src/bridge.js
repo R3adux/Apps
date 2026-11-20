@@ -40,6 +40,8 @@ export const injectedApi = `
     connections: function (id) { return call('connections', [id]); },
     removeConnection: function (id, index) { return call('removeConnection', [id, index]); },
     discover: function (code) { return call('discover', [code]); },
+    timings: function () { return call('timings', []); },
+    measure: function () { return call('measure', []); },
     wake: function () { return call('wake', []); },
     subscribe: function (onEvent, onStatus) {
       listeners.add(onEvent);
@@ -51,9 +53,14 @@ export const injectedApi = `
 true;
 `;
 
-/** Runs a call from the page against the hub. Returns a promise of the result. */
-export async function handleCall(hub, method, args) {
+/**
+ * Runs a call from the page against the hub. Returns a promise of the result.
+ * timings: when the app's start steps happened (src/timings.js), for "Messwerte".
+ */
+export async function handleCall(hub, method, args, { timings } = {}) {
   if (method === 'info') return { ble: false };
+  if (method === 'timings') return { ...timings, asleep: hub.asleep };
+  if (method === 'measure') return hub.measureFromSleep();
   return require('../../core/api.js').callHub(hub, method, args); // loaded with matter.js by now
 }
 

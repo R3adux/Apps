@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Process
+import android.os.SystemClock
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
@@ -22,8 +24,14 @@ class MainActivity : ReactActivity() {
 
   override fun getMainComponentName(): String = "Licht"
 
+  // The page shows how long starting took (menu "Messwerte"): it needs to know when the app's process began.
   override fun createReactActivityDelegate(): ReactActivityDelegate =
-      DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
+      object : DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled) {
+        override fun getLaunchOptions(): Bundle = Bundle().apply {
+          val processAge = SystemClock.elapsedRealtime() - Process.getStartElapsedRealtime()
+          putDouble("processStart", (System.currentTimeMillis() - processAge).toDouble())
+        }
+      }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -33,6 +41,8 @@ class MainActivity : ReactActivity() {
     val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) WifiManager.WIFI_MODE_FULL_LOW_LATENCY
                else WifiManager.WIFI_MODE_FULL_HIGH_PERF
     lowLatencyLock = wifi.createWifiLock(mode, "licht-fast").apply { setReferenceCounted(false) }
+    // Keeps Licht ready when the app is closed (see LichtService).
+    LichtService.start(this)
   }
 
   // Multicast only while Licht is visible: in the background it would keep the WLAN chip awake.

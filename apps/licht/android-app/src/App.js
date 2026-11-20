@@ -3,6 +3,7 @@ import { AppState, Linking, StatusBar, StyleSheet } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { eventScript, handleCall, injectedApi, replyScript } from './bridge';
+import { mark, timings } from './timings';
 import webHtml from './web-html';
 
 const BACKGROUND = '#101217';
@@ -24,11 +25,15 @@ let loading = null;
 function loadHub() {
   if (!loading) {
     loading = new Promise((resolve) => setTimeout(resolve, 0)).then(() => {
-      const since = Date.now();
+      mark('matterLoading');
       const matter = require('./matter');
-      console.log(`LICHT_TIMING matter.js loaded in ${Date.now() - since} ms`);
+      mark('matterLoaded');
+      console.log(`LICHT_TIMING matter.js loaded in ${timings.matterLoaded - timings.matterLoading} ms`);
       const hub = matter.createHub();
-      const ready = hub.start().then(() => hub);
+      const ready = hub.start().then(() => {
+        mark('hubStarted');
+        return hub;
+      });
       ready.catch((err) => console.error('Licht: Matter konnte nicht starten', err));
       return { matter, hub, ready };
     });
@@ -40,9 +45,17 @@ const hubReady = () => loadHub().then(({ ready }) => ready);
 
 let pageConnected = false;
 
-export default function App() {
+// When the lamps are connected (first one, all of them) – for "Messwerte".
+function markConnected(hub) {
+  const lights = hub.lights();
+  if (lights.some((l) => l.status === 'online')) mark('firstLampConnected');
+  if (lights.length && lights.every((l) => l.status === 'online')) mark('allLampsConnected');
+}
+
+export default function App({ processStart }) {
   const webView = useRef(null);
   const send = (script) => webView.current?.injectJavaScript(script);
+  if (processStart && !timings.processStart) timings.processStart = processStart;
 
   // Live updates from the lamps → page (this also starts loading matter.js, after the first frame)
   useEffect(() => {
@@ -52,6 +65,7 @@ export default function App() {
       if (gone) return;
       unsubscribe = hub.subscribe((event) => {
         send(eventScript(event.type === 'lights' ? { type: 'lights', lights: hub.lights() } : event));
+        markConnected(hub);
       });
     }, () => {});
     return () => {
@@ -63,6 +77,11 @@ export default function App() {
   // Back from the background: make sure the lamps still answer (and reconnect those that do not)
   // instead of waiting for a timeout. After a quick switch only lamps that are not connected are retried.
   useEffect(() => {
+    // The app was closed while Licht stayed ready in the background (LichtService) and is opened again:
+    // everything connected again.
+    hubReady().then((hub) => {
+      if (hub.paused && AppState.currentState === 'active') hub.resume();
+    }, () => {});
     let backgroundSince = 0;
     const subscription = AppState.addEventListener('change', (state) => {
       if (state !== 'active') {
@@ -102,7 +121,7 @@ export default function App() {
     }
     try {
       const hub = await hubReady();
-      const result = await handleCall(hub, method, args ?? []);
+      const result = await handleCall(hub, method, args ?? [], { timings });
       send(replyScript(id, true, result));
     } catch (err) {
       send(replyScript(id, false, { message: err?.message ?? String(err), status: err?.status ?? 500 }));

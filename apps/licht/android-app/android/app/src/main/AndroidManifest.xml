@@ -10,6 +10,9 @@
     <!-- Scanning QR codes (lamp packaging, lamps shared by another Licht). Android asks the first time. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- Keeps Licht ready in the background (LichtService), so it switches at once. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 
     <application
       android:name=".MainApplication"
@@ -41,5 +44,9 @@
             <data android:scheme="licht" />
         </intent-filter>
       </activity>
+      <service
+        android:name=".LichtService"
+        android:exported="false"
+        android:foregroundServiceType="connectedDevice" />
     </application>
 </manifest>

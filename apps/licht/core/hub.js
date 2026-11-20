@@ -43,6 +43,8 @@ const CLOSE_TIMEOUT_MS = 3000;
 // Asked of the lamps as longest reporting interval (they report at least this often, also when
 // nothing changed). Each report counts as a sign of life; we also check ourselves:
 const KEEPALIVE_SECONDS = 30;
+// Phone app in the background this long: Licht sleeps (see pause). A quick switch to another app keeps all as it is.
+const SLEEP_AFTER_MS = 60_000;
 // Every WATCHDOG_MS: reconnect lamps that are away (matter.js itself only retries every 10 minutes)
 // and ask lamps that have not been heard of for LIVENESS_MS whether they are still there.
 const WATCHDOG_MS = 10_000;
@@ -138,6 +140,10 @@ export class LightHub {
   #lamps = new Map(); // id → lamp entry
   #listeners = new Set();
   #watchdog;
+  #sleepTimer;
+  #paused = false;
+  #asleep = false;
+  #fallingAsleep = Promise.resolve();
 
   constructor({ environment = Environment.default, label = 'Licht', id = 'licht' } = {}) {
     this.environment = environment;
@@ -171,24 +177,90 @@ export class LightHub {
     this.#watchdog.unref?.();
   }
 
-  /** Phone app in the background: no checking and reconnecting while nobody looks (saves battery). */
-  pause() {
+  /**
+   * Phone app in the background. Right away: no checking and reconnecting while nobody looks. After
+   * sleepAfter: Licht sleeps – the lamps' subscriptions end, so the lamps stop sending updates and do not
+   * wake the phone every half minute. A command still works while asleep: it goes straight to that one
+   * lamp, without a subscription. resume() connects everything again.
+   */
+  pause({ sleepAfter = SLEEP_AFTER_MS } = {}) {
+    this.#paused = true;
     clearInterval(this.#watchdog);
     this.#watchdog = undefined;
+    clearTimeout(this.#sleepTimer);
+    this.#sleepTimer = setTimeout(() => this.#sleep(), sleepAfter);
+    this.#sleepTimer.unref?.();
+  }
+
+  /** In the background (see pause) – and maybe already asleep. */
+  get paused() {
+    return this.#paused;
+  }
+
+  /** Sleeping (see pause). */
+  get asleep() {
+    return this.#asleep;
+  }
+
+  #sleep() {
+    if (this.#asleep) return this.#fallingAsleep;
+    this.#asleep = true;
+    logger.info('Sleeping: subscriptions end');
+    this.#fallingAsleep = Promise.all([...this.#lamps.values()].map((lamp) =>
+      lamp.node.disconnect().catch((err) => logger.debug(`Lamp ${lamp.id}: ending the subscription failed`, err))));
+    return this.#fallingAsleep;
   }
 
   /**
-   * Phone app in the foreground again. After a longer time away the lamps are checked right away
-   * (see refresh), otherwise only lamps that are not connected are retried.
+   * Phone app in the foreground again. After sleeping, all lamps are connected again; after a longer
+   * time away the lamps are checked right away (see refresh); otherwise only lamps that are not connected
+   * are retried.
    */
   resume({ checkAll = false } = {}) {
+    this.#paused = false;
+    clearTimeout(this.#sleepTimer);
     this.#startWatchdog();
+    if (this.#asleep) {
+      this.#asleep = false;
+      this.#fallingAsleep.then(() => {
+        if (this.#asleep) return; // asleep again in the meantime
+        for (const lamp of this.#lamps.values()) if (!lamp.node.isConnected) lamp.node.connect();
+      });
+      return;
+    }
     if (checkAll) this.refresh();
     else this.wake();
   }
 
+  /**
+   * For the measurement in the phone app: how long each lamp takes to answer after Licht slept and had no
+   * connection left at all – like a tap on the widget after a long time. A small read; no lamp switches.
+   * Returns [{ name, ms } | { name, error }]; connects everything again afterwards.
+   */
+  async measureFromSleep() {
+    await this.#sleep();
+    const results = [];
+    for (const lamp of [...this.#lamps.values()].filter((l) => l.ready)) {
+      try {
+        await this.#peer(lamp).disconnect(new Error('measurement')); // no connection left, as after a long time
+      } catch {
+        // there was none
+      }
+      const started = Date.now();
+      try {
+        await withTimeout(lamp.clients.onOff.attributes.onOff.get(true), COMMAND_TIMEOUT_MS, UNREACHABLE);
+        results.push({ name: lamp.name, ms: Date.now() - started });
+      } catch (err) {
+        results.push({ name: lamp.name, error: err.message });
+      }
+    }
+    this.resume();
+    return results;
+  }
+
   async close() {
     clearInterval(this.#watchdog);
+    clearTimeout(this.#sleepTimer);
     for (const lamp of this.#lamps.values()) {
       clearTimeout(lamp.emitTimer);
       clearTimeout(lamp.offlineTimer);
@@ -241,6 +313,7 @@ export class LightHub {
    * force: also renew connections that look fine.
    */
   wake({ force = false, ids } = {}) {
+    if (this.#asleep) return; // see pause
     const now = Date.now();
     for (const lamp of this.#lamps.values()) {
       if (ids && !ids.includes(lamp.id)) continue;
@@ -761,7 +834,7 @@ export class LightHub {
       logger.debug('Dropping connection failed', err);
     }
     lamp.lastWake = Date.now();
-    lamp.node.triggerReconnect();
+    if (!this.#asleep) lamp.node.triggerReconnect(); // asleep: the next command connects by itself
     this.#changed(lamp);
   }
 
@@ -769,6 +842,7 @@ export class LightHub {
   // A lamp just switched on again would stay unreachable for that long: restart the attempt, so it
   // begins again with quick retries.
   #restartConnecting(lamp, minGap) {
+    if (this.#asleep) return; // no attempts running while asleep; a command connects by itself
     // Away for long (unplugged): try less often.
     minGap ??= Date.now() - lamp.lostAt > LONG_AWAY_MS ? RESTART_LONG_AWAY_MS : RESTART_CONNECTING_MS;
     if (this.#hasSession(lamp) || Date.now() - lamp.lastRestart < minGap) return;

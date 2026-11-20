@@ -75,6 +75,13 @@ Die Android-App hat ihre eigene Matter-Steuerung eingebaut und funktioniert **oh
 
 Handy und Lampe müssen im selben WLAN sein.
 
+Licht bleibt nach dem Schließen im Hintergrund bereit, damit es beim nächsten Mal (und später über das
+Widget) sofort schaltet. Dabei schläft es: Nach einer Minute im Hintergrund hält es keine Abos zu den Lampen
+mehr, die Lampen wecken das Handy also nicht. Android zeigt dafür evtl. eine stille Benachrichtigung
+„Licht ist bereit“ (ab Android 13 nur, wenn Licht Benachrichtigungen zeigen darf).
+Im Menü **⋯ → Messwerte** steht, wie lange der Start gedauert hat und wie schnell die Lampen aus dem
+Schlaf antworten.
+
 ## Lampe hinzufügen
 
 Im Menü **⋯ → Lampe hinzufügen**:

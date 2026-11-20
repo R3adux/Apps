@@ -24,6 +24,7 @@
           <button type="button" role="menuitem" data-action="add">Lampe hinzufügen</button>
           <button type="button" role="menuitem" data-action="share-all">Alle Lampen teilen (QR-Code)</button>
           <button type="button" role="menuitem" data-action="refresh">Aktualisieren</button>
+          <button type="button" role="menuitem" data-action="timings" hidden>Messwerte</button>
         </div>
       </div>
     </header>
@@ -118,6 +119,23 @@
       <p id="connections-busy" class="muted waiting" hidden></p>
       <p id="connections-error" class="error" role="alert" hidden></p>
       <div class="dialog-actions">
+        <button type="submit" class="btn primary">Fertig</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Messwerte: wie schnell Licht startet und aus dem Schlaf schaltet (nur in der App) -->
+  <dialog id="timings-dialog" class="dialog">
+    <form method="dialog">
+      <h2>Messwerte</h2>
+      <p class="muted small">Zeiten ab dem Start der App:</p>
+      <ul id="timings-list" class="timings"></ul>
+      <p class="muted small">Aus dem Schlaf: Licht schläft, wenn die App eine Minute im Hintergrund war. So schnell
+        reagiert dann eine Lampe – wie später beim Widget. Die Lampen schalten dabei nicht.</p>
+      <ul id="timings-wake" class="timings"></ul>
+      <p id="timings-busy" class="muted waiting" hidden>Licht schläft ein und fragt dann jede Lampe …</p>
+      <div class="dialog-actions">
+        <button type="button" id="timings-measure" class="btn ghost">Aus dem Schlaf messen</button>
         <button type="submit" class="btn primary">Fertig</button>
       </div>
     </form>
