@@ -529,6 +529,7 @@ async function showTimings() {
       ['Erste Lampe verbunden', at(t.firstLampConnected)],
       ['Alle Lampen verbunden', at(t.allLampsConnected)],
       // Android may build the app's window again (then the lamps only show once the Matter part is loaded).
+      ['Zuletzt eingeschlafen', t.lastSleep ? new Date(t.lastSleep).toLocaleTimeString('de-DE') : 'noch nicht'],
       ...(t.windowsBuilt > 1 ? [['Fenster aufgebaut', `${t.windowsBuilt}× (${t.configurationChanges})`]] : []),
     ]);
   } catch (err) {

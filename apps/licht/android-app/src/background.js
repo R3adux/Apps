@@ -3,6 +3,7 @@
 // (core/hub.js pause) or the app is open again, then ends – after that, nothing runs in the background.
 import { AppState } from 'react-native';
 import { hubReady } from './App';
+import { timings } from './timings';
 
 export async function background() {
   console.log(`LICHT_BACKGROUND started (app: ${AppState.currentState})`); // the emulator test checks these lines
@@ -11,4 +12,5 @@ export async function background() {
   if (AppState.currentState === 'active') return;
   const end = await hub.pause();
   console.log(`LICHT_BACKGROUND ${end}`); // 'asleep' or 'resumed'
+  if (end === 'asleep') timings.lastSleep = Date.now(); // shown under "Messwerte"
 }
