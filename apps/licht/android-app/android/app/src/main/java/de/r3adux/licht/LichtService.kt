@@ -34,10 +34,11 @@ class LichtService : Service() {
       }
     } catch (e: Exception) {
       // Android refused (should not happen): Licht works on, only not kept ready in the background.
-      android.util.Log.w("Licht", "Background service refused: $e")
+      android.util.Log.w("Licht", "LICHT_SERVICE refused by Android: $e")
       stopSelf()
       return START_NOT_STICKY
     }
+    android.util.Log.i("Licht", "LICHT_SERVICE running") // the emulator test log shows it
     return START_STICKY
   }
 
@@ -78,7 +79,7 @@ class LichtService : Service() {
         else context.startService(intent)
       } catch (e: Exception) {
         // Not allowed right now (e.g. started from the background): Licht still works, only not kept running.
-        android.util.Log.w("Licht", "Background service not started: $e")
+        android.util.Log.w("Licht", "LICHT_SERVICE not started: $e")
       }
     }
   }

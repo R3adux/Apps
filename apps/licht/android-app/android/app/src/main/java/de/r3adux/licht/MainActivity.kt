@@ -35,7 +35,8 @@ class MainActivity : ReactActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    android.util.Log.i("Licht", "LICHT_ACTIVITY created") // the emulator test log shows how often
+    // The emulator test log shows how often (and whether Android recreated it, savedInstanceState).
+    android.util.Log.i("Licht", "LICHT_ACTIVITY created (restored: ${savedInstanceState != null})")
     val wifi = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
     multicastLock = wifi.createMulticastLock("licht-matter").apply { setReferenceCounted(false) }
     @Suppress("DEPRECATION")
@@ -55,6 +56,7 @@ class MainActivity : ReactActivity() {
   override fun onStop() {
     multicastLock?.takeIf { it.isHeld }?.release()
     super.onStop()
+    android.util.Log.i("Licht", "LICHT_ACTIVITY stopped")
     // Gives Licht's JavaScript the minute it needs to fall asleep (see LichtTaskService).
     LichtTaskService.start(this)
   }
@@ -70,6 +72,7 @@ class MainActivity : ReactActivity() {
   }
 
   override fun onDestroy() {
+    android.util.Log.i("Licht", "LICHT_ACTIVITY destroyed (finishing: $isFinishing, configuration change: $isChangingConfigurations)")
     multicastLock?.takeIf { it.isHeld }?.release()
     lowLatencyLock?.takeIf { it.isHeld }?.release()
     super.onDestroy()

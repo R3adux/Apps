@@ -14,8 +14,15 @@ import com.facebook.react.jstasks.HeadlessJsTaskConfig
  */
 class LichtTaskService : HeadlessJsTaskService() {
 
-  override fun getTaskConfig(intent: Intent?): HeadlessJsTaskConfig =
-    HeadlessJsTaskConfig(TASK, Arguments.createMap(), TIMEOUT_MS, true)
+  override fun getTaskConfig(intent: Intent?): HeadlessJsTaskConfig {
+    android.util.Log.i("Licht", "LICHT_TASK starting") // the emulator test log shows it
+    return HeadlessJsTaskConfig(TASK, Arguments.createMap(), TIMEOUT_MS, true)
+  }
+
+  override fun onDestroy() {
+    android.util.Log.i("Licht", "LICHT_TASK ended")
+    super.onDestroy()
+  }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     super.onStartCommand(intent, flags, startId)
@@ -34,7 +41,7 @@ class LichtTaskService : HeadlessJsTaskService() {
         context.startService(Intent(context, LichtTaskService::class.java))
       } catch (e: Exception) {
         // Not allowed right now: Licht then simply stays awake in the background, as before.
-        android.util.Log.w("Licht", "Background task not started: $e")
+        android.util.Log.w("Licht", "LICHT_TASK not started: $e")
       }
     }
   }

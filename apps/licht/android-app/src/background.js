@@ -5,8 +5,8 @@ import { AppState } from 'react-native';
 import { hubReady } from './App';
 
 export async function background() {
+  console.log(`LICHT_BACKGROUND started (app: ${AppState.currentState})`); // the emulator test checks these lines
   if (AppState.currentState === 'active') return; // back in front before the task even started
-  console.log('LICHT_BACKGROUND started'); // the emulator test checks these lines
   const hub = await hubReady();
   if (AppState.currentState === 'active') return;
   const end = await hub.pause();

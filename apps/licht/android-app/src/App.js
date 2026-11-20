@@ -87,6 +87,7 @@ export default function App({ processStart }) {
     let backgroundSince = 0;
     const subscription = AppState.addEventListener('change', (state) => {
       if (state !== 'active') {
+        if (!backgroundSince) console.log(`LICHT_APP ${state}`); // checked by the emulator test
         if (!backgroundSince) hubReady().then((hub) => hub.pause(), () => {});
         backgroundSince ||= Date.now();
         return;

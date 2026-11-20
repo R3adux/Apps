@@ -38,13 +38,18 @@ fi
 # (LichtTaskService). With it, Licht falls asleep after a minute; back in front, it wakes up again.
 asleep=""
 back=""
+pid() { adb shell pidof de.r3adux.licht | tr -d '\r'; }
+pid_before=""
+pid_after=""
 if [ -n "$started" ] && ! crashed; then
+  pid_before=$(pid)
   adb shell input keyevent KEYCODE_HOME
   for _ in $(seq 1 60); do
     if log | grep -q "LICHT_BACKGROUND asleep"; then asleep=1; break; fi
     crashed && break
     sleep 2
   done
+  pid_after=$(pid)
   adb shell am start -W -n de.r3adux.licht/.MainActivity
   for _ in $(seq 1 15); do
     if log | grep -q "LICHT_APP back in front"; then back=1; break; fi
@@ -57,6 +62,11 @@ echo "----- App log -----"
 # Only the interesting lines: our markers, warnings/errors, commissioning and connection steps.
 log | grep -E "LICHT_|AndroidRuntime|FATAL|WARN|ERROR|commissioning step|Reconnect|Resolving|IpServiceStatus|Operational address|Connected" \
   | grep -v "DEBUG" | cut -c1-400 | tail -150
+echo "----- System about Licht (process, services, native crashes) -----"
+log | grep -E "de\.r3adux\.licht|Fatal signal|HeadlessJs" | grep -v "ReactNativeJS" | cut -c1-300 | tail -60
+echo "----- Crash buffer -----"
+adb logcat -d -b crash | cut -c1-300 | tail -80
+echo "App process before / after the background: ${pid_before:-none} / ${pid_after:-none}"
 echo "----- Simulated lamp -----"
 cat "$LAMP_LOG" || true
 
