@@ -24,16 +24,7 @@ for _ in $(seq 1 45); do
   sleep 2
 done
 
-result=""
-if [ -n "$started" ]; then
-  for _ in $(seq 1 100); do
-    line=$(log | grep -E "LICHT_SELFTEST (OK|FAIL)" | tail -1)
-    if [ -n "$line" ]; then result="$line"; break; fi
-    crashed && break
-    sleep 2
-  done
-fi
-
+# Right after the start (later the emulator sometimes ends the app together with a Google service).
 # In the background: React Native stops the app's timers there, except during Licht's background task
 # (LichtTaskService). With it, Licht falls asleep after a minute; back in front, it wakes up again.
 asleep=""
@@ -58,12 +49,24 @@ if [ -n "$started" ] && ! crashed; then
   done
 fi
 
+result=""
+if [ -n "$started" ]; then
+  for _ in $(seq 1 100); do
+    line=$(log | grep -E "LICHT_SELFTEST (OK|FAIL)" | tail -1)
+    if [ -n "$line" ]; then result="$line"; break; fi
+    crashed && break
+    sleep 2
+  done
+fi
+
 echo "----- App log -----"
 # Only the interesting lines: our markers, warnings/errors, commissioning and connection steps.
 log | grep -E "LICHT_|AndroidRuntime|FATAL|WARN|ERROR|commissioning step|Reconnect|Resolving|IpServiceStatus|Operational address|Connected" \
   | grep -v "DEBUG" | cut -c1-400 | tail -150
 echo "----- System about Licht (process, services, native crashes) -----"
-log | grep -E "de\.r3adux\.licht|Fatal signal|HeadlessJs" | grep -v "ReactNativeJS" | cut -c1-300 | tail -60
+log | grep -E "de\.r3adux\.licht|Fatal signal|HeadlessJs" \
+  | grep -vE "ReactNativeJS|NetworkFactory|ConnectivityService|AiAi|ImeTracker|CoreBackPreview|WindowManagerShell|SoLoader|nativeloader|GraphicsEnvironment" \
+  | cut -c1-300 | tail -80
 echo "----- Crash buffer -----"
 adb logcat -d -b crash | cut -c1-300 | tail -80
 echo "App process before / after the background: ${pid_before:-none} / ${pid_after:-none}"
@@ -72,6 +75,8 @@ cat "$LAMP_LOG" || true
 
 if crashed; then echo "Selbsttest: die App ist abgestürzt"; exit 1; fi
 if [ -z "$started" ]; then echo "Selbsttest: App, Matter-Teil oder Seite starten nicht (siehe LICHT_-Zeilen)"; exit 1; fi
+killed=$(log | grep -E "Killing [0-9]+:de\.r3adux\.licht" | tail -1)
+if [ -n "$killed" ]; then echo "Hinweis: Android hat Licht beendet: $killed"; fi
 if [ -z "$asleep" ]; then echo "Selbsttest: Licht schläft im Hintergrund nicht ein (keine Zeile LICHT_BACKGROUND asleep)"; exit 1; fi
 if [ -z "$back" ]; then echo "Selbsttest: Licht kommt nach dem Hintergrund nicht wieder nach vorn"; exit 1; fi
 echo "Hintergrund: Licht ist nach einer Minute eingeschlafen und wieder aufgewacht."

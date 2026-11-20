@@ -54,10 +54,11 @@ function markConnected(hub) {
   if (lights.length && lights.every((l) => l.status === 'online')) mark('allLampsConnected');
 }
 
-export default function App({ processStart }) {
+export default function App({ processStart, windowsBuilt, configurationChanges }) {
   const webView = useRef(null);
   const send = (script) => webView.current?.injectJavaScript(script);
   if (processStart && !timings.processStart) timings.processStart = processStart;
+  Object.assign(timings, { windowsBuilt, configurationChanges });
 
   // Live updates from the lamps → page (this also starts loading matter.js, after the first frame)
   useEffect(() => {

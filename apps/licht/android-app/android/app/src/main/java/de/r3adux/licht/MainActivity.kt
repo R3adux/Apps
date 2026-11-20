@@ -1,6 +1,7 @@
 package de.r3adux.licht
 
 import android.content.Context
+import android.content.res.Configuration
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
@@ -13,6 +14,14 @@ import com.facebook.react.defaults.DefaultReactActivityDelegate
 
 class MainActivity : ReactActivity() {
 
+  companion object {
+    // For "Messwerte": how often this process built the window, and what changed before the last time
+    // (bits of Configuration.diff, e.g. 0x80000000 = the app's resources).
+    private var windowsBuilt = 0
+    private var configurationChanges = 0
+    private var lastConfiguration: Configuration? = null
+  }
+
   // Android drops multicast packets unless an app holds this lock. Matter needs them (mDNS)
   // to find lamps and to reconnect to them.
   private var multicastLock: WifiManager.MulticastLock? = null
@@ -24,19 +33,27 @@ class MainActivity : ReactActivity() {
 
   override fun getMainComponentName(): String = "Licht"
 
-  // The page shows how long starting took (menu "Messwerte"): it needs to know when the app's process began.
+  // The page shows how long starting took (menu "Messwerte"): it needs to know when the app's process began,
+  // and how often Android built this window (and why it built it again).
   override fun createReactActivityDelegate(): ReactActivityDelegate =
       object : DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled) {
         override fun getLaunchOptions(): Bundle = Bundle().apply {
           val processAge = SystemClock.elapsedRealtime() - Process.getStartElapsedRealtime()
           putDouble("processStart", (System.currentTimeMillis() - processAge).toDouble())
+          putInt("windowsBuilt", windowsBuilt)
+          putString("configurationChanges", "0x" + Integer.toHexString(configurationChanges))
         }
       }
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    // Before super.onCreate, which already starts the page (getLaunchOptions).
+    val configuration = Configuration(resources.configuration)
+    lastConfiguration?.let { configurationChanges = it.diff(configuration) }
+    lastConfiguration = configuration
+    windowsBuilt++
     super.onCreate(savedInstanceState)
-    // The emulator test log shows how often (and whether Android recreated it, savedInstanceState).
-    android.util.Log.i("Licht", "LICHT_ACTIVITY created (restored: ${savedInstanceState != null})")
+    android.util.Log.i("Licht", "LICHT_ACTIVITY created ($windowsBuilt. time, restored: ${savedInstanceState != null}, " +
+        "configuration changes: 0x${Integer.toHexString(configurationChanges)})")
     val wifi = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
     multicastLock = wifi.createMulticastLock("licht-matter").apply { setReferenceCounted(false) }
     @Suppress("DEPRECATION")

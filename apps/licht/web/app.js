@@ -528,6 +528,8 @@ async function showTimings() {
       ['Lampen aus dem Speicher', at(t.hubStarted)],
       ['Erste Lampe verbunden', at(t.firstLampConnected)],
       ['Alle Lampen verbunden', at(t.allLampsConnected)],
+      // Android may build the app's window again (then the lamps only show once the Matter part is loaded).
+      ...(t.windowsBuilt > 1 ? [['Fenster aufgebaut', `${t.windowsBuilt}× (${t.configurationChanges})`]] : []),
     ]);
   } catch (err) {
     timingRows($('#timings-list'), [['Fehler', err.message]]);
