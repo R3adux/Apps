@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { AppState, Linking, StatusBar, StyleSheet } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { initialWindowMetrics, SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { eventScript, handleCall, injectedApi, replyScript } from './bridge';
 import { mark, timings } from './timings';
@@ -141,7 +141,9 @@ export default function App({ processStart, windowsBuilt, configurationChanges }
     || request.url.startsWith('data:');
 
   return (
-    <SafeAreaProvider>
+    // initialMetrics: the screen edges known at once – otherwise the provider shows nothing until Android reports
+    // them, and that report waits while matter.js loads (the lamps only showed after ~7 s on a phone).
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <SafeAreaView style={styles.root} edges={['top', 'bottom', 'left', 'right']}>
         <StatusBar barStyle="light-content" backgroundColor={BACKGROUND} />
         <WebView
